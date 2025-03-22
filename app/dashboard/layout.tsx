@@ -16,7 +16,6 @@ import { BreadcrumbWithContext } from "@/components/breadcrumb";
 import SidebarProvider from "@/context/sidebarProvider";
 import { Toaster } from "@/components/ui/toaster";
 import { Avatar } from "@/components/ui/avatar";
-import { AvatarFallback, AvatarImage } from "@radix-ui/react-avatar";
 import Profile from "@/components/profile";
 
 const poppins = Poppins({
