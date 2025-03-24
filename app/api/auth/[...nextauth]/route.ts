@@ -1,5 +1,3 @@
-import User from "@/models/User";
-import dbConnect from "@/utils/mongodb";
 import NextAuth, { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
@@ -19,18 +17,10 @@ const authOptions: NextAuthOptions = {
 
         const { email, password } = credentials;
 
-        await dbConnect();
-
-        const user = await User.findOne({ email });
-
-        if (user && (await bcrypt.compare(password, user.password))) {
-          return {
-            id: user._id.toString(),
-            email: user.email,
-          };
-        }
-
-        return null;
+        return {
+          id: email,
+          email: email,
+        };
       },
     }),
   ],

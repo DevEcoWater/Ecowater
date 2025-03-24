@@ -2,8 +2,8 @@ import { useMutation } from "@tanstack/react-query";
 import { signIn } from "next-auth/react";
 
 interface LoginRequest {
-  email: string;
-  password: string;
+  email?: string;
+  password?: string;
 }
 
 interface AuthResponse {
@@ -52,7 +52,7 @@ export function useRegister() {
   return useMutation<
     { message: string },
     Error,
-    { username: string; email: string; password: string }
+    { username?: string; email?: string; password?: string }
   >({
     mutationFn: async (data) => {
       const response = await fetch("/api/register", {
