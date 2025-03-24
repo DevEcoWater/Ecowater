@@ -8,7 +8,7 @@
     "test": "dotenv -e .env.local -- echo 'Running tests...'", 
     "prisma:push": "dotenv -e .env.local -- npx prisma db push",
     "prisma:generate": "dotenv -e .env.local -- npx prisma generate",
-    "postinstall": "prisma generate",
+    "postinstall": "dotenv -e .env.local prisma migrate dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
