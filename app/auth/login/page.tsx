@@ -1,10 +1,13 @@
-import { Layout } from "@/components/authenticate/layout";
 import LoginForm from "@/components/authenticate/login-form";
+import { Layout } from "../../../components/layout/auth/layout";
+import { ProtectedRoutesWIthSession } from "@/app/dashboard/session";
 
-export default function Page(): React.JSX.Element {
+export default function Login(): React.JSX.Element {
   return (
-    <Layout>
-      <LoginForm />
-    </Layout>
+    <ProtectedRoutesWIthSession>
+      <Layout>
+        <LoginForm />
+      </Layout>
+    </ProtectedRoutesWIthSession>
   );
 }

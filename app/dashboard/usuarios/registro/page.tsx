@@ -1,4 +1,4 @@
-import RegisterUserForm from "../registerForm";
+import RegisterUserForm from "./registerForm";
 
 export default async function Registro() {
   return (

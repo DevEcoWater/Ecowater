@@ -1,16 +1,24 @@
-import { chipConfig } from "@/utils/getChipColor";
-import React from "react";
-
-type MeterStatus = keyof typeof chipConfig;
+import { UserStatus } from "@/types/usuarios/user-types";
+import { chipConfig, MeterStatus, userConfig } from "@/utils/getChipColor";
+import type React from "react";
 
 type Props = {
-  status: MeterStatus;
+  status: MeterStatus | UserStatus; // This will allow both MeterStatus and UserStatus
   text: string;
   showDot?: boolean;
+  user?: boolean; // Whether to use userConfig or chipConfig
 };
 
-const Chip: React.FC<Props> = ({ text, status, showDot = false }) => {
-  const chip = chipConfig[status] ?? chipConfig.default;
+const Chip: React.FC<Props> = ({
+  text,
+  status,
+  showDot = false,
+  user = false,
+}) => {
+  const configToUse = user ? userConfig : chipConfig;
+
+  const chip =
+    configToUse[status as keyof typeof configToUse] || chipConfig.default;
 
   if (!chip) {
     console.error(`Invalid status: ${status}`);

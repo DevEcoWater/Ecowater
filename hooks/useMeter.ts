@@ -3,7 +3,7 @@ import {
   UseMutationResult,
   useQuery,
 } from "@tanstack/react-query";
-import { Coordinates } from "./useUsers";
+import { Coordinates } from "./usuarios/useUsers";
 
 export interface MeterFormData {
   userId: string;

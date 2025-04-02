@@ -9,4 +9,15 @@ export const chipConfig = {
   default: { backgroundColor: "#dbeaff", textColor: "#5a88ee", label: "Total" },
 };
 
+export const userConfig = {
+  ACTIVE: { backgroundColor: "#dcfce7", textColor: "#3a975c", label: "Activo" },
+  INACTIVE: {
+    backgroundColor: "#FEECD4",
+    textColor: "#F17A3D",
+    label: "Inactivo",
+  },
+};
+
 export type MeterStatus = keyof typeof chipConfig;
+
+export type UserStatus = keyof typeof userConfig;
