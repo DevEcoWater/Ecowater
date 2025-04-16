@@ -1,39 +1,84 @@
 "use client";
 
-import React, { useRef, useState } from "react";
-import { useForm, Controller } from "react-hook-form";
+import type React from "react";
+import { useRef, useState } from "react";
+import { useForm } from "react-hook-form";
 import {
   GoogleMap,
   LoadScript,
   Marker,
   Autocomplete,
 } from "@react-google-maps/api";
-import { useUserMutation } from "@/hooks/usuarios/useUsers";
+import { useUserMutation } from "@/hooks/users/use-user-query";
 import { useMeterMutation } from "@/hooks/useMeter";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { usePathname, useRouter } from "next/navigation";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { ArrowLeft, UserPlus } from "lucide-react";
+
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { PageHeader } from "@/components/page-header";
 
 const defaultLocation = { lat: -34.603722, lng: -58.381592 };
 
-const RegisterUserForm: React.FC = () => {
+const formSchema = z
+  .object({
+    firstName: z.string().min(1, "Este campo es obligatorio"),
+    lastName: z.string().min(1, "Este campo es obligatorio"),
+    email: z.string().email("Ingrese un email válido"),
+    address: z.string().min(1, "Debe seleccionar una ubicación válida"),
+    password: z
+      .string()
+      .min(6, "La contraseña debe tener al menos 6 caracteres"),
+    confirmPassword: z
+      .string()
+      .min(6, "La contraseña debe tener al menos 6 caracteres"),
+    coordinates: z.object({
+      lat: z.number(),
+      lng: z.number(),
+    }),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Las contraseñas no coinciden",
+    path: ["confirmPassword"],
+  });
+
+type FormValues = z.infer<typeof formSchema>;
+
+export default function RegisterUserPage() {
   const { toast } = useToast();
   const router = useRouter();
   const pathname = usePathname();
 
-  const {
-    control,
-    handleSubmit,
-    setValue,
-    formState: { errors },
-  } = useForm({
+  // Initialize form with zod resolver
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
     defaultValues: {
-      username: "",
+      firstName: "",
+      lastName: "",
       email: "",
       address: "",
       password: "",
+      confirmPassword: "",
       coordinates: defaultLocation,
     },
   });
@@ -45,19 +90,20 @@ const RegisterUserForm: React.FC = () => {
     useMeterMutation();
 
   const handlePlaceChanged = () => {
-    const place = autocompleteRef.current?.getPlace();
-    if (place?.geometry?.location) {
-      const location = {
-        lat: place.geometry.location.lat(),
-        lng: place.geometry.location.lng(),
-      };
+    if (autocompleteRef.current) {
+      const place = autocompleteRef.current.getPlace();
+      if (place && place.geometry) {
+        const location = {
+          lat: place.geometry.location!.lat(),
+          lng: place.geometry.location!.lng(),
+        };
 
-      setMapCenter(location);
-      setValue("coordinates", location);
-
-      setValue("address", place.formatted_address || "", {
-        shouldValidate: true,
-      });
+        setMapCenter(location);
+        form.setValue("coordinates", location);
+        form.setValue("address", place.formatted_address || "", {
+          shouldValidate: true,
+        });
+      }
     }
   };
 
@@ -66,27 +112,60 @@ const RegisterUserForm: React.FC = () => {
     const randomIndex = Math.floor(Math.random() * statuses.length);
     return statuses[randomIndex] as "active" | "inactive" | "error";
   }
-  const onSubmit = (data: any) => {
-    createUser(data, {
-      onSuccess: (userResponse) => {
-        createMeter({
-          userId: userResponse.user._id,
-          status: getRandomStatus(),
-          address: userResponse.user.address,
-          coordinates: userResponse.user.coordinates,
-        });
 
-        toast({
-          title: "Registro exitoso",
-          description: "El usuario ha sido registrado correctamente.",
-          variant: "default",
-        });
+  const onSubmit = (data: FormValues) => {
+    // Convert form data to match API expectations
+    const userData = {
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email,
+      address: data.address,
+      password: data.password,
+      coordinates: data.coordinates,
+    };
 
-        setTimeout(() => {
-          router.push("/dashboard/usuarios");
-        }, 5000);
-      },
-    });
+    if (
+      userData.coordinates.lat !== undefined &&
+      userData.coordinates.lng !== undefined
+    ) {
+      createUser(
+        {
+          ...userData,
+          coordinates: {
+            lat: userData.coordinates.lat,
+            lng: userData.coordinates.lng,
+          },
+        },
+        {
+          onSuccess: (userResponse) => {
+            createMeter({
+              userId: userResponse.user._id,
+              status: getRandomStatus(),
+              address: userResponse.user.address,
+              coordinates: userResponse.user.coordinates,
+            });
+
+            toast({
+              title: "Registro exitoso",
+              description: "El usuario ha sido registrado correctamente.",
+              variant: "default",
+            });
+
+            setTimeout(() => {
+              router.push("/dashboard/usuarios");
+            }, 2000);
+          },
+        }
+      );
+    } else {
+      toast({
+        title: "Error de ubicación",
+        description: "Debes seleccionar una ubicación válida con coordenadas.",
+        variant: "destructive",
+      });
+    }
+
+    form.reset();
   };
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
@@ -95,143 +174,216 @@ const RegisterUserForm: React.FC = () => {
     }
   };
 
+  const isLoading = isCreatingUser || isCreatingMeter;
+
   return (
-    <form
-      onKeyDown={handleKeyDown}
-      className="flex flex-col gap-6"
-      onSubmit={handleSubmit(onSubmit)}
-    >
-      <div className="flex flex-col items-center gap-2 text-center">
-        <h1 className="text-2xl font-bold">Registración de Cliente</h1>
-        <p className="text-balance text-sm text-muted-foreground">
-          Por favor ingrese la información del cliente para registrar.
-        </p>
-      </div>
-      <div className="grid gap-6">
-        <div className="grid gap-2">
-          <Label htmlFor="username">Nombre de usuario</Label>
-          <Controller
-            control={control}
-            name="username"
-            rules={{ required: "Este campo es obligatorio" }}
-            render={({ field }) => (
-              <Input {...field} id="username" placeholder="Nombre de usuario" />
-            )}
-          />
-          {errors.username && (
-            <p className="text-red-500 text-sm">{errors.username.message}</p>
-          )}
-        </div>
+    <div className="mx-auto py-6 space-y-8">
+      <Form {...form}>
+        <form onKeyDown={handleKeyDown} onSubmit={form.handleSubmit(onSubmit)}>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Personal Information Card */}
+            <Card className="lg:col-span-2">
+              <CardHeader>
+                <CardTitle>Información Personal</CardTitle>
+                <CardDescription>
+                  Ingrese los datos personales del nuevo usuario
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <FormField
+                    control={form.control}
+                    name="firstName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nombre</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Nombre del usuario" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-        <div className="grid gap-2">
-          <Label htmlFor="email">Email</Label>
-          <Controller
-            control={control}
-            name="email"
-            rules={{
-              required: "Este campo es obligatorio",
-              pattern: {
-                value: /^\S+@\S+\.\S+$/,
-                message: "Ingrese un email válido",
-              },
-            }}
-            render={({ field }) => (
-              <Input {...field} id="email" placeholder="m@example.com" />
-            )}
-          />
-          {errors.email && (
-            <p className="text-red-500 text-sm">{errors.email.message}</p>
-          )}
-        </div>
+                  <FormField
+                    control={form.control}
+                    name="lastName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Apellido</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Apellido del usuario"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
-        <div className="grid gap-2">
-          <Label htmlFor="password">Contraseña</Label>
-          <Controller
-            control={control}
-            name="password"
-            rules={{
-              required: "Este campo es obligatorio",
-              minLength: {
-                value: 6,
-                message: "La contraseña debe tener al menos 6 caracteres",
-              },
-            }}
-            render={({ field }) => (
-              <Input
-                {...field}
-                id="password"
-                type="password"
-                placeholder="Ingrese su contraseña"
-              />
-            )}
-          />
-          {errors.password && (
-            <p className="text-red-500 text-sm">{errors.password.message}</p>
-          )}
-        </div>
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Correo Electrónico</FormLabel>
+                      <FormControl>
+                        <Input placeholder="correo@ejemplo.com" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-        <div key={pathname} className="grid gap-2">
-          <LoadScript
-            googleMapsApiKey={
-              process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string
-            }
-            libraries={["places"]}
-          >
-            <Label htmlFor="address">Dirección</Label>
-            <Autocomplete
-              onLoad={(autocomplete) =>
-                (autocompleteRef.current = autocomplete)
-              }
-              onPlaceChanged={handlePlaceChanged}
-            >
-              <Input
-                id="address"
-                placeholder="Ingrese su dirección"
-                {...{
-                  ...control.register("address", {
-                    required: "Debe seleccionar una ubicación válida",
-                  }),
-                }}
-              />
-            </Autocomplete>
-            {errors.address && (
-              <p className="text-red-500 text-sm">{errors.address.message}</p>
-            )}
-          </LoadScript>
-        </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Contraseña</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="password"
+                            placeholder="Ingrese su contraseña"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-        <div className="h-60">
-          <LoadScript
-            googleMapsApiKey={
-              process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string
-            }
-            libraries={["places"]}
-          >
-            <GoogleMap
-              mapContainerStyle={{ width: "100%", height: "100%" }}
-              center={mapCenter}
-              zoom={14}
-              onClick={(e) => {
-                const coords = { lat: e.latLng!.lat(), lng: e.latLng!.lng() };
-                setValue("coordinates", coords);
-                setMapCenter(coords);
-              }}
-            >
-              <Marker position={mapCenter} />
-            </GoogleMap>
-          </LoadScript>
-        </div>
+                  <FormField
+                    control={form.control}
+                    name="confirmPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Confirmar Contraseña</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="password"
+                            placeholder="Reingrese su contraseña"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </CardContent>
+            </Card>
 
-        <Button
-          type="submit"
-          className="w-[200px] mx-auto"
-          disabled={isCreatingUser || isCreatingMeter}
-        >
-          {isCreatingUser || isCreatingMeter ? "Cargando..." : "Registrar"}
-        </Button>
-      </div>
-    </form>
+            {/* Actions Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Acciones</CardTitle>
+                <CardDescription>
+                  Complete el registro del usuario
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {isLoading && (
+                  <div className="text-sm text-muted-foreground">
+                    Procesando el registro...
+                  </div>
+                )}
+              </CardContent>
+              <CardFooter className="flex flex-col gap-4">
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  {isLoading ? "Registrando..." : "Registrar Usuario"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => router.back()}
+                  disabled={isLoading}
+                >
+                  Cancelar
+                </Button>
+              </CardFooter>
+            </Card>
+          </div>
+
+          <Separator className="my-8" />
+
+          {/* Location Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Ubicación</CardTitle>
+              <CardDescription>
+                Seleccione la dirección del usuario
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div key={pathname}>
+                <LoadScript
+                  googleMapsApiKey={
+                    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string
+                  }
+                  libraries={["places"]}
+                >
+                  <FormField
+                    control={form.control}
+                    name="address"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Dirección</FormLabel>
+                        <Autocomplete
+                          onLoad={(autocomplete) => {
+                            autocompleteRef.current = autocomplete;
+                          }}
+                          onPlaceChanged={handlePlaceChanged}
+                        >
+                          <FormControl>
+                            <Input
+                              placeholder="Ingrese su dirección"
+                              {...field}
+                            />
+                          </FormControl>
+                        </Autocomplete>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </LoadScript>
+              </div>
+
+              <div className="h-[300px] rounded-md overflow-hidden">
+                <LoadScript
+                  googleMapsApiKey={
+                    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string
+                  }
+                  libraries={["places"]}
+                >
+                  <GoogleMap
+                    mapContainerStyle={{ width: "100%", height: "100%" }}
+                    center={mapCenter}
+                    zoom={14}
+                    onClick={(e) => {
+                      if (window.google && e.latLng) {
+                        const coords = {
+                          lat: e.latLng.lat(),
+                          lng: e.latLng.lng(),
+                        };
+                        form.setValue("coordinates", coords);
+                        setMapCenter(coords);
+                      }
+                    }}
+                  >
+                    <Marker position={mapCenter} />
+                  </GoogleMap>
+                </LoadScript>
+              </div>
+            </CardContent>
+          </Card>
+        </form>
+      </Form>
+    </div>
   );
-};
-
-export default RegisterUserForm;
+}

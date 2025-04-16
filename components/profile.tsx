@@ -1,5 +1,4 @@
 "use client";
-import React from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import {
   DropdownMenu,
@@ -15,10 +14,9 @@ import { LogOutIcon } from "lucide-react";
 
 const Profile = () => {
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger>
+    <DropdownMenu modal={false}>
+      <DropdownMenuTrigger asChild>
         <Avatar>
-          <AvatarImage src="https://g12ithub.com/shadcn.png" />
           <AvatarFallback>CN</AvatarFallback>
         </Avatar>
       </DropdownMenuTrigger>
@@ -35,8 +33,9 @@ const Profile = () => {
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={() => signOut({ callbackUrl: "/auth/login" })}
+          className="flex items-center gap-2"
         >
-          <LogOutIcon /> Salir
+          <LogOutIcon className="h-4 w-4" /> Salir
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

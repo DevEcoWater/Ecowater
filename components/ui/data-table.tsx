@@ -18,6 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { X } from "lucide-react";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -34,10 +35,6 @@ export function DataTable<TData, TValue>({
   isLoading,
   error,
 }: DataTableProps<TData, TValue>) {
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
-  );
-
   return (
     <>
       <div>
@@ -88,14 +85,12 @@ export function DataTable<TData, TValue>({
                 </TableRow>
               ))
             ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
-                  {data ? "No results." : "Loading..."}
-                </TableCell>
-              </TableRow>
+              <div className="flex items-center justify-center p-6 border rounded-md w-full">
+                <div className="flex flex-col items-center gap-2 text-muted-foreground w-full">
+                  <X className="h-8 w-full" />
+                  <p>No hay lecturas disponibles para este medidor</p>
+                </div>
+              </div>
             )}
           </TableBody>
         </Table>

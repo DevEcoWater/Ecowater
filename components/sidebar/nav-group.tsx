@@ -73,7 +73,11 @@ const SidebarMenuLink = ({ item, href }: { item: NavLink; href: string }) => {
         isActive={checkIsActive(href, item)}
         tooltip={item.title}
       >
-        <Link href={item.url} onClick={() => setOpenMobile(false)}>
+        <Link
+          href={item.url}
+          onClick={() => setOpenMobile(false)}
+          className="cursor-pointer"
+        >
           {item.icon && <item.icon />}
           <span>{item.title}</span>
           {item.badge && <NavBadge>{item.badge}</NavBadge>}

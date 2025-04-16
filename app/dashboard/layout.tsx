@@ -6,10 +6,7 @@ import {
   SidebarProvider as UiSidebarProvider,
 } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
-import SidebarProvider from "@/context/sidebarProvider";
-import { Main } from "@/components/layout/panel/main";
-import Profile from "@/components/profile";
-import { Header } from "@/components/layout/panel/header";
+import { cn } from "@/lib/utils";
 
 export default function RootLayout({
   children,
@@ -17,20 +14,27 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <SidebarProvider>
-      <UiSidebarProvider>
-        <ThemeProvider attribute="class" defaultTheme="light">
-          <AppSidebar />
-          <SidebarInset>
-            {/* ===== Top Heading ===== */}
-            <Header>
-              <Profile />
-            </Header>
+    <UiSidebarProvider>
+      <ThemeProvider attribute="class" defaultTheme="light">
+        <AppSidebar />
+        <SidebarInset>
+          <div
+            id="content"
+            className={cn(
+              "ml-auto w-full max-w-full",
+              "peer-data-[state=collapsed]:w-[calc(100%-var(--sidebar-width-icon)-1rem)]",
+              "peer-data-[state=expanded]:w-[calc(100%-var(--sidebar-width))]",
+              "transition-[width] duration-200 ease-linear",
+              "flex h-svh flex-col",
+              "group-data-[scroll-locked=1]/body:h-full",
+              "group-data-[scroll-locked=1]/body:has-[main.fixed-main]:h-svh"
+            )}
+          >
             {/* ===== Content ===== */}
-            <Main>{children}</Main>
-          </SidebarInset>
-        </ThemeProvider>
-      </UiSidebarProvider>
-    </SidebarProvider>
+            {children}
+          </div>
+        </SidebarInset>
+      </ThemeProvider>
+    </UiSidebarProvider>
   );
 }

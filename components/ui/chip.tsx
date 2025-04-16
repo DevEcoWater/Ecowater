@@ -1,4 +1,4 @@
-import { UserStatus } from "@/types/usuarios/user-types";
+import { UserStatus } from "@/types/users/user-types";
 import { chipConfig, MeterStatus, userConfig } from "@/utils/getChipColor";
 import type React from "react";
 

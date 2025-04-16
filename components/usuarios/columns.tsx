@@ -5,7 +5,7 @@ import type { MeterStatus } from "@prisma/client";
 import type { ColumnDef } from "@tanstack/react-table";
 import dayjs from "dayjs";
 import UserAvatar from "./user-avatar";
-import { User, UserColumn } from "@/types/usuarios/user-types";
+import { User, UserColumn } from "@/types/users/user-types";
 import Chip from "../ui/chip";
 import { UserActions } from "./user-actions";
 
@@ -19,7 +19,6 @@ export const userColumns: ColumnDef<UserColumn>[] = [
         <UserAvatar
           firstName={user.firstName}
           lastName={user.lastName}
-          username={user.username}
           role={user.role}
         />
       );
