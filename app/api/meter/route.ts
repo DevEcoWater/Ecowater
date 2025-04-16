@@ -39,30 +39,3 @@ export async function GET(req: Request) {
     );
   }
 }
-
-export async function POST(req: Request) {
-  try {
-    const body = await req.json();
-
-    const meter = await prisma.meter.create({
-      data: {
-        dev_eui: body.dev_eui,
-        device_name: body.device_name,
-        application_id: body.application_id,
-        application_name: body.application_name,
-        lat: body.lat,
-        lng: body.lng,
-        status: body.status ?? "ACTIVE",
-        operational_status: body.operational_status ?? "OPERATIONAL",
-      },
-    });
-
-    return NextResponse.json(meter, { status: 201 });
-  } catch (error) {
-    console.error("[CREATE METER]", error);
-    return NextResponse.json(
-      { error: "Failed to create meter" },
-      { status: 400 }
-    );
-  }
-}

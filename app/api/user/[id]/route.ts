@@ -1,5 +1,5 @@
 // app/api/user/[id]/route.ts
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, UserStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 const prisma = new PrismaClient();
@@ -17,13 +17,31 @@ export async function GET(_: Request, { params }: Context) {
       include: {
         userRoles: true,
         userMeters: true,
+        adress: true,
+      },
+    });
+
+    const role = await prisma.userRole.findFirst({
+      where: { user_id: params.id },
+      select: {
+        role: {
+          select: {
+            role_name: true,
+          },
+        },
       },
     });
 
     if (!user)
       return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-    return NextResponse.json(user);
+    // Add role_name to the user object
+    const result = {
+      ...user,
+      role: role?.role?.role_name ?? null,
+    };
+
+    return NextResponse.json(result);
   } catch (error) {
     console.error("[GET USER]", error);
     return NextResponse.json(
@@ -33,19 +51,22 @@ export async function GET(_: Request, { params }: Context) {
   }
 }
 
-export async function PUT(req: Request, { params }: Context) {
+export async function PUT(
+  req: Request,
+  { params }: { params: { id: string } }
+) {
   try {
     const body = await req.json();
+    const { firstName, lastName, email, password, status } = body;
 
     const updated = await prisma.user.update({
       where: { id: params.id },
       data: {
-        username: body.username,
-        email: body.email,
-        password: body.password,
-        address: body.address,
-        status: body.status,
-        updated_at: new Date(),
+        firstName,
+        lastName,
+        email,
+        password,
+        status: status as UserStatus,
       },
     });
 
@@ -61,15 +82,16 @@ export async function PUT(req: Request, { params }: Context) {
 
 export async function DELETE(_: Request, { params }: Context) {
   try {
-    await prisma.user.delete({
+    await prisma.user.update({
       where: { id: params.id },
+      data: { status: "INACTIVE" },
     });
 
-    return NextResponse.json({ message: "User deleted" });
+    return NextResponse.json({ message: "User deactivated successfully" });
   } catch (error) {
-    console.error("[DELETE USER]", error);
+    console.error("[DEACTIVATE USER]", error);
     return NextResponse.json(
-      { error: "Failed to delete user" },
+      { error: "Failed to deactivate user" },
       { status: 400 }
     );
   }
