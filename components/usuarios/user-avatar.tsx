@@ -4,16 +4,16 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 interface UserAvatarProps {
   firstName: string;
   lastName: string;
-  username: string;
   role: string;
 }
 
 const UserAvatar: React.FC<UserAvatarProps> = ({
   firstName,
   lastName,
-  username,
   role,
 }) => {
+  console.log(firstName, lastName, role);
+
   const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
 
   return (
@@ -22,8 +22,10 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
         <AvatarFallback>{initials}</AvatarFallback>
       </Avatar>
       <div className="flex flex-col">
-        <span className="text-sm font-medium">{username}</span>
-        <span className="text-xs text-muted-foreground">{role}</span>
+        <span className="text-sm font-medium">
+          {firstName + " " + lastName}
+        </span>
+        <span className="text-xs text-muted-foreground">{role.role_name}</span>
       </div>
     </div>
   );

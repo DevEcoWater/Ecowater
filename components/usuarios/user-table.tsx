@@ -12,7 +12,7 @@ import {
   type VisibilityState,
 } from "@tanstack/react-table";
 import { userColumns } from "./columns";
-import { User } from "@/types/usuarios/user-types";
+import { User } from "@/types/users/user-types";
 import { Skeleton } from "../ui/skeleton";
 import { DataTable } from "../ui/data-table";
 

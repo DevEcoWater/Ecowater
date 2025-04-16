@@ -2,7 +2,7 @@ import RegisterUserForm from "./registerForm";
 
 export default async function Registro() {
   return (
-    <div className="p-4">
+    <div className="w-full">
       <RegisterUserForm />
     </div>
   );
