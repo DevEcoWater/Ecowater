@@ -6,7 +6,6 @@ import {
   Marker,
   InfoWindow,
 } from "@react-google-maps/api";
-import { useMeters } from "@/hooks/useMeter";
 import { Skeleton } from "./skeleton";
 import { chipConfig, MeterStatus } from "@/utils/getChipColor";
 import Chip from "./chip";
@@ -14,6 +13,7 @@ import {
   MarkerClusterer,
   SuperClusterAlgorithm,
 } from "@googlemaps/markerclusterer";
+import { useMeters } from "@/hooks/meters/user-meter-query";
 
 const containerStyle = {
   width: "100%",

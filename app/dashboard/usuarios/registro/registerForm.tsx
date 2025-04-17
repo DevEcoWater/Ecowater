@@ -10,7 +10,6 @@ import {
   Autocomplete,
 } from "@react-google-maps/api";
 import { useUserMutation } from "@/hooks/users/use-user-query";
-import { useMeterMutation } from "@/hooks/useMeter";
 import { useToast } from "@/hooks/use-toast";
 import { usePathname, useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -37,6 +36,7 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { PageHeader } from "@/components/page-header";
+import { useMeterMutation } from "@/hooks/meters/user-meter-query";
 
 const defaultLocation = { lat: -34.603722, lng: -58.381592 };
 
@@ -107,10 +107,10 @@ export default function RegisterUserPage() {
     }
   };
 
-  function getRandomStatus(): "active" | "inactive" | "error" {
-    const statuses = ["active", "inactive", "error"];
+  function getRandomStatus(): "ACTIVE" | "INACTIVE" {
+    const statuses = ["ACTIVE", "INACTIVE", "error"];
     const randomIndex = Math.floor(Math.random() * statuses.length);
-    return statuses[randomIndex] as "active" | "inactive" | "error";
+    return statuses[randomIndex] as "ACTIVE" | "INACTIVE";
   }
 
   const onSubmit = (data: FormValues) => {

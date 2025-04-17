@@ -15,30 +15,37 @@ export async function GET(_: Request, { params }: Context) {
     const user = await prisma.user.findUnique({
       where: { id: params.id },
       include: {
-        userRoles: true,
-        userMeters: true,
         adress: true,
-      },
-    });
-
-    const role = await prisma.userRole.findFirst({
-      where: { user_id: params.id },
-      select: {
-        role: {
-          select: {
-            role_name: true,
+        userMeters: {
+          include: {
+            meter: true,
+          },
+        },
+        userRoles: {
+          include: {
+            role: true,
           },
         },
       },
     });
 
-    if (!user)
+    if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
 
-    // Add role_name to the user object
+    // Extract meters
+    const meter = user.userMeters.map((um) => um.meter)[0] ?? null;
+
+    // Extract role_name (assuming one role per user)
+    const role = user.userRoles[0]?.role?.role_name ?? null;
+
+    // Build final response
+    const { userMeters, userRoles, ...rest } = user;
+
     const result = {
-      ...user,
-      role: role?.role?.role_name ?? null,
+      ...rest,
+      meter,
+      role,
     };
 
     return NextResponse.json(result);
@@ -57,22 +64,46 @@ export async function PUT(
 ) {
   try {
     const body = await req.json();
-    const { firstName, lastName, email, password, status } = body;
-
-    const updated = await prisma.user.update({
+    const {
+      firstName,
+      lastName,
+      email,
+      password,
+      status,
+      address,
+      coordinates,
+    } = body;
+    const updatedUser = await prisma.user.update({
       where: { id: params.id },
       data: {
         firstName,
         lastName,
         email,
-        password,
+        ...(password && { password }),
         status: status as UserStatus,
+        adress: {
+          update: {
+            address,
+            lat: coordinates.lat.toString(),
+            lng: coordinates.lng.toString(),
+          },
+        },
+      },
+      include: {
+        adress: true,
       },
     });
 
-    return NextResponse.json(updated);
+    return NextResponse.json({
+      ...updatedUser,
+      address: updatedUser.adress.address,
+      coordinates: {
+        lat: parseFloat(updatedUser.adress.lat),
+        lng: parseFloat(updatedUser.adress.lng),
+      },
+    });
   } catch (error) {
-    console.error("[PUT USER]", error);
+    console.error("[UPDATE USER]", error);
     return NextResponse.json(
       { error: "Failed to update user" },
       { status: 400 }

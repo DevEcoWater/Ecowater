@@ -9,7 +9,6 @@ import {
   useUserQuery,
   useUpdateUserMutation,
 } from "@/hooks/users/use-user-query";
-import { useMeterMutation } from "@/hooks/useMeter";
 import { useToast } from "@/hooks/use-toast";
 import { usePathname, useRouter, useParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -47,6 +46,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import UserLocationMap from "@/components/usuarios/map";
 import { UserStatus } from "@prisma/client";
+import { useMeterMutation } from "@/hooks/meters/user-meter-query";
 
 const defaultLocation = { lat: -34.603722, lng: -58.381592 };
 
@@ -117,8 +117,15 @@ export default function UpdateUserForm() {
 
       setOriginalStatus(userData.status);
 
-      if (userData.coordinates) {
-        setMapCenter(userData.coordinates);
+      if (
+        userData.coordinates &&
+        typeof userData.coordinates.lat === "number" &&
+        typeof userData.coordinates.lng === "number"
+      ) {
+        setMapCenter({
+          lat: userData.coordinates.lat,
+          lng: userData.coordinates.lng,
+        });
       }
     }
   }, [userData, isLoadingUser, form]);
@@ -150,48 +157,54 @@ export default function UpdateUserForm() {
     if (!updateData.password) {
       delete updateData.password;
     }
+    if (
+      updateData.coordinates?.lat != null &&
+      updateData.coordinates?.lng != null
+    ) {
+      updateUser(
+        { id: userId, ...updateData },
+        {
+          onSuccess: (res) => {
+            const userResponse = res.user;
 
-    updateUser(
-      { id: userId, ...updateData },
-      {
-        onSuccess: (userResponse) => {
-          if (
-            userResponse.address !== userData?.address ||
-            JSON.stringify(userResponse.coordinates) !==
-              JSON.stringify(userData?.coordinates)
-          ) {
-            updateMeter({
-              userId: userResponse.id,
-              address: userResponse.address,
-              coordinates: userResponse.coordinates,
-              status: "active",
-            });
-          }
-
-          const statusChanged = originalStatus !== data.status;
-          let message =
-            "La información del usuario ha sido actualizada correctamente.";
-
-          if (statusChanged) {
-            if (data.status === "ACTIVE") {
-              message += " El usuario ha sido activado.";
-            } else if (data.status === "INACTIVE") {
-              message += " El usuario ha sido desactivado.";
+            if (
+              userResponse.address !== userData?.address ||
+              JSON.stringify(userResponse.coordinates) !==
+                JSON.stringify(userData?.coordinates)
+            ) {
+              updateMeter({
+                userId: userResponse.id,
+                address: userResponse.address,
+                coordinates: userResponse.coordinates,
+                status: "ACTIVE",
+              });
             }
-          }
 
-          toast({
-            title: "Actualización exitosa",
-            description: message,
-            variant: "default",
-          });
+            const statusChanged = originalStatus !== data.status;
+            let message =
+              "La información del usuario ha sido actualizada correctamente.";
 
-          setTimeout(() => {
-            router.push("/dashboard/usuarios");
-          }, 2000);
-        },
-      }
-    );
+            if (statusChanged) {
+              if (data.status === "ACTIVE") {
+                message += " El usuario ha sido activado.";
+              } else if (data.status === "INACTIVE") {
+                message += " El usuario ha sido desactivado.";
+              }
+            }
+
+            toast({
+              title: "Actualización exitosa",
+              description: message,
+              variant: "default",
+            });
+
+            setTimeout(() => {
+              router.push("/dashboard/usuarios");
+            }, 2000);
+          },
+        }
+      );
+    }
   };
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
@@ -402,7 +415,7 @@ export default function UpdateUserForm() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div key={pathname}>
+              {/* <div key={pathname}>
                 <FormField
                   control={form.control}
                   name="address"
@@ -433,7 +446,7 @@ export default function UpdateUserForm() {
                     </FormItem>
                   )}
                 />
-              </div>
+              </div> */}
 
               <div className="rounded-md overflow-hidden">
                 {isLoadingUser ? (

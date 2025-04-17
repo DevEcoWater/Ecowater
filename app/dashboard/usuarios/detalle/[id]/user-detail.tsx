@@ -8,7 +8,6 @@ import { X, Mail, User, Calendar, Home } from "lucide-react";
 import { useUserQuery } from "@/hooks/users/use-user-query";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 
@@ -25,12 +24,14 @@ export default function UserDetailPage() {
 
   const [mapCenter, setMapCenter] = useState(defaultLocation);
 
+  console.log(userData, "userData");
+
   useEffect(() => {
-    if (userData?.adress) {
+    if (userData?.address.address) {
       try {
         setMapCenter({
-          lat: Number.parseFloat(userData.adress.lat),
-          lng: Number.parseFloat(userData.adress.lng),
+          lat: Number.parseFloat(userData.address.lat),
+          lng: Number.parseFloat(userData.address.lng),
         });
       } catch (error) {
         console.error("Error parsing coordinates:", error);
@@ -101,7 +102,7 @@ export default function UserDetailPage() {
                     </div>
                   )}
 
-                  {userData.adress && (
+                  {userData.address && (
                     <div className="space-y-2">
                       <div className="text-sm font-medium text-muted-foreground">
                         Dirección
@@ -109,14 +110,14 @@ export default function UserDetailPage() {
                       <div className="flex items-center gap-2">
                         <Home className="h-4 w-4 text-muted-foreground" />
                         <span className="font-medium">
-                          {userData.adress.address}
+                          {userData.address.address}
                         </span>
                       </div>
                     </div>
                   )}
                 </div>
 
-                {userData.adress && (
+                {userData.address && (
                   <div className="h-[200px] w-full rounded-md overflow-hidden">
                     <LoadScript
                       googleMapsApiKey={
@@ -154,7 +155,7 @@ export default function UserDetailPage() {
           <CardContent>
             {isLoadingUser ? (
               <Skeleton className="h-10 w-full" />
-            ) : userData && userData.userRoles ? (
+            ) : userData && userData.role ? (
               <div className="space-y-4">
                 {/* Roles */}
                 <div className="flex flex-col gap-2">

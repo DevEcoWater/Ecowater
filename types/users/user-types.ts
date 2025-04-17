@@ -1,28 +1,23 @@
-import { User, UserStatus } from "@prisma/client";
+import { Adress, Meter, User } from "@prisma/client";
 
-export interface UserFormData {
-  firstName?: string;
-  lastName?: string;
-  email?: string;
-  password?: string;
-  address?: string;
-  status?: UserStatus;
-  coordinates?: {
-    lat: number;
-    lng: number;
-  };
-  role_id?: string;
-}
-
-export interface UpdateUserData extends UserFormData {
+export interface UserDetail {
   id: string;
+  email: string;
+  password: string;
+  created_at: Date;
+  updated_at: Date;
+  status: string;
+  firstName: string;
+  lastName: string;
+  address: Adress;
+  meter: Meter;
+  role: string;
 }
 
 export interface UserResponse {
-  user: User;
+  user: UserDetail;
   message?: string;
 }
-
 export interface PaginatedUserResponse {
   data: User[];
   pagination: {

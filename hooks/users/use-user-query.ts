@@ -4,8 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type {
   UserResponse,
   PaginatedUserResponse,
-  UserFormData,
-  UpdateUserData,
+  UserDetail,
 } from "@/types/users/user-types";
 import { User } from "@prisma/client";
 
@@ -25,7 +24,7 @@ export function useUsersQuery(page = 1, limit = 10) {
 
 // Get a single user
 export function useUserQuery(id: string) {
-  return useQuery<User, Error>({
+  return useQuery<UserDetail, Error>({
     queryKey: ["user", id],
     queryFn: async () => {
       if (!id) throw new Error("User ID is required");
@@ -76,7 +75,7 @@ export const useUserMutation = () => {
 export const useUpdateUserMutation = () => {
   const queryClient = useQueryClient();
 
-  const updateUser = async (data: UpdateUserData): Promise<User> => {
+  const updateUser = async (data: UpdateUserData): Promise<UserResponse> => {
     const { id, ...userData } = data;
 
     const response = await fetch(`/api/user/${id}`, {
@@ -95,14 +94,15 @@ export const useUpdateUserMutation = () => {
     return response.json();
   };
 
-  return useMutation<User, Error, UpdateUserData>({
+  return useMutation<UserResponse, Error, UpdateUserData>({
     mutationFn: updateUser,
-    onSuccess: (_, variables) => {
+    onSuccess: (res, variables) => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
       queryClient.invalidateQueries({ queryKey: ["user", variables.id] });
     },
   });
 };
+
 // Delete a user
 export const useDeleteUserMutation = () => {
   const queryClient = useQueryClient();

@@ -26,22 +26,22 @@ model User {
   created_at DateTime    @default(now())
   updated_at DateTime    @updatedAt
   status     UserStatus  @default(ACTIVE)
-  adressId   String      @unique
+  addressId  String      @unique
   firstName  String
   lastName   String
-  adress     Adress      @relation(fields: [adressId], references: [id])
+  address    Address     @relation(fields: [addressId], references: [id])
   userMeters UserMeter[]
   userRoles  UserRole[]
 
   @@index([email])
 }
 
-model Adress {
-  id      String @id @default(uuid())
-  lat     String
-  lng     String
-  address String
-  user    User?
+model Address {
+  id   String @id @default(uuid())
+  lat  String
+  lng  String
+  data String
+  user User?
 }
 
 model Role {
