@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { usePathname, useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { ArrowLeft, UserPlus } from "lucide-react";
+import { UserPlus } from "lucide-react";
 
 import {
   Form,
@@ -138,13 +138,6 @@ export default function RegisterUserPage() {
         },
         {
           onSuccess: (userResponse) => {
-            createMeter({
-              userId: userResponse.user._id,
-              status: getRandomStatus(),
-              address: userResponse.user.address,
-              coordinates: userResponse.user.coordinates,
-            });
-
             toast({
               title: "Registro exitoso",
               description: "El usuario ha sido registrado correctamente.",
@@ -302,8 +295,7 @@ export default function RegisterUserPage() {
                   variant="outline"
                   className="w-full"
                   onClick={() => router.back()}
-                  disabled={isLoading}
-                >
+                  disabled={isLoading}>
                   Cancelar
                 </Button>
               </CardFooter>
@@ -326,8 +318,7 @@ export default function RegisterUserPage() {
                   googleMapsApiKey={
                     process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string
                   }
-                  libraries={["places"]}
-                >
+                  libraries={["places"]}>
                   <FormField
                     control={form.control}
                     name="address"
@@ -338,8 +329,7 @@ export default function RegisterUserPage() {
                           onLoad={(autocomplete) => {
                             autocompleteRef.current = autocomplete;
                           }}
-                          onPlaceChanged={handlePlaceChanged}
-                        >
+                          onPlaceChanged={handlePlaceChanged}>
                           <FormControl>
                             <Input
                               placeholder="Ingrese su dirección"
@@ -359,8 +349,7 @@ export default function RegisterUserPage() {
                   googleMapsApiKey={
                     process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string
                   }
-                  libraries={["places"]}
-                >
+                  libraries={["places"]}>
                   <GoogleMap
                     mapContainerStyle={{ width: "100%", height: "100%" }}
                     center={mapCenter}
@@ -374,8 +363,7 @@ export default function RegisterUserPage() {
                         form.setValue("coordinates", coords);
                         setMapCenter(coords);
                       }
-                    }}
-                  >
+                    }}>
                     <Marker position={mapCenter} />
                   </GoogleMap>
                 </LoadScript>
