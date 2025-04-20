@@ -8,27 +8,53 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { TCounts } from "@/types/users/user-types";
 
 interface FilterTabsProps {
   onFilterChange?: (value: string) => void;
   defaultValue?: string;
-  counts?: {
-    total: number;
-    activos: number;
-    inactivos: number;
-  };
+  total: number;
+  counts: TCounts;
 }
 
 export function FilterTabs({
   onFilterChange,
   defaultValue = "total",
-  counts = { total: 0, activos: 0, inactivos: 0 },
+  total,
+  counts = { actives: 0, inactives: 0, pendings: 0, blockeds: 0 },
 }: FilterTabsProps) {
   const handleValueChange = (value: string) => {
-    if (onFilterChange) {
-      onFilterChange(value);
-    }
+    console.log(value, "value");
+    onFilterChange(value);
   };
+
+  const valuesToMap = [
+    {
+      value: "total",
+      label: "Total",
+      count: total,
+    },
+    {
+      value: "activo",
+      label: "Activos",
+      count: counts.actives,
+    },
+    {
+      value: "inactivo",
+      label: "Inactivos",
+      count: counts.inactives,
+    },
+    {
+      value: "pendiente",
+      label: "Pendiente",
+      count: counts.pendings,
+    },
+    {
+      value: "bloqueado",
+      label: "Bloqueados",
+      count: counts.blockeds,
+    },
+  ];
 
   return (
     <Tabs
@@ -41,72 +67,39 @@ export function FilterTabs({
           <SelectValue placeholder="Seleccionar vista" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem
-            value="total"
-            className="flex items-center justify-between"
-          >
-            <span>Total</span>
-            <Badge
-              variant="secondary"
-              className="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-muted-foreground/30"
+          {valuesToMap.map((value) => (
+            <SelectItem
+              key={value.value}
+              value={value.value}
+              className="flex items-center justify-between"
             >
-              {counts.total}
-            </Badge>
-          </SelectItem>
-          <SelectItem
-            value="activos"
-            className="flex items-center justify-between"
-          >
-            <span>Activos</span>
-            <Badge
-              variant="secondary"
-              className="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-muted-foreground/30"
-            >
-              {counts.activos}
-            </Badge>
-          </SelectItem>
-          <SelectItem
-            value="inactivos"
-            className="flex items-center justify-between"
-          >
-            <span>Inactivos</span>
-            <Badge
-              variant="secondary"
-              className="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-muted-foreground/30"
-            >
-              {counts.inactivos}
-            </Badge>
-          </SelectItem>
+              <span>{value.label}</span>
+              <Badge
+                variant="secondary"
+                className="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-muted-foreground/30"
+              >
+                {value.count}
+              </Badge>
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
       <TabsList className="md:flex hidden">
-        <TabsTrigger value="total" className="flex items-center gap-1">
-          Total
-          <Badge
-            variant="secondary"
-            className="flex h-5 w-5 items-center justify-center rounded-full bg-muted-foreground/30"
+        {valuesToMap.map((value) => (
+          <TabsTrigger
+            key={value.value}
+            value={value.value}
+            className="flex items-center gap-1"
           >
-            {counts.total}
-          </Badge>
-        </TabsTrigger>
-        <TabsTrigger value="activos" className="flex items-center gap-1">
-          Activos
-          <Badge
-            variant="secondary"
-            className="flex h-5 w-5 items-center justify-center rounded-full bg-muted-foreground/30"
-          >
-            {counts.activos}
-          </Badge>
-        </TabsTrigger>
-        <TabsTrigger value="inactivos" className="flex items-center gap-1">
-          Inactivos
-          <Badge
-            variant="secondary"
-            className="flex h-5 w-5 items-center justify-center rounded-full bg-muted-foreground/30"
-          >
-            {counts.inactivos}
-          </Badge>
-        </TabsTrigger>
+            {value.label}
+            <Badge
+              variant="secondary"
+              className="flex h-5 w-5 items-center justify-center rounded-full bg-muted-foreground/30"
+            >
+              {value.count}
+            </Badge>
+          </TabsTrigger>
+        ))}
       </TabsList>
     </Tabs>
   );

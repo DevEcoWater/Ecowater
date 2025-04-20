@@ -17,36 +17,31 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 
-const UserTable = () => {
+const Users = () => {
   const router = useRouter();
   const {
     data,
     isLoading,
     error,
-    setActiveFilter,
-    activeFilter,
+    filterState,
+    setFilterState,
     counts,
     setSearchQuery,
     resetFilters,
     page,
     setPage,
     totalPages,
+    total,
   } = useUsers();
 
-  const {
-    inputValue,
-    setInputValue,
-    handleSearch,
-    handleReset,
-    handleFilterChange,
-  } = useUserFilters({
-    onSearch: setSearchQuery,
-    onFilterChange: setActiveFilter,
-    initialFilter: activeFilter,
-  });
+  const { inputValue, setInputValue, handleSearch, handleFilterChange } =
+    useUserFilters({
+      onSearch: setSearchQuery,
+      onFilterChange: setFilterState,
+    });
 
   const handleRedirect = () => {
-    router.push("/dashboard/usuarios/registro");
+    router.push("/dashboard/usuarios/crear");
   };
 
   return (
@@ -74,7 +69,7 @@ const UserTable = () => {
                   <Search className="h-4 w-4" />
                 </Button>
               </div>
-              <Button onClick={handleReset} variant="outline">
+              <Button onClick={resetFilters} variant="outline">
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Limpiar
               </Button>
@@ -90,7 +85,8 @@ const UserTable = () => {
           <div className="flex items-center justify-center w-full">
             <FilterTabs
               onFilterChange={handleFilterChange}
-              defaultValue={activeFilter}
+              defaultValue={filterState}
+              total={total}
               counts={counts}
             />
           </div>
@@ -163,4 +159,4 @@ const UserTable = () => {
   );
 };
 
-export default UserTable;
+export default Users;

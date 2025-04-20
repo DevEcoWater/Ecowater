@@ -47,8 +47,18 @@ export const userColumns: ColumnDef<UserColumn>[] = [
     },
   },
   {
+    accessorKey: "meterStatus",
+    header: "Estado del medidor",
+    cell: ({ row }) => {
+      const status = row.original.status as keyof typeof userConfig;
+      const { label } = userConfig[status];
+
+      return <Chip status={status} text={label} user />;
+    },
+  },
+  {
     id: "actions",
-    enableHiding: false,
+    header: "Acciones",
     cell: ({ row }) => {
       const user = row.original as unknown as User;
       return (

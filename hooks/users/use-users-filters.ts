@@ -5,13 +5,11 @@ import { useState, useCallback } from "react";
 interface UseUserFiltersOptions {
   onSearch: (query: string) => void;
   onFilterChange: (filter: string) => void;
-  initialFilter?: string;
 }
 
 export const useUserFilters = ({
   onSearch,
   onFilterChange,
-  initialFilter = "total",
 }: UseUserFiltersOptions) => {
   const [inputValue, setInputValue] = useState("");
 

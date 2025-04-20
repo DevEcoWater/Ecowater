@@ -16,6 +16,16 @@ export const userConfig = {
     textColor: "#F17A3D",
     label: "Inactivo",
   },
+  PENDING: {
+    backgroundColor: "#FEE2E1",
+    textColor: "#DC3335",
+    label: "Pendiente",
+  },
+  BLOCKED: {
+    backgroundColor: "#FEE2E1",
+    textColor: "#DC3335",
+    label: "Bloqueado",
+  },
 };
 
 export type MeterStatus = keyof typeof chipConfig;

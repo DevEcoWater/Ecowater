@@ -25,7 +25,7 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
         <span className="text-sm font-medium">
           {firstName + " " + lastName}
         </span>
-        <span className="text-xs text-muted-foreground">{role.role_name}</span>
+        <span className="text-xs text-muted-foreground">{role}</span>
       </div>
     </div>
   );

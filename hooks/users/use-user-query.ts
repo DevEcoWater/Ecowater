@@ -6,14 +6,15 @@ import type {
   PaginatedUserResponse,
   UserDetail,
 } from "@/types/users/user-types";
-import { User } from "@prisma/client";
 
 // Get All Users
-export function useUsersQuery(page = 1, limit = 10) {
+export function useUsersQuery(page = 1, limit = 10, search, filter) {
   return useQuery<PaginatedUserResponse, Error>({
-    queryKey: ["users", page, limit],
+    queryKey: ["users", page, limit, search, filter],
     queryFn: async () => {
-      const response = await fetch(`/api/user?page=${page}&limit=${limit}`);
+      const response = await fetch(
+        `/api/user?search=${search}&status=${filter}&page=${page}&limit=${limit}`
+      );
       if (!response.ok) {
         throw new Error("Failed to fetch users");
       }

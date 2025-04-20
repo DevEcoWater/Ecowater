@@ -85,12 +85,25 @@ export function DataTable<TData, TValue>({
                 </TableRow>
               ))
             ) : (
-              <div className="flex items-center justify-center p-6 border rounded-md w-full">
-                <div className="flex flex-col items-center gap-2 text-muted-foreground w-full">
-                  <X className="h-8 w-full" />
-                  <p>No hay lecturas disponibles para este medidor</p>
+              <TableRow>
+                <div className="flex items-center justify-center p-6 border rounded-md w-full">
+                  <div className="flex flex-col items-center gap-2 text-muted-foreground w-full">
+                    <X className="h-8 w-full" />
+                    <p>No se encontraron resultados</p>
+                  </div>
                 </div>
-              </div>
+              </TableRow>
+            )}
+
+            {error && (
+              <TableRow>
+                <div className="flex items-center justify-center p-6 border rounded-md w-full">
+                  <div className="flex flex-col items-center gap-2 text-muted-foreground w-full">
+                    <X className="h-8 w-full" />
+                    <p>Ha ocurrido un error</p>
+                  </div>
+                </div>
+              </TableRow>
             )}
           </TableBody>
         </Table>

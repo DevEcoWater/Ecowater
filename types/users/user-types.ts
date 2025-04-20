@@ -1,4 +1,4 @@
-import { Adress, Meter, User } from "@prisma/client";
+import { Address, Meter, User, UserStatus } from "@prisma/client";
 
 export interface UserDetail {
   id: string;
@@ -6,10 +6,10 @@ export interface UserDetail {
   password: string;
   created_at: Date;
   updated_at: Date;
-  status: string;
+  status: UserStatus;
   firstName: string;
   lastName: string;
-  address: Adress;
+  address: Address;
   meter: Meter;
   role: string;
 }
@@ -26,4 +26,14 @@ export interface PaginatedUserResponse {
     limit: number;
     totalPages: number;
   };
+  counts: {
+    actives: number;
+    inactives: number;
+  };
 }
+export type TCounts = {
+  actives: number;
+  inactives: number;
+  pendings: number;
+  blockeds: number;
+};
