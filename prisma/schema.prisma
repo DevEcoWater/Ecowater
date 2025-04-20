@@ -29,7 +29,7 @@ model User {
   addressId  String      @unique
   firstName  String
   lastName   String
-  address    Address     @relation(fields: [addressId], references: [id])
+  address    Address     @relation(fields: [addressId], references: [id], map: "User_adressId_fkey")
   userMeters UserMeter[]
   userRoles  UserRole[]
 
@@ -37,7 +37,7 @@ model User {
 }
 
 model Address {
-  id   String @id @default(uuid())
+  id   String @id(map: "Adress_pkey") @default(uuid())
   lat  String
   lng  String
   data String
