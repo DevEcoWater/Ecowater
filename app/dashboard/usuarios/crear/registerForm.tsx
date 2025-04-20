@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { usePathname, useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { ArrowLeft, UserPlus } from "lucide-react";
+import { UserPlus } from "lucide-react";
 
 import {
   Form,
