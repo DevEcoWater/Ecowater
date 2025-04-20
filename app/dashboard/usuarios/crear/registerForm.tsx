@@ -139,7 +139,7 @@ export default function RegisterUserPage() {
         {
           onSuccess: (userResponse) => {
             createMeter({
-              userId: userResponse.user._id,
+              userId: userResponse.user,
               status: getRandomStatus(),
               address: userResponse.user.address,
               coordinates: userResponse.user.coordinates,
@@ -276,38 +276,6 @@ export default function RegisterUserPage() {
                 </div>
               </CardContent>
             </Card>
-
-            {/* Actions Card */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Acciones</CardTitle>
-                <CardDescription>
-                  Complete el registro del usuario
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {isLoading && (
-                  <div className="text-sm text-muted-foreground">
-                    Procesando el registro...
-                  </div>
-                )}
-              </CardContent>
-              <CardFooter className="flex flex-col gap-4">
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  <UserPlus className="mr-2 h-4 w-4" />
-                  {isLoading ? "Registrando..." : "Registrar Usuario"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => router.back()}
-                  disabled={isLoading}
-                >
-                  Cancelar
-                </Button>
-              </CardFooter>
-            </Card>
           </div>
 
           <Separator className="my-8" />
@@ -381,6 +349,30 @@ export default function RegisterUserPage() {
                 </LoadScript>
               </div>
             </CardContent>
+          </Card>
+
+          <Separator className="my-8" />
+
+          <Card>
+            <CardHeader className="flex flex-col lg:flex-row justify-center ">
+              <Button
+                type="submit"
+                className="w-full lg:w-[200px]"
+                disabled={isLoading}
+              >
+                <UserPlus className="mr-2 h-4 w-4" />
+                {isLoading ? "Registrando..." : "Registrar Usuario"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full lg:w-[200px] mt-0"
+                onClick={() => router.back()}
+                disabled={isLoading}
+              >
+                Cancelar
+              </Button>
+            </CardHeader>
           </Card>
         </form>
       </Form>
