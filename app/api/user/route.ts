@@ -3,22 +3,21 @@ import { NextResponse } from "next/server";
 import { getPaginationParams } from "../../../utils/pagination";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { parseUserStatus } from "@/utils/parseUserStatus";
+import { PaginatedUserResponse, UserResponse } from "@/types/users/user-types";
 
 const prisma = new PrismaClient();
 export async function GET(req: Request) {
   try {
-    const { page, limit, skip } = getPaginationParams({ url: req.url });
+    const { page, limit, search, status } = getPaginationParams({
+      url: req.url,
+    });
 
     const [rawUsers, total] = await Promise.all([
       prisma.user.findMany({
-        skip,
         take: limit,
         include: {
-          userRoles: {
-            include: {
-              role: true,
-            },
-          },
+          userRoles: { include: { role: true } },
           userMeters: true,
         },
         orderBy: { created_at: "desc" },
@@ -28,20 +27,43 @@ export async function GET(req: Request) {
 
     const users = rawUsers.map(({ userRoles, ...user }) => ({
       ...user,
-      role: {
-        id: userRoles[0].role.id,
-        role_name: userRoles[0].role.role_name,
-      },
+      role: userRoles[0]?.role.role_name ?? "Unknown",
     }));
 
-    return NextResponse.json({
-      data: users,
+    let filteredUsers = users;
+
+    if (search) {
+      filteredUsers = filteredUsers.filter((user) =>
+        user.email.toLowerCase().includes(search.toLowerCase())
+      );
+    }
+
+    if (status && status !== "total") {
+      const userStatus = parseUserStatus(status);
+      filteredUsers = filteredUsers.filter(
+        (user) => user.status === userStatus
+      );
+    }
+
+    const paginatedData = filteredUsers.slice((page - 1) * limit, page * limit);
+    const totalFiltered = filteredUsers.length;
+
+    const counts = {
+      actives: users.filter((user) => user.status === "ACTIVE").length,
+      inactives: users.filter((user) => user.status === "INACTIVE").length,
+      pendings: users.filter((user) => user.status === "PENDING").length,
+      blockeds: users.filter((user) => user.status === "BLOCKED").length,
+    };
+
+    return NextResponse.json<PaginatedUserResponse>({
+      data: paginatedData,
       pagination: {
-        total,
+        total: total,
         page,
         limit,
-        totalPages: Math.ceil(total / limit),
+        totalPages: Math.ceil(totalFiltered / limit),
       },
+      counts,
     });
   } catch (error) {
     console.error("[GET USERS WITH PAGINATION]", error);

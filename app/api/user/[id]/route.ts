@@ -15,7 +15,7 @@ export async function GET(_: Request, { params }: Context) {
     const user = await prisma.user.findUnique({
       where: { id: params.id },
       include: {
-        adress: true,
+        address: true,
         userMeters: {
           include: {
             meter: true,
@@ -78,25 +78,25 @@ export async function PUT(
         email,
         ...(password && { password }),
         status: status as UserStatus,
-        adress: {
+        address: {
           update: {
-            address,
+            data: address,
             lat: coordinates.lat.toString(),
             lng: coordinates.lng.toString(),
           },
         },
       },
       include: {
-        adress: true,
+        address: true,
       },
     });
 
     return NextResponse.json({
       ...updatedUser,
-      address: updatedUser.adress.address,
+      address: updatedUser.address.data,
       coordinates: {
-        lat: parseFloat(updatedUser.adress.lat),
-        lng: parseFloat(updatedUser.adress.lng),
+        lat: parseFloat(updatedUser.address.lat),
+        lng: parseFloat(updatedUser.address.lng),
       },
     });
   } catch (error) {
