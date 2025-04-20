@@ -96,7 +96,10 @@ export async function POST(req: Request) {
       return user;
     });
 
-    return NextResponse.json(result, { status: 201 });
+    return NextResponse.json({
+      user: result,
+      message: "Usuario creado con éxito",
+    });
   } catch (error: any) {
     console.error("[POST USER]", error);
     return NextResponse.json(

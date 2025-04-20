@@ -33,13 +33,10 @@ export async function GET(_: Request, { params }: Context) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Extract meters
     const meter = user.userMeters.map((um) => um.meter)[0] ?? null;
 
-    // Extract role_name (assuming one role per user)
     const role = user.userRoles[0]?.role?.role_name ?? null;
 
-    // Build final response
     const { userMeters, userRoles, ...rest } = user;
 
     const result = {
