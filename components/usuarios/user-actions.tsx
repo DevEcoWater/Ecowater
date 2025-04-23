@@ -12,7 +12,6 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { Button } from "../ui/button";
-import type { User } from "@/types/users/user-types";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,6 +23,7 @@ import {
 import { useRouter } from "next/navigation";
 import { DeleteUserModal } from "../modals/delete-user-modal";
 import { ReactivateUserModal } from "../modals/reactive-user-modal";
+import { User } from "@prisma/client";
 
 interface UserActionsProps {
   user: User;
@@ -46,7 +46,8 @@ export const UserActions = ({
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [userToReactivate, setUserToReactivate] = useState<User | null>(null);
 
-  const isUserInactive = user.status === "INACTIVE";
+  const isUserInactive =
+    user.status === "INACTIVE" || user.status === "BLOCKED";
 
   const handleRedirect = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -57,7 +58,7 @@ export const UserActions = ({
   const handleViewMeter = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    router.push(`/dashboard/medidores/${user.meterId}`);
+    // router.push(`/dashboard/medidores/${user.}`);
   };
 
   const handleViewUser = (e: React.MouseEvent) => {

@@ -1,5 +1,6 @@
 import type React from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { formatUserType } from "@/utils/formatUserType";
 
 interface UserAvatarProps {
   firstName: string;
@@ -25,7 +26,9 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
         <span className="text-sm font-medium">
           {firstName + " " + lastName}
         </span>
-        <span className="text-xs text-muted-foreground">{role}</span>
+        <span className="text-xs text-muted-foreground">
+          {formatUserType(role)}
+        </span>
       </div>
     </div>
   );

@@ -1,13 +1,13 @@
 "use client";
 
-import { userConfig, UserStatus } from "@/utils/getChipColor";
-import type { MeterStatus } from "@prisma/client";
+import { userConfig } from "@/utils/getChipColor";
 import type { ColumnDef } from "@tanstack/react-table";
 import dayjs from "dayjs";
 import UserAvatar from "./user-avatar";
-import { User, UserColumn } from "@/types/users/user-types";
 import Chip from "../ui/chip";
 import { UserActions } from "./user-actions";
+import { User } from "@prisma/client";
+import { UserColumn } from "@/types/users/user-types";
 
 export const userColumns: ColumnDef<UserColumn>[] = [
   {
@@ -32,23 +32,13 @@ export const userColumns: ColumnDef<UserColumn>[] = [
     accessorKey: "createdAt",
     header: "Fecha de registro",
     cell: ({ row }) => {
-      const date = row.original.createdAt;
+      const date = row.original.created_at;
       return dayjs(date).format("DD/MM/YYYY");
     },
   },
   {
     accessorKey: "status",
     header: "Estado del usuario",
-    cell: ({ row }) => {
-      const status = row.original.status as keyof typeof userConfig;
-      const { label } = userConfig[status];
-
-      return <Chip status={status} text={label} user />;
-    },
-  },
-  {
-    accessorKey: "meterStatus",
-    header: "Estado del medidor",
     cell: ({ row }) => {
       const status = row.original.status as keyof typeof userConfig;
       const { label } = userConfig[status];

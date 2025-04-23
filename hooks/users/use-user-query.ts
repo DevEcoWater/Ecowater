@@ -44,7 +44,7 @@ export function useUserQuery(id: string) {
 export const useUserMutation = () => {
   const queryClient = useQueryClient();
 
-  const createUser = async (data: UserFormData): Promise<UserResponse> => {
+  const createUser = async (data: UserDetail): Promise<UserResponse> => {
     const response = await fetch("/api/user", {
       method: "POST",
       headers: {
@@ -61,7 +61,7 @@ export const useUserMutation = () => {
     return response.json();
   };
 
-  return useMutation<UserResponse, Error, UserFormData>({
+  return useMutation<UserResponse, Error, UserDetail>({
     mutationFn: createUser,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });

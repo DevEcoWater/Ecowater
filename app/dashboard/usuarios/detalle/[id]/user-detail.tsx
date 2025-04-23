@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 
 import { useMeterQuery } from "@/hooks/meters/user-meter-query";
+import { formatUserType } from "@/utils/formatUserType";
 
 const defaultLocation = { lat: -34.603722, lng: -58.381592 };
 
@@ -27,7 +28,7 @@ export default function UserDetailPage() {
   console.log(userData, "userData");
 
   useEffect(() => {
-    if (userData?.address.address) {
+    if (userData?.address.data) {
       try {
         setMapCenter({
           lat: Number.parseFloat(userData.address.lat),
@@ -110,7 +111,7 @@ export default function UserDetailPage() {
                       <div className="flex items-center gap-2">
                         <Home className="h-4 w-4 text-muted-foreground" />
                         <span className="font-medium">
-                          {userData.address.address}
+                          {userData.address.data}
                         </span>
                       </div>
                     </div>
@@ -165,7 +166,7 @@ export default function UserDetailPage() {
                   <div className="flex flex-wrap gap-2">
                     {userData.role ? (
                       <Badge className="w-fit" variant="outline">
-                        {userData.role}
+                        {formatUserType(userData.role)}
                       </Badge>
                     ) : (
                       <Badge className="w-fit" variant="outline">

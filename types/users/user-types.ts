@@ -14,6 +14,8 @@ export interface UserDetail {
   role: string;
 }
 
+export interface UserColumn extends Omit<UserDetail, "password, updated_at"> {}
+
 export interface UserResponse {
   user: UserDetail;
   message?: string;

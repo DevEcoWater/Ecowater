@@ -30,12 +30,10 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { PageHeader } from "@/components/page-header";
 import { useMeterMutation } from "@/hooks/meters/user-meter-query";
 
 const defaultLocation = { lat: -34.603722, lng: -58.381592 };
