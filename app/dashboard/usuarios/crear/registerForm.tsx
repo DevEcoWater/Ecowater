@@ -3,12 +3,6 @@
 import type React from "react";
 import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
-import {
-  GoogleMap,
-  LoadScript,
-  Marker,
-  Autocomplete,
-} from "@react-google-maps/api";
 import { useUserMutation } from "@/hooks/users/use-user-query";
 import { useToast } from "@/hooks/use-toast";
 import { usePathname, useRouter } from "next/navigation";
@@ -34,7 +28,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { useMeterMutation } from "@/hooks/meters/user-meter-query";
+import CoordinateMap from "@/components/ui/coordinateMap";
+import AddressAutocomplete from "@/components/ui/address-autocomplete";
 
 const defaultLocation = { lat: -34.603722, lng: -58.381592 };
 
@@ -84,8 +79,6 @@ export default function RegisterUserPage() {
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const [mapCenter, setMapCenter] = useState(defaultLocation);
   const { mutate: createUser, isPending: isCreatingUser } = useUserMutation();
-  const { mutate: createMeter, isPending: isCreatingMeter } =
-    useMeterMutation();
 
   const handlePlaceChanged = () => {
     if (autocompleteRef.current) {
@@ -111,6 +104,15 @@ export default function RegisterUserPage() {
     return statuses[randomIndex] as "ACTIVE" | "INACTIVE";
   }
 
+  const handlePlaceSelect = (place: {
+    address: string;
+    location: { lat: number; lng: number };
+  }) => {
+    form.setValue("address", place.address, { shouldValidate: true });
+    form.setValue("coordinates", place.location, { shouldValidate: true });
+    setMapCenter(place.location);
+  };
+
   const onSubmit = (data: FormValues) => {
     // Convert form data to match API expectations
     const userData = {
@@ -119,49 +121,32 @@ export default function RegisterUserPage() {
       email: data.email,
       address: data.address,
       password: data.password,
-      coordinates: data.coordinates,
+      role_id: "5b42ecad-2634-4546-ae9e-ae8425469f48",
     };
 
-    if (
-      userData.coordinates.lat !== undefined &&
-      userData.coordinates.lng !== undefined
-    ) {
-      createUser(
-        {
-          ...userData,
-          coordinates: {
-            lat: userData.coordinates.lat,
-            lng: userData.coordinates.lng,
-          },
+    createUser(
+      {
+        ...userData,
+        address: {
+          data: userData.address,
+          lat: data.coordinates.lat.toString(),
+          lng: data.coordinates.lng.toString(),
         },
-        {
-          onSuccess: (userResponse) => {
-            createMeter({
-              userId: userResponse.user,
-              status: getRandomStatus(),
-              address: userResponse.user.address,
-              coordinates: userResponse.user.coordinates,
-            });
+      },
+      {
+        onSuccess: () => {
+          toast({
+            title: "Registro exitoso",
+            description: "El usuario ha sido registrado correctamente.",
+            variant: "default",
+          });
 
-            toast({
-              title: "Registro exitoso",
-              description: "El usuario ha sido registrado correctamente.",
-              variant: "default",
-            });
-
-            setTimeout(() => {
-              router.push("/dashboard/usuarios");
-            }, 2000);
-          },
-        }
-      );
-    } else {
-      toast({
-        title: "Error de ubicación",
-        description: "Debes seleccionar una ubicación válida con coordenadas.",
-        variant: "destructive",
-      });
-    }
+          setTimeout(() => {
+            router.push("/dashboard/usuarios");
+          }, 2000);
+        },
+      }
+    );
 
     form.reset();
   };
@@ -172,7 +157,7 @@ export default function RegisterUserPage() {
     }
   };
 
-  const isLoading = isCreatingUser || isCreatingMeter;
+  const isLoading = isCreatingUser;
 
   return (
     <div className="mx-auto py-6 space-y-8">
@@ -288,63 +273,36 @@ export default function RegisterUserPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div key={pathname}>
-                <LoadScript
-                  googleMapsApiKey={
-                    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string
-                  }
-                  libraries={["places"]}
-                >
-                  <FormField
-                    control={form.control}
-                    name="address"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Dirección</FormLabel>
-                        <Autocomplete
-                          onLoad={(autocomplete) => {
-                            autocompleteRef.current = autocomplete;
+                <FormField
+                  control={form.control}
+                  name="address"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Dirección</FormLabel>
+                      <FormControl>
+                        <AddressAutocomplete
+                          placeholder="Ingrese la dirección del usuario"
+                          value={field.value}
+                          onChange={(value) => {
+                            field.onChange(value);
                           }}
-                          onPlaceChanged={handlePlaceChanged}
-                        >
-                          <FormControl>
-                            <Input
-                              placeholder="Ingrese su dirección"
-                              {...field}
-                            />
-                          </FormControl>
-                        </Autocomplete>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </LoadScript>
+                          onPlaceSelect={(place) => {
+                            handlePlaceSelect(place);
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
 
               <div className="h-[300px] rounded-md overflow-hidden">
-                <LoadScript
-                  googleMapsApiKey={
-                    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string
-                  }
-                  libraries={["places"]}
-                >
-                  <GoogleMap
-                    mapContainerStyle={{ width: "100%", height: "100%" }}
-                    center={mapCenter}
-                    zoom={14}
-                    onClick={(e) => {
-                      if (window.google && e.latLng) {
-                        const coords = {
-                          lat: e.latLng.lat(),
-                          lng: e.latLng.lng(),
-                        };
-                        form.setValue("coordinates", coords);
-                        setMapCenter(coords);
-                      }
-                    }}
-                  >
-                    <Marker position={mapCenter} />
-                  </GoogleMap>
-                </LoadScript>
+                <CoordinateMap
+                  initialLocation={mapCenter}
+                  readOnly={true}
+                  height="300px"
+                />
               </div>
             </CardContent>
           </Card>
@@ -356,8 +314,7 @@ export default function RegisterUserPage() {
               <Button
                 type="submit"
                 className="w-full lg:w-[200px]"
-                disabled={isLoading}
-              >
+                disabled={isLoading}>
                 <UserPlus className="mr-2 h-4 w-4" />
                 {isLoading ? "Registrando..." : "Registrar Usuario"}
               </Button>
@@ -366,8 +323,7 @@ export default function RegisterUserPage() {
                 variant="outline"
                 className="w-full lg:w-[200px] mt-0"
                 onClick={() => router.back()}
-                disabled={isLoading}
-              >
+                disabled={isLoading}>
                 Cancelar
               </Button>
             </CardHeader>

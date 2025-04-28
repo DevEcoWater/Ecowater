@@ -4,13 +4,12 @@ import type React from "react";
 
 import { useRef, useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { Autocomplete } from "@react-google-maps/api";
 import {
   useUserQuery,
   useUpdateUserMutation,
 } from "@/hooks/users/use-user-query";
 import { useToast } from "@/hooks/use-toast";
-import { usePathname, useRouter, useParams } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Save, AlertCircle } from "lucide-react";
@@ -44,9 +43,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import UserLocationMap from "@/components/usuarios/map";
 import { UserStatus } from "@prisma/client";
-import { useMeterMutation } from "@/hooks/meters/user-meter-query";
+import AddressAutocomplete from "@/components/ui/address-autocomplete";
+import CoordinateMap from "@/components/ui/coordinateMap";
 
 const defaultLocation = { lat: -34.603722, lng: -58.381592 };
 
@@ -75,7 +74,6 @@ declare global {
 export default function UpdateUserForm() {
   const { toast } = useToast();
   const router = useRouter();
-  const pathname = usePathname();
   const params = useParams();
   const userId = params.id as string;
 
@@ -100,8 +98,6 @@ export default function UpdateUserForm() {
 
   const { mutate: updateUser, isPending: isUpdatingUser } =
     useUpdateUserMutation();
-  const { mutate: updateMeter, isPending: isUpdatingMeter } =
-    useMeterMutation();
 
   useEffect(() => {
     if (userData && !isLoadingUser) {
@@ -109,24 +105,21 @@ export default function UpdateUserForm() {
         firstName: userData.firstName,
         lastName: userData.lastName,
         email: userData.email,
-        address: userData.address || "",
+        address: userData.address.data || "",
         password: "",
         status: userData.status || "ACTIVE",
-        coordinates: userData.coordinates || defaultLocation,
+        coordinates: {
+          lat: Number(userData.address.lat),
+          lng: Number(userData.address.lng),
+        },
       });
 
       setOriginalStatus(userData.status);
 
-      if (
-        userData.coordinates &&
-        typeof userData.coordinates.lat === "number" &&
-        typeof userData.coordinates.lng === "number"
-      ) {
-        setMapCenter({
-          lat: userData.coordinates.lat,
-          lng: userData.coordinates.lng,
-        });
-      }
+      setMapCenter({
+        lat: Number(userData.address.lat),
+        lng: Number(userData.address.lng),
+      });
     }
   }, [userData, isLoadingUser, form]);
 
@@ -148,8 +141,15 @@ export default function UpdateUserForm() {
     }
   };
 
-  const handleLocationChange = (location: { lat: number; lng: number }) => {
-    form.setValue("coordinates", location);
+  const handlePlaceSelect = (place: {
+    address: string;
+    location: { lat: number; lng: number };
+  }) => {
+    form.setValue("address", place.address, { shouldValidate: true });
+
+    form.setValue("coordinates", place.location, { shouldValidate: true });
+
+    setMapCenter(place.location);
   };
 
   const onSubmit = (data: FormValues) => {
@@ -165,21 +165,6 @@ export default function UpdateUserForm() {
         { id: userId, ...updateData },
         {
           onSuccess: (res) => {
-            const userResponse = res.user;
-
-            if (
-              userResponse.address !== userData?.address ||
-              JSON.stringify(userResponse.coordinates) !==
-                JSON.stringify(userData?.coordinates)
-            ) {
-              updateMeter({
-                userId: userResponse.id,
-                address: userResponse.address,
-                coordinates: userResponse.coordinates,
-                status: "ACTIVE",
-              });
-            }
-
             const statusChanged = originalStatus !== data.status;
             let message =
               "La información del usuario ha sido actualizada correctamente.";
@@ -216,7 +201,7 @@ export default function UpdateUserForm() {
   const watchedStatus = form.watch("status");
   const statusChanged = originalStatus !== watchedStatus;
 
-  const isLoading = isLoadingUser || isUpdatingUser || isUpdatingMeter;
+  const isLoading = isLoadingUser || isUpdatingUser;
   return (
     <div className="mx-auto py-6 space-y-8">
       <Form {...form}>
@@ -336,8 +321,7 @@ export default function UpdateUserForm() {
                         disabled={isLoadingUser}
                         onValueChange={field.onChange}
                         defaultValue={field.value}
-                        value={field.value}
-                      >
+                        value={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Seleccione un estado" />
@@ -364,8 +348,7 @@ export default function UpdateUserForm() {
                     variant={
                       watchedStatus === "ACTIVE" ? "default" : "destructive"
                     }
-                    className="mt-4"
-                  >
+                    className="mt-4">
                     <AlertCircle className="h-4 w-4" />
                     <AlertTitle>
                       {watchedStatus === "ACTIVE"
@@ -396,8 +379,7 @@ export default function UpdateUserForm() {
                   variant="outline"
                   className="w-full"
                   onClick={() => router.back()}
-                  disabled={isLoading}
-                >
+                  disabled={isLoading}>
                   Cancelar
                 </Button>
               </CardFooter>
@@ -415,46 +397,41 @@ export default function UpdateUserForm() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* <div key={pathname}>
-                <FormField
-                  control={form.control}
-                  name="address"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Dirección</FormLabel>
+              {/* Añadimos el componente de autocompleted de direcciones */}
+              <FormField
+                control={form.control}
+                name="address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Dirección</FormLabel>
+                    <FormControl>
                       {isLoadingUser ? (
                         <Skeleton className="h-10 w-full" />
                       ) : (
-                        <Autocomplete
-                          onLoad={(autocomplete) => {
-                            autocompleteRef.current = autocomplete;
+                        <AddressAutocomplete
+                          placeholder="Ingrese la dirección del usuario"
+                          value={field.value}
+                          onChange={(value) => {
+                            field.onChange(value);
                           }}
-                          onPlaceChanged={handlePlaceChanged}
-                          options={{
-                            fields: ["formatted_address", "geometry.location"],
+                          onPlaceSelect={(place) => {
+                            handlePlaceSelect(place);
                           }}
-                        >
-                          <FormControl>
-                            <Input
-                              placeholder="Ingrese su dirección"
-                              {...field}
-                            />
-                          </FormControl>
-                        </Autocomplete>
+                        />
                       )}
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div> */}
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-              <div className="rounded-md overflow-hidden">
+              <div className="rounded-md overflow-hidden border">
                 {isLoadingUser ? (
                   <Skeleton className="h-[300px] w-full" />
                 ) : (
-                  <UserLocationMap
+                  <CoordinateMap
                     initialLocation={mapCenter}
-                    onLocationChange={handleLocationChange}
+                    readOnly={true}
                     height="300px"
                   />
                 )}
