@@ -13,8 +13,6 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
   lastName,
   role,
 }) => {
-  console.log(firstName, lastName, role);
-
   const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
 
   return (
