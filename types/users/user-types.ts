@@ -28,10 +28,7 @@ export interface PaginatedUserResponse {
     limit: number;
     totalPages: number;
   };
-  counts: {
-    actives: number;
-    inactives: number;
-  };
+  counts: TCounts;
 }
 export type TCounts = {
   actives: number;
