@@ -26,17 +26,8 @@ export interface Meter {
 
 export interface MeterFormData {
   userId: string;
-  status?: "ACTIVE" | "INACTIVE";
-  operational_status?: "OPERATIONAL" | "NON_OPERATIONAL";
-  address?: string;
-  coordinates?: {
-    lat: number;
-    lng: number;
-  };
-  dev_eui?: string;
-  device_name?: string;
-  application_id?: string;
-  application_name?: string;
+  lat: number;
+  lng: number;
 }
 
 export interface PaginatedMeterResponse {

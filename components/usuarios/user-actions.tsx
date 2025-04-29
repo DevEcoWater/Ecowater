@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import type React from "react";
+import { useRouter } from "next/navigation";
+import { User } from "@prisma/client";
 
 import {
   MoreHorizontal,
@@ -11,6 +12,7 @@ import {
   Trash2,
   RefreshCw,
 } from "lucide-react";
+
 import { Button } from "../ui/button";
 import {
   DropdownMenu,
@@ -20,10 +22,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
-import { useRouter } from "next/navigation";
 import { DeleteUserModal } from "../modals/delete-user-modal";
 import { ReactivateUserModal } from "../modals/reactive-user-modal";
-import { User } from "@prisma/client";
 
 interface UserActionsProps {
   user: User;
@@ -49,34 +49,24 @@ export const UserActions = ({
   const isUserInactive =
     user.status === "INACTIVE" || user.status === "BLOCKED";
 
-  const handleRedirect = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    router.push(`/dashboard/usuarios/editar/${user.id}`);
-  };
-
-  const handleViewMeter = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    // router.push(`/dashboard/medidores/${user.}`);
-  };
-
-  const handleViewUser = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleViewUser = () => {
     router.push(`/dashboard/usuarios/detalle/${user.id}`);
   };
 
-  const handleDelete = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleEditUser = () => {
+    router.push(`/dashboard/usuarios/editar/${user.id}`);
+  };
+
+  const handleViewMeter = () => {
+    // router.push(`/dashboard/medidores/${user.id}`); // <-- update when ready
+  };
+
+  const handleDelete = () => {
     setUserToDelete(user);
     setIsDeleteModalOpen(true);
   };
 
-  const handleReactivate = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleReactivate = () => {
     setUserToReactivate(user);
     setIsReactivateModalOpen(true);
   };
@@ -94,20 +84,26 @@ export const UserActions = ({
   return (
     <>
       <DropdownMenu modal={true}>
-        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-          <Button variant="ghost" className="h-8 w-8 p-0">
-            <span className="sr-only">Abrir menu</span>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            className="h-8 w-8 p-0"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <span className="sr-only">Abrir menú</span>
             <MoreHorizontal className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-[200px]">
+        <DropdownMenuContent
+          align="end"
+          sideOffset={8}
+          // portalled={false}
+          collisionPadding={10}
+        >
           <DropdownMenuLabel>Acciones</DropdownMenuLabel>
           <DropdownMenuItem
             className="cursor-pointer flex items-center gap-2"
-            onSelect={(e) => {
-              e.preventDefault();
-              handleViewUser(e as unknown as React.MouseEvent);
-            }}
+            onSelect={handleViewUser}
           >
             <User2 className="h-4 w-4" />
             Detalle del usuario
@@ -115,10 +111,7 @@ export const UserActions = ({
           <DropdownMenuSeparator />
           <DropdownMenuItem
             className="cursor-pointer flex items-center gap-2"
-            onSelect={(e) => {
-              e.preventDefault();
-              handleRedirect(e as unknown as React.MouseEvent);
-            }}
+            onSelect={handleEditUser}
           >
             <NotebookPen className="h-4 w-4" />
             Editar usuario
@@ -126,10 +119,7 @@ export const UserActions = ({
           <DropdownMenuSeparator />
           <DropdownMenuItem
             className="cursor-pointer flex items-center gap-2"
-            onSelect={(e) => {
-              e.preventDefault();
-              handleViewMeter(e as unknown as React.MouseEvent);
-            }}
+            onSelect={handleViewMeter}
           >
             <Gauge className="h-4 w-4" />
             Medidor asignado
@@ -138,10 +128,7 @@ export const UserActions = ({
           {isUserInactive ? (
             <DropdownMenuItem
               className="cursor-pointer flex items-center gap-2 text-green-600"
-              onSelect={(e) => {
-                e.preventDefault();
-                handleReactivate(e as unknown as React.MouseEvent);
-              }}
+              onSelect={handleReactivate}
             >
               <RefreshCw className="h-4 w-4" />
               Reactivar usuario
@@ -149,10 +136,7 @@ export const UserActions = ({
           ) : (
             <DropdownMenuItem
               className="cursor-pointer flex items-center gap-2 text-destructive"
-              onSelect={(e) => {
-                e.preventDefault();
-                handleDelete(e as unknown as React.MouseEvent);
-              }}
+              onSelect={handleDelete}
             >
               <Trash2 className="h-4 w-4" />
               Desactivar usuario

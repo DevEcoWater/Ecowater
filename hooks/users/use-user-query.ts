@@ -5,6 +5,7 @@ import type {
   UserResponse,
   PaginatedUserResponse,
   UserDetail,
+  CreateUserFormValues,
 } from "@/types/users/user-types";
 
 // Get All Users
@@ -44,7 +45,9 @@ export function useUserQuery(id: string) {
 export const useUserMutation = () => {
   const queryClient = useQueryClient();
 
-  const createUser = async (data: UserDetail): Promise<UserResponse> => {
+  const createUser = async (
+    data: CreateUserFormValues
+  ): Promise<UserResponse> => {
     const response = await fetch("/api/user", {
       method: "POST",
       headers: {
@@ -76,7 +79,7 @@ export const useUserMutation = () => {
 export const useUpdateUserMutation = () => {
   const queryClient = useQueryClient();
 
-  const updateUser = async (data: UpdateUserData): Promise<UserResponse> => {
+  const updateUser = async (data: UserDetail): Promise<UserResponse> => {
     const { id, ...userData } = data;
 
     const response = await fetch(`/api/user/${id}`, {

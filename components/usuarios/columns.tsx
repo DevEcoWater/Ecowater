@@ -52,13 +52,15 @@ export const userColumns: ColumnDef<UserColumn>[] = [
     cell: ({ row }) => {
       const user = row.original as unknown as User;
       return (
-        <UserActions
-          user={user}
-          onViewDetails={(user) => console.log("View details", user)}
-          onEdit={(user) => console.log("Edit", user)}
-          onViewMeter={(user) => console.log("View meter", user)}
-          onDelete={(user) => console.log("Delete", user)}
-        />
+        <div onClick={(e) => e.stopPropagation()}>
+          <UserActions
+            user={user}
+            onViewDetails={(user) => console.log("View details", user)}
+            onEdit={(user) => console.log("Edit", user)}
+            onViewMeter={(user) => console.log("View meter", user)}
+            onDelete={(user) => console.log("Delete", user)}
+          />
+        </div>
       );
     },
   },

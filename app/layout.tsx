@@ -1,7 +1,7 @@
 import * as React from "react";
 import type { Metadata, Viewport } from "next";
 import { Poppins } from "next/font/google";
-import Providers from "@/components/providers/common/privders";
+import Providers from "@/components/providers/common/providers";
 
 export const viewport = {
   width: "device-width",

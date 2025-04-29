@@ -75,7 +75,6 @@ declare global {
 export default function UpdateUserForm() {
   const { toast } = useToast();
   const router = useRouter();
-  const pathname = usePathname();
   const params = useParams();
   const userId = params.id as string;
 
@@ -109,102 +108,59 @@ export default function UpdateUserForm() {
         firstName: userData.firstName,
         lastName: userData.lastName,
         email: userData.email,
-        address: userData.address || "",
+        address: userData.address.data || "",
         password: "",
-        status: userData.status || "ACTIVE",
-        coordinates: userData.coordinates || defaultLocation,
+        status: userData.status ?? UserStatus.ACTIVE,
+        coordinates: {
+          lat: Number(userData.address.lat),
+          lng: Number(userData.address.lng),
+        },
       });
 
       setOriginalStatus(userData.status);
 
       if (
-        userData.coordinates &&
-        typeof userData.coordinates.lat === "number" &&
-        typeof userData.coordinates.lng === "number"
+        userData.address &&
+        typeof userData.address.lat === "number" &&
+        typeof userData.address.lng === "number"
       ) {
         setMapCenter({
-          lat: userData.coordinates.lat,
-          lng: userData.coordinates.lng,
+          lat: userData.address.lat,
+          lng: userData.address.lng,
         });
       }
     }
   }, [userData, isLoadingUser, form]);
 
-  const handlePlaceChanged = () => {
-    if (autocompleteRef.current) {
-      const place = autocompleteRef.current.getPlace();
-      if (place && place.geometry) {
-        const location = {
-          lat: place.geometry.location!.lat(),
-          lng: place.geometry.location!.lng(),
-        };
-
-        setMapCenter(location);
-        form.setValue("coordinates", location);
-        form.setValue("address", place.formatted_address || "", {
-          shouldValidate: true,
-        });
-      }
-    }
-  };
-
   const handleLocationChange = (location: { lat: number; lng: number }) => {
     form.setValue("coordinates", location);
   };
 
+  console.log(userData, "userData");
+
   const onSubmit = (data: FormValues) => {
     const updateData = { ...data };
+
     if (!updateData.password) {
       delete updateData.password;
     }
-    if (
-      updateData.coordinates?.lat != null &&
-      updateData.coordinates?.lng != null
-    ) {
-      updateUser(
-        { id: userId, ...updateData },
-        {
-          onSuccess: (res) => {
-            const userResponse = res.user;
 
-            if (
-              userResponse.address !== userData?.address ||
-              JSON.stringify(userResponse.coordinates) !==
-                JSON.stringify(userData?.coordinates)
-            ) {
-              updateMeter({
-                userId: userResponse.id,
-                address: userResponse.address,
-                coordinates: userResponse.coordinates,
-                status: "ACTIVE",
-              });
-            }
+    updateUser(
+      { id: userId, ...updateData },
+      {
+        onSuccess: (res) => {
+          toast({
+            title: "Actualización exitosa",
+            description: res.message,
+            variant: "default",
+          });
 
-            const statusChanged = originalStatus !== data.status;
-            let message =
-              "La información del usuario ha sido actualizada correctamente.";
-
-            if (statusChanged) {
-              if (data.status === "ACTIVE") {
-                message += " El usuario ha sido activado.";
-              } else if (data.status === "INACTIVE") {
-                message += " El usuario ha sido desactivado.";
-              }
-            }
-
-            toast({
-              title: "Actualización exitosa",
-              description: message,
-              variant: "default",
-            });
-
-            setTimeout(() => {
-              router.push("/dashboard/usuarios");
-            }, 2000);
-          },
-        }
-      );
-    }
+          setTimeout(() => {
+            router.push("/dashboard/usuarios");
+          }, 2000);
+        },
+      }
+    );
   };
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
@@ -221,7 +177,7 @@ export default function UpdateUserForm() {
     <div className="mx-auto py-6 space-y-8">
       <Form {...form}>
         <form onKeyDown={handleKeyDown} onSubmit={form.handleSubmit(onSubmit)}>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-6">
             {/* Personal Information Card */}
             <Card className="lg:col-span-2">
               <CardHeader>
@@ -274,24 +230,58 @@ export default function UpdateUserForm() {
                     )}
                   />
                 </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Correo Electrónico</FormLabel>
+                        <FormControl>
+                          {isLoadingUser ? (
+                            <Skeleton className="h-10 w-full" />
+                          ) : (
+                            <Input
+                              placeholder="correo@ejemplo.com"
+                              {...field}
+                            />
+                          )}
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Correo Electrónico</FormLabel>
-                      <FormControl>
-                        {isLoadingUser ? (
-                          <Skeleton className="h-10 w-full" />
-                        ) : (
-                          <Input placeholder="correo@ejemplo.com" {...field} />
-                        )}
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                  <FormField
+                    control={form.control}
+                    name="status"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Estado del Usuario</FormLabel>
+                        <Select
+                          disabled={isLoadingUser}
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleccione un estado" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent avoidCollisions={false}>
+                            <SelectItem value="ACTIVE">Activo</SelectItem>
+                            <SelectItem value="INACTIVE">Inactivo</SelectItem>
+                            <SelectItem value="PENDING">Pendiente</SelectItem>
+                            <SelectItem value="BLOCKED">Bloqueado</SelectItem>
+                          </SelectContent>
+                        </Select>
+
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
                 <FormField
                   control={form.control}
@@ -318,90 +308,6 @@ export default function UpdateUserForm() {
             </Card>
 
             {/* Status Card */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Estado y Acciones</CardTitle>
-                <CardDescription>
-                  Gestione el estado del usuario y guarde los cambios
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Estado del Usuario</FormLabel>
-                      <Select
-                        disabled={isLoadingUser}
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        value={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Seleccione un estado" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="ACTIVE">Activo</SelectItem>
-                          <SelectItem value="INACTIVE">Inactivo</SelectItem>
-                          <SelectItem value="PENDING">Pendiente</SelectItem>
-                          <SelectItem value="BLOCKED">Bloqueado</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormDescription>
-                        El estado determina si el usuario puede acceder al
-                        sistema.
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {statusChanged && (
-                  <Alert
-                    variant={
-                      watchedStatus === "ACTIVE" ? "default" : "destructive"
-                    }
-                    className="mt-4"
-                  >
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>
-                      {watchedStatus === "ACTIVE"
-                        ? "El usuario será activado"
-                        : "El usuario será desactivado"}
-                    </AlertTitle>
-                    <AlertDescription>
-                      {watchedStatus === "ACTIVE"
-                        ? "Al guardar los cambios, el usuario podrá acceder al sistema."
-                        : "Al guardar los cambios, el usuario no podrá acceder al sistema."}
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                {isLoading && (
-                  <div className="text-sm text-muted-foreground">
-                    Procesando la solicitud...
-                  </div>
-                )}
-              </CardContent>
-              <CardFooter className="flex flex-col gap-4">
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  <Save className="mr-2 h-4 w-4" />
-                  {isLoading ? "Guardando..." : "Guardar Cambios"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => router.back()}
-                  disabled={isLoading}
-                >
-                  Cancelar
-                </Button>
-              </CardFooter>
-            </Card>
           </div>
 
           <Separator className="my-8" />
@@ -458,6 +364,51 @@ export default function UpdateUserForm() {
                     height="300px"
                   />
                 )}
+              </div>
+              {statusChanged && (
+                <Alert
+                  variant={
+                    watchedStatus === "ACTIVE" ? "default" : "destructive"
+                  }
+                  className="mt-4"
+                >
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>
+                    {watchedStatus === "ACTIVE"
+                      ? "El usuario será activado"
+                      : "El usuario será desactivado"}
+                  </AlertTitle>
+                  <AlertDescription>
+                    {watchedStatus === "ACTIVE"
+                      ? "Al guardar los cambios, el usuario podrá acceder al sistema."
+                      : "Al guardar los cambios, el usuario no podrá acceder al sistema."}
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {isLoading && (
+                <div className="text-sm text-muted-foreground">
+                  Procesando la solicitud...
+                </div>
+              )}
+              <div className="flex flex-col sm:flex-row sm:justify-center gap-4">
+                <Button
+                  type="submit"
+                  className="w-full sm:w-[200px]"
+                  disabled={isLoading}
+                >
+                  <Save className="mr-2 h-4 w-4" />
+                  {isLoading ? "Guardando..." : "Guardar Cambios"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full sm:w-[200px]"
+                  onClick={() => router.back()}
+                  disabled={isLoading}
+                >
+                  Cancelar
+                </Button>
               </div>
             </CardContent>
           </Card>

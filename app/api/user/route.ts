@@ -77,13 +77,14 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+
     const {
       firstName,
       lastName,
       email,
       password,
       role_id,
-      address_data: { address, lat, lng },
+      address: { data, lat, lng },
     } = body;
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -91,7 +92,7 @@ export async function POST(req: Request) {
     const result = await prisma.$transaction(async (tx) => {
       const createdAddress = await tx.address.create({
         data: {
-          data: address,
+          data,
           lat,
           lng,
         },

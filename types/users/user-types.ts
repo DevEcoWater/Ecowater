@@ -16,6 +16,9 @@ export interface UserDetail {
 
 export interface UserColumn extends Omit<UserDetail, "password, updated_at"> {}
 
+export type CreateUserFormValues = Omit<UserDetail, "id"> & {
+  address: Omit<Address, "id">;
+};
 export interface UserResponse {
   user: UserDetail;
   message?: string;
