@@ -49,14 +49,13 @@ export const UserTable = ({ data, isLoading, error }: UserTableProps) => {
     },
   });
 
-  if (error) return <p>Error: {error.message}</p>;
-
   return (
     <DataTable
       columns={userColumns}
       data={data}
       table={table}
       isLoading={isLoading}
+      error={error}
     />
   );
 };

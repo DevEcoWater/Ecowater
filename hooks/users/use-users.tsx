@@ -34,8 +34,6 @@ export const useUsers = (options?: UseUsersOptions): UseUsersReturn => {
     options?.initialFilter || "total"
   );
 
-  console.log("filterState", filterState);
-
   const [page, setPage] = useState(options?.initialPage || 1);
   const [limit, setLimit] = useState(options?.initialLimit || 10);
 

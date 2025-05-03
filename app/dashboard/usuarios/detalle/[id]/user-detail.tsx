@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { GoogleMap, LoadScript, Marker } from "@react-google-maps/api";
+import { GoogleMap, Marker } from "@react-google-maps/api";
 import { X, Mail, User, Calendar, Home } from "lucide-react";
 
 import { useUserQuery } from "@/hooks/users/use-user-query";
@@ -14,6 +14,7 @@ import { formatUserType } from "@/utils/formatUserType";
 import { Button } from "@/components/ui/button";
 import Chip from "@/components/ui/chip";
 import { chipConfig } from "@/utils/getChipColor";
+import CoordinateMap from "@/components/ui/coordinateMap";
 
 const defaultLocation = { lat: -34.603722, lng: -58.381592 };
 
@@ -24,8 +25,6 @@ export default function UserDetailPage() {
   const { data: userData, isLoading: isLoadingUser } = useUserQuery(userId);
 
   const [mapCenter, setMapCenter] = useState(defaultLocation);
-
-  console.log(userData, "userData");
 
   useEffect(() => {
     if (userData?.address.data) {
@@ -40,6 +39,7 @@ export default function UserDetailPage() {
     }
   }, [userData]);
 
+  console.log(userData?.status);
   return (
     <div className="mx-auto py-6 space-y-8">
       <div className="grid grid-cols-1 gap-6">
@@ -118,20 +118,11 @@ export default function UserDetailPage() {
 
                 {userData.address && (
                   <div className="h-[200px] w-full rounded-md overflow-hidden">
-                    <LoadScript
-                      googleMapsApiKey={
-                        process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string
-                      }
-                      libraries={["places"]}
-                    >
-                      <GoogleMap
-                        mapContainerStyle={{ width: "100%", height: "100%" }}
-                        center={mapCenter}
-                        zoom={14}
-                      >
-                        <Marker position={mapCenter} />
-                      </GoogleMap>
-                    </LoadScript>
+                    <CoordinateMap
+                      initialLocation={mapCenter}
+                      readOnly={true}
+                      height="200px"
+                    />
                   </div>
                 )}
 
@@ -144,11 +135,17 @@ export default function UserDetailPage() {
                       </div>
                       <div className="flex flex-wrap gap-2">
                         {userData.role ? (
-                          <Badge className="w-fit" variant="outline">
+                          <Badge
+                            className="flex gap-2 justify-center items-center rounded-xl py-1 px-2.5 text-sm w-[100px]"
+                            variant="outline"
+                          >
                             {formatUserType(userData.role)}
                           </Badge>
                         ) : (
-                          <Badge className="w-fit" variant="outline">
+                          <Badge
+                            className="flex gap-2 justify-center items-center rounded-xl py-1 px-2.5 text-sm w-[100px]"
+                            variant="outline"
+                          >
                             Rol desconocido
                           </Badge>
                         )}
@@ -159,70 +156,70 @@ export default function UserDetailPage() {
                       <div className="text-sm font-medium text-muted-foreground">
                         Estado de la cuenta
                       </div>
-                      <Badge
-                        className="w-fit"
-                        variant={
-                          userData.status === "ACTIVE"
-                            ? "default"
-                            : "destructive"
-                        }
-                      >
-                        {userData.status === "ACTIVE" ? "Activo" : "Inactivo"}
-                      </Badge>
+                      <Chip
+                        status={userData?.status}
+                        style={{ marginTop: 0 }}
+                      />
                     </div>
-                  </div>
-
-                  {/* Última actualización */}
-                  {userData.updated_at && (
-                    <div className="flex flex-col gap-2 space-y-2">
-                      <div className="text-sm font-medium text-muted-foreground">
-                        Última actualización
-                      </div>
-                      <div className="font-medium">
-                        {new Date(userData.updated_at).toLocaleDateString(
-                          "es-AR",
-                          {
-                            day: "2-digit",
-                            month: "2-digit",
-                            year: "numeric",
-                          }
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <div className="flex flex-col gap-2">
-                  <CardTitle>Información del Medidor</CardTitle>
-                  <div className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="flex flex-col gap-2">
+                    {/* Última actualización */}
+                    {userData.updated_at && (
+                      <div className="flex flex-col gap-2 space-y-2">
                         <div className="text-sm font-medium text-muted-foreground">
-                          ID del Medidor
+                          Última actualización
                         </div>
                         <div className="font-medium">
-                          {userData.meter.dev_eui
-                            ? userData.meter.dev_eui
-                            : "Sin medidor"}
+                          {new Date(userData.updated_at).toLocaleDateString(
+                            "es-AR",
+                            {
+                              day: "2-digit",
+                              month: "2-digit",
+                              year: "numeric",
+                            }
+                          )}
                         </div>
                       </div>
+                    )}
+                    {userData.meter ? (
+                      <>
+                        <div className="flex flex-col gap-2">
+                          <CardTitle>Información del Medidor</CardTitle>
+                          <div className="space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              <div className="flex flex-col gap-2">
+                                <div className="text-sm font-medium text-muted-foreground">
+                                  ID del Medidor
+                                </div>
+                                <div className="font-medium">
+                                  {userData.meter.dev_eui
+                                    ? userData.meter.dev_eui
+                                    : "Sin medidor"}
+                                </div>
+                              </div>
 
-                      <div className="flex flex-col gap-2">
-                        <div className="text-sm font-medium text-muted-foreground">
-                          Estado del medidor
+                              <div className="flex flex-col gap-2">
+                                <div className="text-sm font-medium text-muted-foreground">
+                                  Estado del medidor
+                                </div>
+                                <Chip status={userData.meter.status} />
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                        <Chip
-                          status={userData.meter.status.toLowerCase()}
-                          text={
-                            chipConfig[userData.meter.status.toLowerCase()]
-                              .label
-                          }
-                        />
+                        <div className="flex flex-col gap-2 md:max-w-[300px] ">
+                          <Button>Ver Medidor</Button>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex flex-col gap-2 space-y-2">
+                        <div className="text-sm font-medium text-muted-foreground">
+                          Información del Medidor
+                        </div>
+                        <div className="font-medium">
+                          No hay medidor asociado
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
-                </div>
-                <div className="flex flex-col gap-2 md:max-w-[300px] ">
-                  <Button>Ver Medidor</Button>
                 </div>
               </div>
             ) : (

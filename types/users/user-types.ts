@@ -9,12 +9,16 @@ export interface UserDetail {
   status: UserStatus;
   firstName: string;
   lastName: string;
-  address: Address;
-  meter: Meter;
-  role: string;
+  address?: Address;
+  meter?: Meter;
+  role?: string;
 }
 
-export interface UserColumn extends Omit<UserDetail, "password, updated_at"> {}
+export interface UserColumn
+  extends Omit<
+    UserDetail,
+    "password" | "updated_at" | "address" | "meter" | "role"
+  > {}
 
 export type CreateUserFormValues = Omit<UserDetail, "id"> & {
   address: Omit<Address, "id">;
@@ -31,10 +35,7 @@ export interface PaginatedUserResponse {
     limit: number;
     totalPages: number;
   };
-  counts: {
-    actives: number;
-    inactives: number;
-  };
+  counts: TCounts;
 }
 export type TCounts = {
   actives: number;

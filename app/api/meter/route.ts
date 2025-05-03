@@ -7,11 +7,10 @@ const prisma = new PrismaClient();
 
 export async function GET(req: Request) {
   try {
-    const { page, limit, skip } = getPaginationParams({ url: req.url });
+    const { page, limit } = getPaginationParams({ url: req.url });
 
     const [meters, total] = await Promise.all([
       prisma.meter.findMany({
-        skip,
         take: limit,
         include: {
           userMeters: true,

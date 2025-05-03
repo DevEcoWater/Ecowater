@@ -1,33 +1,11 @@
 export const chipConfig = {
-  active: { backgroundColor: "#dcfce7", textColor: "#3a975c", label: "Activo" },
-  inactive: {
-    backgroundColor: "#FEECD4",
-    textColor: "#F17A3D",
-    label: "Alerta",
-  },
-  error: { backgroundColor: "#FEE2E1", textColor: "#DC3335", label: "Error" },
-  default: { backgroundColor: "#dbeaff", textColor: "#5a88ee", label: "Total" },
-};
-
-export const userConfig = {
-  ACTIVE: { backgroundColor: "#dcfce7", textColor: "#3a975c", label: "Activo" },
-  INACTIVE: {
-    backgroundColor: "#FEECD4",
-    textColor: "#F17A3D",
-    label: "Inactivo",
-  },
+  ACTIVE: { backgroundColor: "#dcfce7", textColor: "#3a975c" }, // Green
+  INACTIVE: { backgroundColor: "#F3F4F6", textColor: "#6B7280" }, // Gray
   PENDING: {
-    backgroundColor: "#FEE2E1",
-    textColor: "#DC3335",
-    label: "Pendiente",
+    backgroundColor: "#FEECD4",
+    textColor: "#F17A3D",
   },
-  BLOCKED: {
-    backgroundColor: "#FEE2E1",
-    textColor: "#DC3335",
-    label: "Bloqueado",
-  },
+  FAULTY: { backgroundColor: "#FEE2E1", textColor: "#DC3335" }, // Red
+  BLOCKED: { backgroundColor: "#E6E6FA", textColor: "#5F3DC4" }, // Light Purple / Indigo
+  DEFAULT: { backgroundColor: "#F3F4F6", textColor: "#6B7280" }, // Gray (fallback)
 };
-
-export type MeterStatus = keyof typeof chipConfig;
-
-export type UserStatus = keyof typeof userConfig;

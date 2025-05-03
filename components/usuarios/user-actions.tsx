@@ -33,13 +33,7 @@ interface UserActionsProps {
   onDelete?: (user: User) => void;
 }
 
-export const UserActions = ({
-  user,
-  onViewDetails,
-  onEdit,
-  onViewMeter,
-  onDelete,
-}: UserActionsProps) => {
+export const UserActions = ({ user }: UserActionsProps) => {
   const router = useRouter();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isReactivateModalOpen, setIsReactivateModalOpen] = useState(false);
@@ -56,11 +50,6 @@ export const UserActions = ({
   const handleEditUser = () => {
     router.push(`/dashboard/usuarios/editar/${user.id}`);
   };
-
-  const handleViewMeter = () => {
-    // router.push(`/dashboard/medidores/${user.id}`); // <-- update when ready
-  };
-
   const handleDelete = () => {
     setUserToDelete(user);
     setIsDeleteModalOpen(true);
@@ -119,7 +108,7 @@ export const UserActions = ({
           <DropdownMenuSeparator />
           <DropdownMenuItem
             className="cursor-pointer flex items-center gap-2"
-            onSelect={handleViewMeter}
+            // onSelect={handleViewMeter}
           >
             <Gauge className="h-4 w-4" />
             Medidor asignado

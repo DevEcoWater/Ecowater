@@ -3,12 +3,6 @@
 import type React from "react";
 import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
-import {
-  GoogleMap,
-  LoadScript,
-  Marker,
-  Autocomplete,
-} from "@react-google-maps/api";
 import { useUserMutation } from "@/hooks/users/use-user-query";
 import { useToast } from "@/hooks/use-toast";
 import { usePathname, useRouter } from "next/navigation";
@@ -34,6 +28,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import CoordinateMap from "@/components/ui/coordinateMap";
+import AddressAutocomplete from "@/components/ui/address-autocomplete";
 
 const defaultLocation = { lat: -34.603722, lng: -58.381592 };
 
@@ -102,6 +98,21 @@ export default function RegisterUserPage() {
         });
       }
     }
+  };
+
+  function getRandomStatus(): "ACTIVE" | "INACTIVE" {
+    const statuses = ["ACTIVE", "INACTIVE", "error"];
+    const randomIndex = Math.floor(Math.random() * statuses.length);
+    return statuses[randomIndex] as "ACTIVE" | "INACTIVE";
+  }
+
+  const handlePlaceSelect = (place: {
+    address: string;
+    location: { lat: number; lng: number };
+  }) => {
+    form.setValue("address", place.address, { shouldValidate: true });
+    form.setValue("coordinates", place.location, { shouldValidate: true });
+    setMapCenter(place.location);
   };
 
   const onSubmit = (data: FormValues) => {
@@ -268,94 +279,74 @@ export default function RegisterUserPage() {
                   />
                 </div>
               </CardContent>
-              <CardHeader>
-                <CardTitle>Ubicación</CardTitle>
-                <CardDescription>
-                  Seleccione la dirección del usuario
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div key={pathname}>
-                  <LoadScript
-                    googleMapsApiKey={
-                      process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string
-                    }
-                    libraries={["places"]}
-                  >
-                    <FormField
-                      control={form.control}
-                      name="address"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Dirección</FormLabel>
-                          <Autocomplete
-                            onLoad={(autocomplete) => {
-                              autocompleteRef.current = autocomplete;
-                            }}
-                            onPlaceChanged={handlePlaceChanged}
-                          >
-                            <FormControl>
-                              <Input
-                                placeholder="Ingrese su dirección"
-                                {...field}
-                              />
-                            </FormControl>
-                          </Autocomplete>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </LoadScript>
-                </div>
-
-                <div className="h-[300px] rounded-md overflow-hidden">
-                  <LoadScript
-                    googleMapsApiKey={
-                      process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string
-                    }
-                    libraries={["places"]}
-                  >
-                    <GoogleMap
-                      mapContainerStyle={{ width: "100%", height: "100%" }}
-                      center={mapCenter}
-                      zoom={14}
-                      onClick={(e) => {
-                        if (window.google && e.latLng) {
-                          const coords = {
-                            lat: e.latLng.lat(),
-                            lng: e.latLng.lng(),
-                          };
-                          form.setValue("coordinates", coords);
-                          setMapCenter(coords);
-                        }
-                      }}
-                    >
-                      <Marker position={mapCenter} />
-                    </GoogleMap>
-                  </LoadScript>
-                </div>
-                <div className="flex flex-col sm:flex-row sm:justify-center gap-4">
-                  <Button
-                    type="submit"
-                    className="w-full sm:w-[200px]"
-                    disabled={isLoading}
-                  >
-                    <Save className="mr-2 h-4 w-4" />
-                    {isLoading ? "Guardando..." : "Guardar Cambios"}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full sm:w-[200px]"
-                    onClick={() => router.back()}
-                    disabled={isLoading}
-                  >
-                    Cancelar
-                  </Button>
-                </div>
-              </CardContent>
             </Card>
           </div>
+
+          <Separator className="my-8" />
+
+          {/* Location Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Ubicación</CardTitle>
+              <CardDescription>
+                Seleccione la dirección del usuario
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div key={pathname}>
+                <FormField
+                  control={form.control}
+                  name="address"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Dirección</FormLabel>
+                      <FormControl>
+                        <AddressAutocomplete
+                          placeholder="Ingrese la dirección del usuario"
+                          value={field.value}
+                          onChange={(value) => {
+                            field.onChange(value);
+                          }}
+                          onPlaceSelect={(place) => {
+                            handlePlaceSelect(place);
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="h-[300px] rounded-md overflow-hidden">
+                <CoordinateMap
+                  initialLocation={mapCenter}
+                  readOnly={true}
+                  height="300px"
+                />
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:justify-center gap-4">
+                <Button
+                  type="submit"
+                  className="w-full sm:w-[200px]"
+                  disabled={isLoading}
+                >
+                  <Save className="mr-2 h-4 w-4" />
+                  {isLoading ? "Guardando..." : "Guardar Cambios"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full sm:w-[200px]"
+                  onClick={() => router.back()}
+                  disabled={isLoading}
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </form>
       </Form>
     </div>

@@ -1,34 +1,39 @@
-import { UserStatus } from "@/types/users/user-types";
-import { chipConfig, MeterStatus, userConfig } from "@/utils/getChipColor";
+import { chipConfig } from "@/utils/getChipColor";
+import { parseMeterStatus } from "@/utils/parseMeterStatus";
+import { parseChipStatus } from "@/utils/parseUserStatus";
+import { MeterStatus, UserStatus } from "@prisma/client";
 import type React from "react";
+import { CSSProperties } from "react";
 
 type Props = {
-  status: MeterStatus | UserStatus; // This will allow both MeterStatus and UserStatus
-  text: string;
+  status: MeterStatus | UserStatus;
   showDot?: boolean;
-  user?: boolean; // Whether to use userConfig or chipConfig
+  style?: CSSProperties;
 };
 
-const Chip: React.FC<Props> = ({
-  text,
-  status,
-  showDot = false,
-  user = false,
-}) => {
-  const configToUse = user ? userConfig : chipConfig;
+export type ChipStatus = MeterStatus | UserStatus;
 
-  const chip =
-    configToUse[status as keyof typeof configToUse] || chipConfig.default;
+const Chip: React.FC<Props> = ({ status, showDot = false, style }) => {
+  const statusToStyleMap: Record<ChipStatus, keyof typeof chipConfig> = {
+    ACTIVE: "ACTIVE",
+    INACTIVE: "INACTIVE",
+    BLOCKED: "BLOCKED",
+    FAULTY: "FAULTY",
+    MAINTENANCE: "PENDING",
+    PENDING: "PENDING",
+  };
 
-  if (!chip) {
-    console.error(`Invalid status: ${status}`);
-    return null;
-  }
+  const styleKey = statusToStyleMap[status as ChipStatus] || "DEFAULT";
+  const chip = chipConfig[styleKey];
 
   return (
     <div
-      style={{ backgroundColor: chip.backgroundColor, color: chip.textColor }}
-      className={`flex gap-2 justify-center items-center rounded-xl py-1 px-2.5 text-sm text-white transition-all ${
+      style={{
+        backgroundColor: chip.backgroundColor,
+        color: chip.textColor,
+        ...style,
+      }}
+      className={`flex gap-2 justify-center items-center rounded-xl py-1 px-2.5 text-sm transition-all ${
         showDot ? "w-auto" : "w-[100px]"
       }`}
     >
@@ -38,7 +43,7 @@ const Chip: React.FC<Props> = ({
           style={{ backgroundColor: chip.textColor }}
         />
       )}
-      {text}
+      {parseChipStatus(status as ChipStatus).text}
     </div>
   );
 };

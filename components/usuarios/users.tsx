@@ -82,7 +82,7 @@ const Users = () => {
           </div>
 
           {/* Second row: Filter Tabs */}
-          <div className="flex items-center justify-center w-full">
+          <div className="flex items-center justify-center w-full mb-4">
             <FilterTabs
               onFilterChange={handleFilterChange}
               defaultValue={filterState}

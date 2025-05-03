@@ -1,31 +1,32 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
-import { GoogleMap, useJsApiLoader, Marker } from "@react-google-maps/api";
+import { GoogleMap, Marker } from "@react-google-maps/api";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useGoogleMaps } from "@/providers/google-maps-provider";
 
-interface UserLocationMapProps {
+interface CoordinateMapProps {
   initialLocation: { lat: number; lng: number };
   onLocationChange?: (location: { lat: number; lng: number }) => void;
   readOnly?: boolean;
   height?: string;
   width?: string;
   zoom?: number;
+  className?: string;
+  title?: string;
 }
 
-function UserLocationMap({
+function CoordinateMap({
   initialLocation,
   onLocationChange,
   readOnly = false,
   height = "300px",
   width = "100%",
   zoom = 14,
-}: UserLocationMapProps) {
-  const { isLoaded } = useJsApiLoader({
-    id: "google-map-script",
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string,
-    libraries: ["places"],
-  });
+  className = "",
+  title,
+}: CoordinateMapProps) {
+  const { isLoaded } = useGoogleMaps();
 
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [markerPosition, setMarkerPosition] = useState(initialLocation);
@@ -72,34 +73,37 @@ function UserLocationMap({
     [readOnly, onLocationChange]
   );
 
-  if (!isLoaded) return <Skeleton className={`w-full h-[${height}]`} />;
+  if (!isLoaded)
+    return <Skeleton className={`w-full h-[${height}] ${className}`} />;
 
   return (
-    <GoogleMap
-      mapContainerStyle={containerStyle}
-      center={markerPosition}
-      zoom={zoom}
-      options={options}
-      onLoad={onLoad}
-      onUnmount={onUnmount}
-      onClick={handleMapClick}
-    >
-      <Marker
-        position={markerPosition}
-        draggable={!readOnly}
-        onDragEnd={(e: google.maps.MapMouseEvent) => {
-          if (e.latLng && onLocationChange) {
-            const newPosition = {
-              lat: e.latLng.lat(),
-              lng: e.latLng.lng(),
-            };
-            setMarkerPosition(newPosition);
-            onLocationChange(newPosition);
-          }
-        }}
-      />
-    </GoogleMap>
+    <div className={className}>
+      <GoogleMap
+        mapContainerStyle={containerStyle}
+        center={markerPosition}
+        zoom={zoom}
+        options={options}
+        onLoad={onLoad}
+        onUnmount={onUnmount}
+        onClick={handleMapClick}>
+        <Marker
+          position={markerPosition}
+          title={title}
+          draggable={!readOnly}
+          onDragEnd={(e: google.maps.MapMouseEvent) => {
+            if (e.latLng && onLocationChange) {
+              const newPosition = {
+                lat: e.latLng.lat(),
+                lng: e.latLng.lng(),
+              };
+              setMarkerPosition(newPosition);
+              onLocationChange(newPosition);
+            }
+          }}
+        />
+      </GoogleMap>
+    </div>
   );
 }
 
-export default React.memo(UserLocationMap);
+export default React.memo(CoordinateMap);

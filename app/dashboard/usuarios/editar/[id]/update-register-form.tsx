@@ -4,13 +4,12 @@ import type React from "react";
 
 import { useRef, useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { Autocomplete } from "@react-google-maps/api";
 import {
   useUserQuery,
   useUpdateUserMutation,
 } from "@/hooks/users/use-user-query";
 import { useToast } from "@/hooks/use-toast";
-import { usePathname, useRouter, useParams } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Save, AlertCircle } from "lucide-react";
@@ -44,9 +43,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import UserLocationMap from "@/components/usuarios/map";
 import { UserStatus } from "@prisma/client";
-import { useMeterMutation } from "@/hooks/meters/user-meter-query";
+import AddressAutocomplete from "@/components/ui/address-autocomplete";
+import CoordinateMap from "@/components/ui/coordinateMap";
 
 const defaultLocation = { lat: -34.603722, lng: -58.381592 };
 
@@ -99,8 +98,6 @@ export default function UpdateUserForm() {
 
   const { mutate: updateUser, isPending: isUpdatingUser } =
     useUpdateUserMutation();
-  const { mutate: updateMeter, isPending: isUpdatingMeter } =
-    useMeterMutation();
 
   useEffect(() => {
     if (userData && !isLoadingUser) {
@@ -119,21 +116,40 @@ export default function UpdateUserForm() {
 
       setOriginalStatus(userData.status);
 
-      if (
-        userData.address &&
-        typeof userData.address.lat === "number" &&
-        typeof userData.address.lng === "number"
-      ) {
-        setMapCenter({
-          lat: userData.address.lat,
-          lng: userData.address.lng,
-        });
-      }
+      setMapCenter({
+        lat: Number(userData.address.lat),
+        lng: Number(userData.address.lng),
+      });
     }
   }, [userData, isLoadingUser, form]);
 
-  const handleLocationChange = (location: { lat: number; lng: number }) => {
-    form.setValue("coordinates", location);
+  const handlePlaceChanged = () => {
+    if (autocompleteRef.current) {
+      const place = autocompleteRef.current.getPlace();
+      if (place && place.geometry) {
+        const location = {
+          lat: place.geometry.location!.lat(),
+          lng: place.geometry.location!.lng(),
+        };
+
+        setMapCenter(location);
+        form.setValue("coordinates", location);
+        form.setValue("address", place.formatted_address || "", {
+          shouldValidate: true,
+        });
+      }
+    }
+  };
+
+  const handlePlaceSelect = (place: {
+    address: string;
+    location: { lat: number; lng: number };
+  }) => {
+    form.setValue("address", place.address, { shouldValidate: true });
+
+    form.setValue("coordinates", place.location, { shouldValidate: true });
+
+    setMapCenter(place.location);
   };
 
   console.log(userData, "userData");
@@ -144,23 +160,39 @@ export default function UpdateUserForm() {
     if (!updateData.password) {
       delete updateData.password;
     }
+    if (
+      updateData.coordinates?.lat != null &&
+      updateData.coordinates?.lng != null
+    ) {
+      updateUser(
+        { id: userId, ...updateData },
+        {
+          onSuccess: (res) => {
+            const statusChanged = originalStatus !== data.status;
+            let message =
+              "La información del usuario ha sido actualizada correctamente.";
 
-    updateUser(
-      { id: userId, ...updateData },
-      {
-        onSuccess: (res) => {
-          toast({
-            title: "Actualización exitosa",
-            description: res.message,
-            variant: "default",
-          });
+            if (statusChanged) {
+              if (data.status === "ACTIVE") {
+                message += " El usuario ha sido activado.";
+              } else if (data.status === "INACTIVE") {
+                message += " El usuario ha sido desactivado.";
+              }
+            }
 
-          setTimeout(() => {
-            router.push("/dashboard/usuarios");
-          }, 2000);
-        },
-      }
-    );
+            toast({
+              title: "Actualización exitosa",
+              description: message,
+              variant: "default",
+            });
+
+            setTimeout(() => {
+              router.push("/dashboard/usuarios");
+            }, 2000);
+          },
+        }
+      );
+    }
   };
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
@@ -172,7 +204,7 @@ export default function UpdateUserForm() {
   const watchedStatus = form.watch("status");
   const statusChanged = originalStatus !== watchedStatus;
 
-  const isLoading = isLoadingUser || isUpdatingUser || isUpdatingMeter;
+  const isLoading = isLoadingUser || isUpdatingUser;
   return (
     <div className="mx-auto py-6 space-y-8">
       <Form {...form}>
@@ -308,6 +340,90 @@ export default function UpdateUserForm() {
             </Card>
 
             {/* Status Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Estado y Acciones</CardTitle>
+                <CardDescription>
+                  Gestione el estado del usuario y guarde los cambios
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Estado del Usuario</FormLabel>
+                      <Select
+                        disabled={isLoadingUser}
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccione un estado" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="ACTIVE">Activo</SelectItem>
+                          <SelectItem value="INACTIVE">Inactivo</SelectItem>
+                          <SelectItem value="PENDING">Pendiente</SelectItem>
+                          <SelectItem value="BLOCKED">Bloqueado</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        El estado determina si el usuario puede acceder al
+                        sistema.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {statusChanged && (
+                  <Alert
+                    variant={
+                      watchedStatus === "ACTIVE" ? "default" : "destructive"
+                    }
+                    className="mt-4"
+                  >
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>
+                      {watchedStatus === "ACTIVE"
+                        ? "El usuario será activado"
+                        : "El usuario será desactivado"}
+                    </AlertTitle>
+                    <AlertDescription>
+                      {watchedStatus === "ACTIVE"
+                        ? "Al guardar los cambios, el usuario podrá acceder al sistema."
+                        : "Al guardar los cambios, el usuario no podrá acceder al sistema."}
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {isLoading && (
+                  <div className="text-sm text-muted-foreground">
+                    Procesando la solicitud...
+                  </div>
+                )}
+              </CardContent>
+              <CardFooter className="flex flex-col gap-4">
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  <Save className="mr-2 h-4 w-4" />
+                  {isLoading ? "Guardando..." : "Guardar Cambios"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => router.back()}
+                  disabled={isLoading}
+                >
+                  Cancelar
+                </Button>
+              </CardFooter>
+            </Card>
           </div>
 
           <Separator className="my-8" />
@@ -321,46 +437,41 @@ export default function UpdateUserForm() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* <div key={pathname}>
-                <FormField
-                  control={form.control}
-                  name="address"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Dirección</FormLabel>
+              {/* Añadimos el componente de autocompleted de direcciones */}
+              <FormField
+                control={form.control}
+                name="address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Dirección</FormLabel>
+                    <FormControl>
                       {isLoadingUser ? (
                         <Skeleton className="h-10 w-full" />
                       ) : (
-                        <Autocomplete
-                          onLoad={(autocomplete) => {
-                            autocompleteRef.current = autocomplete;
+                        <AddressAutocomplete
+                          placeholder="Ingrese la dirección del usuario"
+                          value={field.value}
+                          onChange={(value) => {
+                            field.onChange(value);
                           }}
-                          onPlaceChanged={handlePlaceChanged}
-                          options={{
-                            fields: ["formatted_address", "geometry.location"],
+                          onPlaceSelect={(place) => {
+                            handlePlaceSelect(place);
                           }}
-                        >
-                          <FormControl>
-                            <Input
-                              placeholder="Ingrese su dirección"
-                              {...field}
-                            />
-                          </FormControl>
-                        </Autocomplete>
+                        />
                       )}
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div> */}
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-              <div className="rounded-md overflow-hidden">
+              <div className="rounded-md overflow-hidden border">
                 {isLoadingUser ? (
                   <Skeleton className="h-[300px] w-full" />
                 ) : (
-                  <UserLocationMap
+                  <CoordinateMap
                     initialLocation={mapCenter}
-                    onLocationChange={handleLocationChange}
+                    readOnly={true}
                     height="300px"
                   />
                 )}
