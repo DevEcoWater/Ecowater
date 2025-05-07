@@ -61,43 +61,32 @@ export async function PUT(
 ) {
   try {
     const body = await req.json();
-    const {
-      firstName,
-      lastName,
-      email,
-      password,
-      status,
-      address,
-      coordinates,
-    } = body;
+    const { firstName, lastName, email, password, status, address } = body;
+
     const updatedUser = await prisma.user.update({
       where: { id: params.id },
       data: {
         firstName,
         lastName,
         email,
-        ...(password && { password }),
         status: status as UserStatus,
         address: {
           update: {
-            data: address,
-            lat: coordinates.lat.toString(),
-            lng: coordinates.lng.toString(),
+            data: address.data,
+            lat: address.lat.toString(),
+            lng: address.lng.toString(),
           },
         },
       },
+
       include: {
         address: true,
       },
     });
 
     return NextResponse.json({
-      ...updatedUser,
-      address: updatedUser.address.data,
-      coordinates: {
-        lat: parseFloat(updatedUser.address.lat),
-        lng: parseFloat(updatedUser.address.lng),
-      },
+      message: "User updated successfully",
+      user: updatedUser,
     });
   } catch (error) {
     console.error("[UPDATE USER]", error);
