@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import type { User } from "@/types/users/user-types";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -14,6 +13,7 @@ import {
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useReactivateUserMutation } from "@/hooks/users/use-user-query";
+import { User } from "@prisma/client";
 
 interface ReactivateUserModalProps {
   user: User | null;

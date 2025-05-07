@@ -7,13 +7,14 @@ import {
   InfoWindow,
 } from "@react-google-maps/api";
 import { Skeleton } from "./skeleton";
-import { chipConfig, MeterStatus } from "@/utils/getChipColor";
+import { chipConfig } from "@/utils/getChipColor";
 import Chip from "./chip";
 import {
   MarkerClusterer,
   SuperClusterAlgorithm,
 } from "@googlemaps/markerclusterer";
 import { useMeters } from "@/hooks/meters/user-meter-query";
+import { MeterStatus } from "@prisma/client";
 
 const containerStyle = {
   width: "100%",
@@ -50,7 +51,7 @@ function Map() {
   const [zoomLevel, setZoomLevel] = useState<number>(2);
 
   const markers = useMemo(
-    () => data?.filter((item: any) => item.coordinates) || [],
+    () => data?.data?.filter((item) => item.lat) || [],
     [data]
   );
 
@@ -133,7 +134,7 @@ function Map() {
       {zoomLevel >= 14 &&
         markers.map((item: any, index: number) => {
           const status = item.status as MeterStatus;
-          const { textColor, label } = chipConfig[status];
+          const { textColor } = chipConfig[status];
           return (
             <Marker
               key={index}
@@ -172,7 +173,7 @@ function Map() {
                       <p className="text-balance text-sm text-muted-foreground">
                         Estado
                       </p>
-                      <Chip text={label} status={status} />
+                      <Chip status={status} />
                     </div>
                   </div>
                 </InfoWindow>
@@ -201,13 +202,12 @@ function Map() {
                     item.coordinates.lat === position?.lat() &&
                     item.coordinates.lng === position?.lng()
                 );
-                const { label } = chipConfig[markerData?.status as MeterStatus];
 
                 return (
                   markerData && (
                     <p className="my-4" key={index}>
-                      <strong>{markerData.address}</strong> -{" "}
-                      <Chip text={label} status={markerData.status} />
+                      {/* <strong>{markerData.address}</strong> -{" "} */}
+                      <Chip status={markerData.status} />
                     </p>
                   )
                 );

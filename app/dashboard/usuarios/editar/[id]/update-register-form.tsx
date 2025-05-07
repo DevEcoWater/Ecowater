@@ -30,7 +30,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -46,6 +45,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { UserStatus } from "@prisma/client";
 import AddressAutocomplete from "@/components/ui/address-autocomplete";
 import CoordinateMap from "@/components/ui/coordinateMap";
+import { UpdateUserFormValues } from "@/types/users/user-types";
 
 const defaultLocation = { lat: -34.603722, lng: -58.381592 };
 
@@ -55,7 +55,6 @@ const formSchema = z.object({
   lastName: z.string().min(1, "Este campo es obligatorio"),
   email: z.string().email("Ingrese un email válido"),
   address: z.string().min(1, "Debe seleccionar una ubicación válida"),
-  password: z.string().optional(),
   status: z.nativeEnum(UserStatus),
   coordinates: z.object({
     lat: z.number(),
@@ -84,13 +83,11 @@ export default function UpdateUserForm() {
       lastName: "",
       email: "",
       address: "",
-      password: "",
       status: UserStatus.ACTIVE,
       coordinates: defaultLocation,
     },
   });
 
-  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const [mapCenter, setMapCenter] = useState(defaultLocation);
   const [originalStatus, setOriginalStatus] = useState<string | null>(null);
 
@@ -106,8 +103,7 @@ export default function UpdateUserForm() {
         lastName: userData.lastName,
         email: userData.email,
         address: userData.address.data || "",
-        password: "",
-        status: userData.status ?? UserStatus.ACTIVE,
+        status: userData.status ?? UserStatus.ACTIVE, // defensive fallback
         coordinates: {
           lat: Number(userData.address.lat),
           lng: Number(userData.address.lng),
@@ -121,25 +117,10 @@ export default function UpdateUserForm() {
         lng: Number(userData.address.lng),
       });
     }
+    console.log(userData, "userData");
   }, [userData, isLoadingUser, form]);
 
-  const handlePlaceChanged = () => {
-    if (autocompleteRef.current) {
-      const place = autocompleteRef.current.getPlace();
-      if (place && place.geometry) {
-        const location = {
-          lat: place.geometry.location!.lat(),
-          lng: place.geometry.location!.lng(),
-        };
-
-        setMapCenter(location);
-        form.setValue("coordinates", location);
-        form.setValue("address", place.formatted_address || "", {
-          shouldValidate: true,
-        });
-      }
-    }
-  };
+  console.log(form.getValues(), "form values");
 
   const handlePlaceSelect = (place: {
     address: string;
@@ -152,47 +133,47 @@ export default function UpdateUserForm() {
     setMapCenter(place.location);
   };
 
-  console.log(userData, "userData");
+  const onSubmit = ({
+    firstName,
+    lastName,
+    email,
+    address,
+    status,
+    coordinates,
+  }: FormValues) => {
+    const formattedData: UpdateUserFormValues = {
+      id: userId,
+      firstName: firstName,
+      lastName: lastName,
+      email: email,
+      status: status,
+      address: {
+        data: address,
+        lat: coordinates?.lat?.toString() || "",
+        lng: coordinates?.lng?.toString() || "",
+      },
+    };
 
-  const onSubmit = (data: FormValues) => {
-    const updateData = { ...data };
+    updateUser(formattedData, {
+      onSuccess: () => {
+        const statusChanged = originalStatus !== status;
+        let message;
 
-    if (!updateData.password) {
-      delete updateData.password;
-    }
-    if (
-      updateData.coordinates?.lat != null &&
-      updateData.coordinates?.lng != null
-    ) {
-      updateUser(
-        { id: userId, ...updateData },
-        {
-          onSuccess: (res) => {
-            const statusChanged = originalStatus !== data.status;
-            let message =
-              "La información del usuario ha sido actualizada correctamente.";
-
-            if (statusChanged) {
-              if (data.status === "ACTIVE") {
-                message += " El usuario ha sido activado.";
-              } else if (data.status === "INACTIVE") {
-                message += " El usuario ha sido desactivado.";
-              }
-            }
-
-            toast({
-              title: "Actualización exitosa",
-              description: message,
-              variant: "default",
-            });
-
-            setTimeout(() => {
-              router.push("/dashboard/usuarios");
-            }, 2000);
-          },
+        if (statusChanged) {
+          message = `El estado del usuario ha sido actualizado a ${status}`;
         }
-      );
-    }
+
+        toast({
+          title: "Actualización exitosa",
+          description: message,
+          variant: "default",
+        });
+
+        setTimeout(() => {
+          router.push("/dashboard/usuarios");
+        }, 2000);
+      },
+    });
   };
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
@@ -201,10 +182,9 @@ export default function UpdateUserForm() {
     }
   };
 
-  const watchedStatus = form.watch("status");
-  const statusChanged = originalStatus !== watchedStatus;
-
   const isLoading = isLoadingUser || isUpdatingUser;
+  // const watchedStatus = form.watch("status");
+
   return (
     <div className="mx-auto py-6 space-y-8">
       <Form {...form}>
@@ -293,8 +273,7 @@ export default function UpdateUserForm() {
                         <Select
                           disabled={isLoadingUser}
                           onValueChange={field.onChange}
-                          defaultValue={field.value}
-                          value={field.value}
+                          value={field.value ?? UserStatus.ACTIVE} // Fallback to valid enum
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -314,115 +293,7 @@ export default function UpdateUserForm() {
                     )}
                   />
                 </div>
-
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Contraseña</FormLabel>
-                      <FormControl>
-                        {isLoadingUser ? (
-                          <Skeleton className="h-10 w-full" />
-                        ) : (
-                          <Input
-                            type="password"
-                            placeholder="Dejar en blanco para mantener la actual"
-                            {...field}
-                          />
-                        )}
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
               </CardContent>
-            </Card>
-
-            {/* Status Card */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Estado y Acciones</CardTitle>
-                <CardDescription>
-                  Gestione el estado del usuario y guarde los cambios
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Estado del Usuario</FormLabel>
-                      <Select
-                        disabled={isLoadingUser}
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        value={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Seleccione un estado" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="ACTIVE">Activo</SelectItem>
-                          <SelectItem value="INACTIVE">Inactivo</SelectItem>
-                          <SelectItem value="PENDING">Pendiente</SelectItem>
-                          <SelectItem value="BLOCKED">Bloqueado</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormDescription>
-                        El estado determina si el usuario puede acceder al
-                        sistema.
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {statusChanged && (
-                  <Alert
-                    variant={
-                      watchedStatus === "ACTIVE" ? "default" : "destructive"
-                    }
-                    className="mt-4"
-                  >
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>
-                      {watchedStatus === "ACTIVE"
-                        ? "El usuario será activado"
-                        : "El usuario será desactivado"}
-                    </AlertTitle>
-                    <AlertDescription>
-                      {watchedStatus === "ACTIVE"
-                        ? "Al guardar los cambios, el usuario podrá acceder al sistema."
-                        : "Al guardar los cambios, el usuario no podrá acceder al sistema."}
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                {isLoading && (
-                  <div className="text-sm text-muted-foreground">
-                    Procesando la solicitud...
-                  </div>
-                )}
-              </CardContent>
-              <CardFooter className="flex flex-col gap-4">
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  <Save className="mr-2 h-4 w-4" />
-                  {isLoading ? "Guardando..." : "Guardar Cambios"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => router.back()}
-                  disabled={isLoading}
-                >
-                  Cancelar
-                </Button>
-              </CardFooter>
             </Card>
           </div>
 
@@ -476,7 +347,7 @@ export default function UpdateUserForm() {
                   />
                 )}
               </div>
-              {statusChanged && (
+              {/* {watchedStatus && (
                 <Alert
                   variant={
                     watchedStatus === "ACTIVE" ? "default" : "destructive"
@@ -495,7 +366,7 @@ export default function UpdateUserForm() {
                       : "Al guardar los cambios, el usuario no podrá acceder al sistema."}
                   </AlertDescription>
                 </Alert>
-              )}
+              )} */}
 
               {isLoading && (
                 <div className="text-sm text-muted-foreground">

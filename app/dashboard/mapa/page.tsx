@@ -1,10 +1,13 @@
 import { Header } from "@/components/layout/panel/header";
 import { Main } from "@/components/layout/panel/main";
 import Profile from "@/components/profile";
-import Map from "@/components/ui/map";
 import React from "react";
 
-export default async function Mapa() {
+import dynamic from "next/dynamic";
+
+const Map = dynamic(() => import("@/components/ui/map"), { ssr: false });
+
+export default function Mapa() {
   return (
     <>
       <Header fixed>

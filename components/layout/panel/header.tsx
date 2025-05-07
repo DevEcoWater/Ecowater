@@ -23,18 +23,17 @@ export const Header = ({
       setOffset(document.body.scrollTop || document.documentElement.scrollTop);
     };
 
-    // Add scroll listener to the body
     document.addEventListener("scroll", onScroll, { passive: true });
 
-    // Clean up the event listener on unmount
     return () => document.removeEventListener("scroll", onScroll);
   }, []);
 
   return (
     <header
       className={cn(
-        "flex h-16 items-center gap-3 bg-background p-4 sm:gap-4",
-        fixed && "header-fixed peer/header fixed z-50 w-[inherit] rounded-md",
+        "flex h-16 items-center gap-3 bg-background p-4 sm:gap-4 w-[-webkit-fill-available]",
+        fixed &&
+          "header-fixed peer/header fixed z-50 rounded-md w-[-webkit-fill-available]",
         offset > 10 && fixed ? "shadow" : "shadow-none",
         className
       )}

@@ -34,24 +34,31 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+function isNavCollapsible(item: NavItem): item is NavCollapsible {
+  return Array.isArray((item as any).items);
+}
+
 export function NavGroup({ title, items }: NavGroup) {
   const { state } = useSidebar();
   const pathname = usePathname();
   const href = pathname;
+
   return (
     <SidebarGroup>
       <SidebarGroupLabel>{title}</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => {
-          const key = `${item.title}-${item.url}`;
+          const key = `${item.title}-${item.url ?? ""}`;
 
-          if (!item.items)
+          if (!isNavCollapsible(item)) {
             return <SidebarMenuLink key={key} item={item} href={href} />;
+          }
 
-          if (state === "collapsed")
+          if (state === "collapsed") {
             return (
               <SidebarMenuCollapsedDropdown key={key} item={item} href={href} />
             );
+          }
 
           return <SidebarMenuCollapsible key={key} item={item} href={href} />;
         })}

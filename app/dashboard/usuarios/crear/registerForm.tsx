@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { usePathname, useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Save, UserPlus } from "lucide-react";
+import { Save } from "lucide-react";
 
 import {
   Form,
@@ -78,33 +78,8 @@ export default function RegisterUserPage() {
     },
   });
 
-  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const [mapCenter, setMapCenter] = useState(defaultLocation);
   const { mutate: createUser, isPending: isCreatingUser } = useUserMutation();
-
-  const handlePlaceChanged = () => {
-    if (autocompleteRef.current) {
-      const place = autocompleteRef.current.getPlace();
-      if (place && place.geometry) {
-        const location = {
-          lat: place.geometry.location!.lat(),
-          lng: place.geometry.location!.lng(),
-        };
-
-        setMapCenter(location);
-        form.setValue("coordinates", location);
-        form.setValue("address", place.formatted_address || "", {
-          shouldValidate: true,
-        });
-      }
-    }
-  };
-
-  function getRandomStatus(): "ACTIVE" | "INACTIVE" {
-    const statuses = ["ACTIVE", "INACTIVE", "error"];
-    const randomIndex = Math.floor(Math.random() * statuses.length);
-    return statuses[randomIndex] as "ACTIVE" | "INACTIVE";
-  }
 
   const handlePlaceSelect = (place: {
     address: string;
@@ -116,7 +91,6 @@ export default function RegisterUserPage() {
   };
 
   const onSubmit = (data: FormValues) => {
-    // Convert form data to match API expectations
     const userData = {
       firstName: data.firstName,
       lastName: data.lastName,

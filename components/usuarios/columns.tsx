@@ -8,32 +8,31 @@ import { UserActions } from "./user-actions";
 import { User } from "@prisma/client";
 import { UserColumn, UserDetail } from "@/types/users/user-types";
 
-const usernameColumn: ColumnDef<UserDetail> = {
+// Combine the types UserDetail and UserColumn into one type.
+const usernameColumn: ColumnDef<User> = {
   id: "username",
   header: "Usuario",
   cell: ({ row }) => {
     const user = row.original;
     return (
-      <UserAvatar
-        firstName={user.firstName}
-        lastName={user.lastName}
-        role={user.role ?? ""}
-      />
+      <div>
+        {user.firstName} {user.lastName}
+      </div>
     );
   },
 };
 
-const otherColumns: ColumnDef<UserColumn>[] = [
+const otherColumns: ColumnDef<User>[] = [
   {
     accessorKey: "email",
     header: "Email",
   },
   {
-    accessorKey: "createdAt",
+    accessorKey: "created_at",
     header: "Fecha de registro",
     cell: ({ row }) => {
       const date = row.original.created_at;
-      return dayjs(date).format("DD/MM/YYYY");
+      return new Date(date).toLocaleDateString("es-ES");
     },
   },
   {
@@ -41,24 +40,22 @@ const otherColumns: ColumnDef<UserColumn>[] = [
     header: "Estado del usuario",
     cell: ({ row }) => {
       const status = row.original.status;
-      return <Chip status={status} />;
+      return <span>{status}</span>;
     },
   },
   {
     id: "actions",
     header: "Acciones",
     cell: ({ row }) => {
-      const user = row.original as User;
+      const user = row.original;
       return (
         <div onClick={(e) => e.stopPropagation()}>
-          <UserActions user={user} />
+          <button>Actions for {user.firstName}</button>
         </div>
       );
     },
   },
 ];
 
-export const userColumns: ColumnDef<UserColumn | UserDetail>[] = [
-  usernameColumn,
-  ...otherColumns,
-];
+// `userColumns` must now be typed for `User` directly, not `CombinedUser`
+export const userColumns: ColumnDef<User>[] = [usernameColumn, ...otherColumns];

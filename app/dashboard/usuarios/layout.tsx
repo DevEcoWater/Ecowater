@@ -17,7 +17,7 @@ export default function UsuariosLayout({ children }: UsuariosLayoutProps) {
   return (
     <>
       <Header fixed>
-        <div className="ml-auto flex items-center space-x-4">
+        <div className="flex w-full items-center justify-end border-red-500 border-1">
           <Profile />
         </div>
       </Header>

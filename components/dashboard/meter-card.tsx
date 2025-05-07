@@ -1,7 +1,7 @@
-import { chipConfig, MeterStatus } from "@/utils/getChipColor";
+import { chipConfig } from "@/utils/getChipColor";
 import { Skeleton } from "../ui/skeleton";
-import { LucideIcon } from "lucide-react";
 import { Card, CardContent } from "../ui/card";
+import { MeterStatus } from "@prisma/client";
 
 interface MeterCardProps {
   title: string;
@@ -20,8 +20,7 @@ const MeterCard: React.FC<MeterCardProps> = ({
   isLoading,
   meterDetail,
 }) => {
-  const { backgroundColor, textColor } =
-    chipConfig[status] || chipConfig.default;
+  const { backgroundColor, textColor } = chipConfig[status];
   return (
     <Card className="p-6 mx-auto w-full max-w-[250px] m md:max-w-full rounded-xl flex-auto border dark:bg-tertiary bg-white shadow-md">
       <CardContent

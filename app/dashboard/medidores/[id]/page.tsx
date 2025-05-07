@@ -13,19 +13,19 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import MeterCard from "@/components/dashboard/meter-card";
-import { MeterStatus } from "@/utils/getChipColor";
 import SystemStatus from "@/components/dashboard/system-status";
 import DotsChart from "@/components/ui/dots-chart";
 import { Header } from "@/components/layout/panel/header";
 import Profile from "@/components/profile";
 import { Main } from "@/components/layout/panel/main";
+import { MeterStatus } from "@prisma/client";
 
 const mockData = {
   meterId: "A12345",
   serial: "987654",
   id: "456789",
   lastUpdated: "19/02/2025 15:30",
-  status: "active" as MeterStatus,
+  status: "ACTIVE" as MeterStatus,
   accumulatedFlow: 1234.56,
   instantFlow: 0.75,
   reverseFlow: 0.02,
@@ -103,7 +103,7 @@ const MeterDashboard = () => {
                     Última actualización: {mockData.lastUpdated}
                   </p>
                 </div>
-                <Chip text="Conectado" showDot status={mockData.status} />
+                <Chip showDot status={mockData.status} />
               </div>
             </CardContent>
           </Card>
