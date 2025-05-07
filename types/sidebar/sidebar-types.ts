@@ -8,6 +8,7 @@ interface BaseNavItem {
   title: string;
   badge?: string;
   icon?: React.ElementType;
+  url: string;
 }
 
 type NavLink = BaseNavItem & {

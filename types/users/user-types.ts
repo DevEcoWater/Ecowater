@@ -20,9 +20,21 @@ export interface UserColumn
     "password" | "updated_at" | "address" | "meter" | "role"
   > {}
 
-export type CreateUserFormValues = Omit<UserDetail, "id"> & {
+export type CreateUserFormValues = Omit<
+  UserDetail,
+  "id" | "address" | "created_at" | "updated_at" | "status"
+> & {
   address: Omit<Address, "id">;
 };
+
+export type UpdateUserFormValues = Omit<
+  Partial<UserDetail>,
+  "address" | "meter"
+> & {
+  id: string; // ✅ user.id is required for the PUT call
+  address?: Omit<Address, "id">; // ✅ still omit address.id
+};
+
 export interface UserResponse {
   user: UserDetail;
   message?: string;

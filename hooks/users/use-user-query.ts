@@ -6,6 +6,7 @@ import type {
   PaginatedUserResponse,
   UserDetail,
   CreateUserFormValues,
+  UpdateUserFormValues,
 } from "@/types/users/user-types";
 
 // Get All Users
@@ -98,7 +99,7 @@ export const useUpdateUserMutation = () => {
     return response.json();
   };
 
-  return useMutation<UserResponse, Error, UpdateUserData>({
+  return useMutation<UserResponse, Error, UpdateUserFormValues>({
     mutationFn: updateUser,
     onSuccess: (res, variables) => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
