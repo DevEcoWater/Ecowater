@@ -1,17 +1,13 @@
 "use client";
 
 import { Button } from "./button";
-import { Input } from "@/components/ui/input";
 import React from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 import {
   ColumnDef,
   flexRender,
-  getCoreRowModel,
-  getPaginationRowModel,
-  useReactTable,
   ColumnFiltersState,
-  getFilteredRowModel,
 } from "@tanstack/react-table";
 
 import {
@@ -22,34 +18,26 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { X } from "lucide-react";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  table: any;
+  isLoading: boolean;
+  error: any;
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
+  table,
+  isLoading,
+  error,
 }: DataTableProps<TData, TValue>) {
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
-  );
-  const table = useReactTable({
-    data: data ?? [], // Fallback to empty array while data is loading
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    onColumnFiltersChange: setColumnFilters,
-    getFilteredRowModel: getFilteredRowModel(),
-    state: {
-      columnFilters,
-    },
-  });
-
   return (
     <>
-      <div className="rounded-md border bg-white">
+      <div>
         <Table>
           <TableHeader>
             {table &&
@@ -68,8 +56,19 @@ export function DataTable<TData, TValue>({
                 </TableRow>
               ))}
           </TableHeader>
+
           <TableBody>
-            {data && data.length > 0 ? (
+            {isLoading ? (
+              Array.from({ length: 5 }).map((_, index) => (
+                <TableRow key={index}>
+                  {columns.map((column, colIndex) => (
+                    <TableCell key={colIndex}>
+                      <Skeleton className="h-8 w-full bg-gray-300" />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : data && data.length > 0 ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
@@ -87,18 +86,29 @@ export function DataTable<TData, TValue>({
               ))
             ) : (
               <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
-                  {data ? "No results." : "Loading..."}
-                </TableCell>
+                <div className="flex items-center justify-center p-6 border rounded-md w-full">
+                  <div className="flex flex-col items-center gap-2 text-muted-foreground w-full">
+                    <X className="h-8 w-full" />
+                    <p>No se encontraron resultados</p>
+                  </div>
+                </div>
+              </TableRow>
+            )}
+
+            {error && (
+              <TableRow>
+                <div className="flex items-center justify-center p-6 border rounded-md w-full">
+                  <div className="flex flex-col items-center gap-2 text-muted-foreground w-full">
+                    <X className="h-8 w-full" />
+                    <p>Ha ocurrido un error</p>
+                  </div>
+                </div>
               </TableRow>
             )}
           </TableBody>
         </Table>
       </div>
-      {/* Pagination controls */}
+
       <div className="flex items-center justify-end space-x-2 py-4">
         <Button
           variant="outline"

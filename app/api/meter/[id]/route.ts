@@ -1,5 +1,5 @@
 // app/api/meter/[id]/route.ts
-import { PrismaClient } from "@prisma/client";
+import { MeterStatus, OperationalStatus, PrismaClient } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 const prisma = new PrismaClient();
@@ -10,16 +10,10 @@ type Context = {
 
 export async function GET(_: Request, { params }: Context) {
   try {
-    const meter = await prisma.meter.findUnique({
-      where: { id: params.id },
+    const meter = await prisma.userMeter.findFirst({
+      where: { user_id: params.id },
       include: {
-        userMeters: true,
-        readings: {
-          include: {
-            statuses: true,
-            rxInfos: true,
-          },
-        },
+        meter: true,
       },
     });
 
@@ -36,21 +30,34 @@ export async function GET(_: Request, { params }: Context) {
   }
 }
 
-export async function PUT(req: Request, { params }: Context) {
+export async function PUT(
+  req: Request,
+  { params }: { params: { id: string } }
+) {
   try {
     const body = await req.json();
+    const {
+      dev_eui,
+      device_name,
+      application_id,
+      application_name,
+      lat,
+      lng,
+      status,
+      operational_status,
+    } = body;
 
     const updated = await prisma.meter.update({
       where: { id: params.id },
       data: {
-        dev_eui: body.dev_eui,
-        device_name: body.device_name,
-        application_id: body.application_id,
-        application_name: body.application_name,
-        lat: body.lat,
-        lng: body.lng,
-        status: body.status,
-        operational_status: body.operational_status,
+        dev_eui,
+        device_name,
+        application_id,
+        application_name,
+        lat,
+        lng,
+        status: status as MeterStatus,
+        operational_status: operational_status as OperationalStatus,
       },
     });
 

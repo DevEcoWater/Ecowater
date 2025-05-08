@@ -1,5 +1,5 @@
 // app/api/user/[id]/route.ts
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, UserStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 const prisma = new PrismaClient();
@@ -15,15 +15,37 @@ export async function GET(_: Request, { params }: Context) {
     const user = await prisma.user.findUnique({
       where: { id: params.id },
       include: {
-        userRoles: true,
-        userMeters: true,
+        address: true,
+        userMeters: {
+          include: {
+            meter: true,
+          },
+        },
+        userRoles: {
+          include: {
+            role: true,
+          },
+        },
       },
     });
 
-    if (!user)
+    if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
 
-    return NextResponse.json(user);
+    const meter = user.userMeters.map((um) => um.meter)[0] ?? null;
+
+    const role = user.userRoles[0]?.role?.role_name ?? null;
+
+    const { userMeters, userRoles, ...rest } = user;
+
+    const result = {
+      ...rest,
+      meter,
+      role,
+    };
+
+    return NextResponse.json(result);
   } catch (error) {
     console.error("[GET USER]", error);
     return NextResponse.json(
@@ -33,25 +55,41 @@ export async function GET(_: Request, { params }: Context) {
   }
 }
 
-export async function PUT(req: Request, { params }: Context) {
+export async function PUT(
+  req: Request,
+  { params }: { params: { id: string } }
+) {
   try {
     const body = await req.json();
+    const { firstName, lastName, email, password, status, address } = body;
 
-    const updated = await prisma.user.update({
+    const updatedUser = await prisma.user.update({
       where: { id: params.id },
       data: {
-        username: body.username,
-        email: body.email,
-        password: body.password,
-        address: body.address,
-        status: body.status,
-        updated_at: new Date(),
+        firstName,
+        lastName,
+        email,
+        status: status as UserStatus,
+        address: {
+          update: {
+            data: address.data,
+            lat: address.lat.toString(),
+            lng: address.lng.toString(),
+          },
+        },
+      },
+
+      include: {
+        address: true,
       },
     });
 
-    return NextResponse.json(updated);
+    return NextResponse.json({
+      message: "User updated successfully",
+      user: updatedUser,
+    });
   } catch (error) {
-    console.error("[PUT USER]", error);
+    console.error("[UPDATE USER]", error);
     return NextResponse.json(
       { error: "Failed to update user" },
       { status: 400 }
@@ -61,15 +99,16 @@ export async function PUT(req: Request, { params }: Context) {
 
 export async function DELETE(_: Request, { params }: Context) {
   try {
-    await prisma.user.delete({
+    await prisma.user.update({
       where: { id: params.id },
+      data: { status: "INACTIVE" },
     });
 
-    return NextResponse.json({ message: "User deleted" });
+    return NextResponse.json({ message: "User deactivated successfully" });
   } catch (error) {
-    console.error("[DELETE USER]", error);
+    console.error("[DEACTIVATE USER]", error);
     return NextResponse.json(
-      { error: "Failed to delete user" },
+      { error: "Failed to deactivate user" },
       { status: 400 }
     );
   }

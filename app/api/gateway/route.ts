@@ -5,11 +5,25 @@ import { parseFlowHex } from "@/utils/parseFlowHex";
 import { parseInstantaneousFlow } from "@/utils/parseInstantaneousFlow";
 import { parseTemperature } from "@/utils/parseTemperature";
 import { parseTimestamp } from "@/utils/parseTimestamp ";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { data } = body;
+    const {
+      data,
+      devEUI,
+      deviceName,
+      applicationID,
+      applicationName,
+      timestamp,
+      fCnt,
+      fPort,
+      adr,
+      rxInfo,
+    } = body;
 
     const parseData = parseMeterData(data);
     const { alarmStatus, spare } = parseData;
@@ -28,30 +42,92 @@ export async function POST(request: Request) {
       timestamps: parseTimestamp(parseData.timestamps),
     };
 
-    console.log({
-      parseData,
-      parsedValues,
-      alerts: finalAlertStatus,
+    // Upsert the meter
+    const meter = await prisma.meter.upsert({
+      where: { dev_eui: devEUI },
+      update: {
+        device_name: deviceName,
+        application_id: applicationID,
+        application_name: applicationName,
+        lat: rxInfo[0]?.location?.latitude,
+        lng: rxInfo[0]?.location?.longitude,
+        status: "ACTIVE",
+        operational_status: "OPERATIONAL",
+      },
+      create: {
+        dev_eui: devEUI,
+        device_name: deviceName,
+        application_id: applicationID,
+        application_name: applicationName,
+        lat: rxInfo[0]?.location?.latitude,
+        lng: rxInfo[0]?.location?.longitude,
+        status: "ACTIVE",
+        operational_status: "OPERATIONAL",
+      },
     });
 
-    return NextResponse.json({
-      meterData: data,
-      parseData,
-      parsedValues,
-      alerts: finalAlertStatus,
+    // Create the reading
+    const reading = await prisma.reading.create({
+      data: {
+        meter_id: meter.id,
+        timestamp: new Date(timestamp * 1000).toISOString(),
+        fCnt,
+        fPort,
+        adr,
+        cumulative_flow: parsedValues.cumulativeFlow,
+        cumulative_daily_flow: parsedValues.cumulativeDailyFlow,
+        reverse_flow: parsedValues.reverseFlow,
+        instantaneous_flow: parsedValues.instantaneousFlow,
+        real_time_temperature: parsedValues.realTimeTemperature,
+        alarm_status: alarmStatus,
+        error_code: null,
+        spare: spare,
+        check_code: parseData.checkCode,
+        ending_code: parseData.endingCode,
+        status: "VALID",
+      },
     });
-  } catch (error) {
-    console.error("Error fetching meter data:", error);
 
-    if (error instanceof Error) {
-      return NextResponse.json(
-        { message: "Error fetching meter data", error: error.message },
-        { status: 500 }
-      );
+    // Create or update gateways and insert RxInfo entries
+    for (const rx of rxInfo) {
+      const gateway = await prisma.gateway.upsert({
+        where: { gateway_code: rx.gatewayID },
+        update: {},
+        create: {
+          gateway_code: rx.gatewayID,
+        },
+      });
+
+      await prisma.rxInfo.create({
+        data: {
+          reading_id: reading.id,
+          gateway_id: gateway.id,
+          lora_snr: rx.loRaSNR,
+          rssi: rx.rssi,
+          latitude: rx.location?.latitude,
+          longitude: rx.location?.longitude,
+          altitude: rx.location?.altitude,
+          time: rx.time,
+          error_detail: null,
+          status: "RECEIVED",
+        },
+      });
     }
 
     return NextResponse.json(
-      { message: "An unknown error occurred" },
+      { finalAlertStatus, parsedValues, parseData },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error saving meter data:", error);
+    if (error instanceof Error) {
+      return NextResponse.json(
+        { message: "Error saving meter data", error: error.message },
+        { status: 500 }
+      );
+    }
+    return NextResponse.json(
+      { message: "Unknown error saving meter data" },
       { status: 500 }
     );
   }

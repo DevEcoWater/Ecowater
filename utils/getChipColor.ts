@@ -1,12 +1,11 @@
 export const chipConfig = {
-  active: { backgroundColor: "#dcfce7", textColor: "#3a975c", label: "Activo" },
-  inactive: {
+  ACTIVE: { backgroundColor: "#dcfce7", textColor: "#3a975c" },
+  INACTIVE: { backgroundColor: "#F3F4F6", textColor: "#6B7280" },
+  PENDING: {
     backgroundColor: "#FEECD4",
     textColor: "#F17A3D",
-    label: "Alerta",
   },
-  error: { backgroundColor: "#FEE2E1", textColor: "#DC3335", label: "Error" },
-  default: { backgroundColor: "#dbeaff", textColor: "#5a88ee", label: "Total" },
+  FAULTY: { backgroundColor: "#FEE2E1", textColor: "#DC3335" },
+  BLOCKED: { backgroundColor: "#E6E6FA", textColor: "#5F3DC4" },
+  DEFAULT: { backgroundColor: "#F3F4F6", textColor: "#6B7280" },
 };
-
-export type MeterStatus = keyof typeof chipConfig;

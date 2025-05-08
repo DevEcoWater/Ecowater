@@ -1,23 +1,24 @@
 "use client";
 import Link from "next/link";
 import { Button } from "../ui/button";
+import { CircleArrowLeft } from "lucide-react";
 
 export const BackButton = ({
   href,
   label,
 }: {
-  href: string;
+  href: () => void;
   label: string;
 }) => {
   return (
     <Button
       asChild
+      onClick={href}
       variant={"link"}
-      className="font-medium w-full"
+      className="font-medium w-auto justify-start my-4"
     >
-      <Link aria-label={label} href={href}>
-        {label}
-      </Link>
+      <CircleArrowLeft />
+      {label}
     </Button>
   );
 };

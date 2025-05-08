@@ -1,10 +1,25 @@
-import Map from "@/components/ui/map";
+import { Header } from "@/components/layout/panel/header";
+import { Main } from "@/components/layout/panel/main";
+import Profile from "@/components/profile";
 import React from "react";
 
-export default async function Mapa() {
+import dynamic from "next/dynamic";
+
+const Map = dynamic(() => import("@/components/ui/map"), { ssr: false });
+
+export default function Mapa() {
   return (
-    <div className="grid lg:grid-cols-1 gap-10">
-      <Map />
-    </div>
+    <>
+      <Header fixed>
+        <div className="ml-auto flex items-center space-x-4">
+          <Profile />
+        </div>
+      </Header>
+
+      {/* ===== Content ===== */}
+      <Main>
+        <Map />
+      </Main>
+    </>
   );
 }

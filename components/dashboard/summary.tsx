@@ -1,6 +1,6 @@
-import { MeterStatus } from "@/utils/getChipColor";
 import { Gauge } from "lucide-react";
 import MeterCard from "./meter-card";
+import { MeterStatus } from "@prisma/client";
 
 interface ISummary {
   meters: any;
