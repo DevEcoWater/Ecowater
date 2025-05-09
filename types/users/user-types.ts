@@ -14,6 +14,9 @@ export interface UserDetail {
   role?: string;
 }
 
+export interface UserDataForTable extends User {
+  role?: string;
+}
 export interface UserColumn
   extends Omit<
     UserDetail,
