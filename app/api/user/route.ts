@@ -4,7 +4,7 @@ import { getPaginationParams } from "../../../utils/pagination";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { parseUserStatus } from "@/utils/parseUserStatus";
-import { PaginatedUserResponse, UserResponse } from "@/types/users/user-types";
+import { PaginatedUserResponse } from "@/types/users/user-types";
 
 const prisma = new PrismaClient();
 export async function GET(req: Request) {
@@ -19,6 +19,7 @@ export async function GET(req: Request) {
         include: {
           userRoles: { include: { role: true } },
           userMeters: true,
+          address: true,
         },
         orderBy: { created_at: "desc" },
       }),
