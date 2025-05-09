@@ -48,7 +48,6 @@ const Users = () => {
     <div className="py-10">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-col gap-4 md:gap-6 md:flex-col w-full">
-          {/* Top row: Search + Buttons */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between w-full gap-4">
             <div className="flex items-center flex-wrap gap-2">
               <div className="flex w-full md:w-[350px]">
@@ -84,7 +83,11 @@ const Users = () => {
           {/* Second row: Filter Tabs */}
           <div className="flex items-center justify-center w-full mb-4">
             <FilterTabs
-              onFilterChange={handleFilterChange}
+              onFilterChange={(value) => {
+                if (filterState !== value) {
+                  handleFilterChange(value);
+                }
+              }}
               defaultValue={filterState}
               total={total}
               counts={counts}

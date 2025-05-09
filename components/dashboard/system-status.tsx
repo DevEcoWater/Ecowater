@@ -7,7 +7,7 @@ interface SystemStatusProps {
 }
 
 const SystemStatus: React.FC<SystemStatusProps> = ({ type, status }) => {
-  const chip = type === "system" ? chipConfig["active"] : chipConfig["default"];
+  const chip = type === "system" ? chipConfig["ACTIVE"] : chipConfig["PENDING"];
 
   return (
     <div

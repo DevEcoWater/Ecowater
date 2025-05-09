@@ -1,28 +1,27 @@
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
-import dayjs from "dayjs";
 import UserAvatar from "./user-avatar";
 import Chip from "../ui/chip";
 import { UserActions } from "./user-actions";
-import { User } from "@prisma/client";
-import { UserColumn, UserDetail } from "@/types/users/user-types";
+import { UserDataForTable, UserDetail } from "@/types/users/user-types";
 
-// Combine the types UserDetail and UserColumn into one type.
-const usernameColumn: ColumnDef<User> = {
+const usernameColumn: ColumnDef<UserDataForTable> = {
   id: "username",
   header: "Usuario",
   cell: ({ row }) => {
     const user = row.original;
     return (
-      <div>
-        {user.firstName} {user.lastName}
-      </div>
+      <UserAvatar
+        firstName={user.firstName}
+        lastName={user.lastName}
+        role={user.role ?? ""}
+      />
     );
   },
 };
 
-const otherColumns: ColumnDef<User>[] = [
+const otherColumns: ColumnDef<UserDataForTable>[] = [
   {
     accessorKey: "email",
     header: "Email",
@@ -40,7 +39,7 @@ const otherColumns: ColumnDef<User>[] = [
     header: "Estado del usuario",
     cell: ({ row }) => {
       const status = row.original.status;
-      return <span>{status}</span>;
+      return <Chip status={status} />;
     },
   },
   {
@@ -50,12 +49,14 @@ const otherColumns: ColumnDef<User>[] = [
       const user = row.original;
       return (
         <div onClick={(e) => e.stopPropagation()}>
-          <button>Actions for {user.firstName}</button>
+          <UserActions user={user} />
         </div>
       );
     },
   },
 ];
 
-// `userColumns` must now be typed for `User` directly, not `CombinedUser`
-export const userColumns: ColumnDef<User>[] = [usernameColumn, ...otherColumns];
+export const userColumns: ColumnDef<UserDataForTable>[] = [
+  usernameColumn,
+  ...otherColumns,
+];
