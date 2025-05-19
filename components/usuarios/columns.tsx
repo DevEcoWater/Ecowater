@@ -35,6 +35,14 @@ const otherColumns: ColumnDef<UserDataForTable>[] = [
     },
   },
   {
+    id: "address",
+    header: "Dirección",
+    cell: ({ row }) => {
+      const shortData = row.original.address?.shortData;
+      return shortData || "Sin dirección";
+    },
+  },
+  {
     accessorKey: "status",
     header: "Estado del usuario",
     cell: ({ row }) => {

@@ -55,6 +55,7 @@ const formSchema = z.object({
   lastName: z.string().min(1, "Este campo es obligatorio"),
   email: z.string().email("Ingrese un email válido"),
   address: z.string().min(1, "Debe seleccionar una ubicación válida"),
+  shortData: z.string(),
   status: z.nativeEnum(UserStatus),
   coordinates: z.object({
     lat: z.number(),
@@ -83,6 +84,7 @@ export default function UpdateUserForm() {
       lastName: "",
       email: "",
       address: "",
+      shortData: "",
       status: UserStatus.ACTIVE,
       coordinates: defaultLocation,
     },
@@ -103,7 +105,8 @@ export default function UpdateUserForm() {
         lastName: userData.lastName,
         email: userData.email,
         address: userData.address.data || "",
-        status: userData.status ?? UserStatus.ACTIVE, // defensive fallback
+        shortData: userData.address.shortData || "",
+        status: userData.status ?? UserStatus.ACTIVE,
         coordinates: {
           lat: Number(userData.address.lat),
           lng: Number(userData.address.lng),
@@ -124,20 +127,24 @@ export default function UpdateUserForm() {
 
   const handlePlaceSelect = (place: {
     address: string;
+    shortData: string;
     location: { lat: number; lng: number };
   }) => {
     form.setValue("address", place.address, { shouldValidate: true });
-
+    form.setValue("shortData", place.shortData);
     form.setValue("coordinates", place.location, { shouldValidate: true });
 
     setMapCenter(place.location);
   };
+
+  console.log(form.getValues(), "form values");
 
   const onSubmit = ({
     firstName,
     lastName,
     email,
     address,
+    shortData,
     status,
     coordinates,
   }: FormValues) => {
@@ -149,6 +156,7 @@ export default function UpdateUserForm() {
       status: status,
       address: {
         data: address,
+        shortData: shortData,
         lat: coordinates?.lat?.toString() || "",
         lng: coordinates?.lng?.toString() || "",
       },
@@ -183,7 +191,6 @@ export default function UpdateUserForm() {
   };
 
   const isLoading = isLoadingUser || isUpdatingUser;
-  // const watchedStatus = form.watch("status");
 
   return (
     <div className="mx-auto py-6 space-y-8">
@@ -273,7 +280,7 @@ export default function UpdateUserForm() {
                         <Select
                           disabled={isLoadingUser}
                           onValueChange={field.onChange}
-                          value={field.value ?? UserStatus.ACTIVE} // Fallback to valid enum
+                          value={field.value ?? UserStatus.ACTIVE}
                         >
                           <FormControl>
                             <SelectTrigger>

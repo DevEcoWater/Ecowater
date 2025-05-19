@@ -1,10 +1,8 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { usePageHeader } from "@/context/page-header-context";
-import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { ArrowLeft } from "lucide-react";
 
 interface PageHeaderProps {
   title: string;
@@ -20,11 +18,6 @@ export function PageHeader({
   useHistoryBack = false,
 }: PageHeaderProps) {
   const router = useRouter();
-  const { setPageHeader } = usePageHeader();
-
-  useEffect(() => {
-    setPageHeader(title, description);
-  }, [title, description, setPageHeader]);
 
   const handleBack = () => {
     if (useHistoryBack) {

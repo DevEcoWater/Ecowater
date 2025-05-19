@@ -31,6 +31,8 @@ export const UserTable = ({ data, isLoading, error }: UserTableProps) => {
     React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
 
+  console.log(data, "data");
+
   const table = useReactTable({
     data: data || [],
     columns: userColumns,
