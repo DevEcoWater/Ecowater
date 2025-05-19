@@ -85,7 +85,7 @@ export async function POST(req: Request) {
       email,
       password,
       role_id,
-      address: { data, lat, lng },
+      address: { data, lat, lng, shortData },
     } = body;
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -94,6 +94,7 @@ export async function POST(req: Request) {
       const createdAddress = await tx.address.create({
         data: {
           data,
+          shortData,
           lat,
           lng,
         },
