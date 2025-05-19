@@ -39,7 +39,7 @@ export const sidebarData: SidebarData = {
         },
         {
           title: "Medidores",
-          url: "/dashbard/medidores",
+          url: "/dashboard/medidores",
           icon: GaugeCircleIcon,
         },
         {

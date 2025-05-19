@@ -15,7 +15,9 @@ export interface UserDetail {
 }
 
 export interface UserDataForTable extends User {
+  address: any;
   role?: string;
+  adress?: Address;
 }
 export interface UserColumn
   extends Omit<
@@ -27,7 +29,9 @@ export type CreateUserFormValues = Omit<
   UserDetail,
   "id" | "address" | "created_at" | "updated_at" | "status"
 > & {
-  address: Omit<Address, "id">;
+  address: Omit<Address, "id"> & {
+    shortData: string;
+  };
 };
 
 export type UpdateUserFormValues = Omit<

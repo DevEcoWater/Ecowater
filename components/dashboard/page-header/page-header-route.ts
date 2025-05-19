@@ -17,6 +17,11 @@ export function getPageHeaderFromPath(pathname: string | null) {
       title: "Registrar Usuario",
       description: "Complete el formulario para registrar un nuevo cliente",
     },
+    {
+      pattern: /\/medidores/,
+      title: "Gestión de Medidores",
+      description: "Visualice y edite la información de los medidores",
+    },
   ];
 
   for (const route of routes) {
