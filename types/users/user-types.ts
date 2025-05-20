@@ -15,7 +15,7 @@ export interface UserDetail {
 }
 
 export interface UserDataForTable extends User {
-  address: any;
+  address?: any;
   role?: string;
   adress?: Address;
 }
