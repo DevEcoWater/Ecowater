@@ -3,13 +3,7 @@
 import { Button } from "./button";
 import React from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-
-import {
-  ColumnDef,
-  flexRender,
-  ColumnFiltersState,
-} from "@tanstack/react-table";
-
+import { ColumnDef, flexRender } from "@tanstack/react-table";
 import {
   Table,
   TableBody,
@@ -37,7 +31,7 @@ export function DataTable<TData, TValue>({
 }: DataTableProps<TData, TValue>) {
   return (
     <>
-      <div>
+      <div className="w-full">
         <Table>
           <TableHeader>
             {table &&
@@ -61,7 +55,7 @@ export function DataTable<TData, TValue>({
             {isLoading ? (
               Array.from({ length: 5 }).map((_, index) => (
                 <TableRow key={index}>
-                  {columns.map((column, colIndex) => (
+                  {columns.map((_, colIndex) => (
                     <TableCell key={colIndex}>
                       <Skeleton className="h-8 w-full bg-gray-300" />
                     </TableCell>
@@ -86,23 +80,27 @@ export function DataTable<TData, TValue>({
               ))
             ) : (
               <TableRow>
-                <div className="flex items-center justify-center p-6 border rounded-md w-full">
-                  <div className="flex flex-col items-center gap-2 text-muted-foreground w-full">
-                    <X className="h-8 w-full" />
-                    <p>No se encontraron resultados</p>
+                <TableCell colSpan={columns.length}>
+                  <div className="flex items-center justify-center p-6 w-full">
+                    <div className="flex flex-col items-center gap-2 text-muted-foreground w-full">
+                      <X className="h-8 w-8" />
+                      <p>No se encontraron resultados</p>
+                    </div>
                   </div>
-                </div>
+                </TableCell>
               </TableRow>
             )}
 
             {error && (
               <TableRow>
-                <div className="flex items-center justify-center p-6 border rounded-md w-full">
-                  <div className="flex flex-col items-center gap-2 text-muted-foreground w-full">
-                    <X className="h-8 w-full" />
-                    <p>Ha ocurrido un error</p>
+                <TableCell colSpan={columns.length}>
+                  <div className="flex items-center justify-center p-6 w-full">
+                    <div className="flex flex-col items-center gap-2 text-muted-foreground w-full">
+                      <X className="h-8 w-8" />
+                      <p>Ha ocurrido un error</p>
+                    </div>
                   </div>
-                </div>
+                </TableCell>
               </TableRow>
             )}
           </TableBody>

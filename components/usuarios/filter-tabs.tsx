@@ -24,45 +24,24 @@ export function FilterTabs({
   counts = { actives: 0, inactives: 0, pendings: 0, blockeds: 0 },
 }: FilterTabsProps) {
   const handleValueChange = (value: string) => {
-    console.log(value, "value");
-    onFilterChange(value);
+    onFilterChange?.(value);
   };
 
   const valuesToMap = [
-    {
-      value: "total",
-      label: "Total",
-      count: total,
-    },
-    {
-      value: "activo",
-      label: "Activos",
-      count: counts.actives,
-    },
-    {
-      value: "inactivo",
-      label: "Inactivos",
-      count: counts.inactives,
-    },
-    {
-      value: "pendiente",
-      label: "Pendiente",
-      count: counts.pendings,
-    },
-    {
-      value: "bloqueado",
-      label: "Bloqueados",
-      count: counts.blockeds,
-    },
+    { value: "total", label: "Total", count: total },
+    { value: "activo", label: "Activos", count: counts.actives },
+    { value: "inactivo", label: "Inactivos", count: counts.inactives },
+    { value: "pendiente", label: "Pendiente", count: counts.pendings },
+    { value: "bloqueado", label: "Bloqueados", count: counts.blockeds },
   ];
 
   return (
     <Tabs
-      defaultValue={defaultValue}
+      value={defaultValue}
       onValueChange={handleValueChange}
       className="w-fit"
     >
-      <Select defaultValue={defaultValue} onValueChange={handleValueChange}>
+      <Select value={defaultValue} onValueChange={handleValueChange}>
         <SelectTrigger className="md:hidden flex w-[140px]" id="view-selector">
           <SelectValue placeholder="Seleccionar vista" />
         </SelectTrigger>
@@ -84,6 +63,7 @@ export function FilterTabs({
           ))}
         </SelectContent>
       </Select>
+
       <TabsList className="md:flex hidden">
         {valuesToMap.map((value) => (
           <TabsTrigger

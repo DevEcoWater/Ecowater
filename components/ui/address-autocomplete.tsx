@@ -10,6 +10,7 @@ export interface AddressAutocompleteProps
   extends Omit<React.ComponentProps<"input">, "onChange"> {
   onPlaceSelect?: (place: {
     address: string;
+    shortData: string;
     location: { lat: number; lng: number };
   }) => void;
   onChange?: (value: string) => void;
@@ -48,8 +49,14 @@ const AddressAutocomplete = forwardRef<
 
         const address = place.formatted_address || "";
 
+        const routeComponent = place.address_components?.find((component) =>
+          component.types.includes("route")
+        );
+
+        const shortData = routeComponent?.short_name || "";
+
         if (onPlaceSelect) {
-          onPlaceSelect({ address, location });
+          onPlaceSelect({ address, shortData, location });
         }
 
         if (onChange) {
@@ -72,7 +79,8 @@ const AddressAutocomplete = forwardRef<
         onUnmount={(autocomplete) => {
           google.maps.event.clearInstanceListeners(autocomplete);
         }}
-        types={["address"]}>
+        types={["address"]}
+      >
         <Input
           ref={ref}
           placeholder={placeholder}

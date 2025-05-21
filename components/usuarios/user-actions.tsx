@@ -24,13 +24,14 @@ import {
 } from "../ui/dropdown-menu";
 import { DeleteUserModal } from "../modals/delete-user-modal";
 import { ReactivateUserModal } from "../modals/reactive-user-modal";
+import { UserDataForTable } from "@/types/users/user-types";
 
 interface UserActionsProps {
-  user: User;
-  onViewDetails?: (user: User) => void;
-  onEdit?: (user: User) => void;
-  onViewMeter?: (user: User) => void;
-  onDelete?: (user: User) => void;
+  user: UserDataForTable;
+  onViewDetails?: (user: UserDataForTable) => void;
+  onEdit?: (UserDataForTable: UserDataForTable) => void;
+  onViewMeter?: (UserDataForTable: UserDataForTable) => void;
+  onDelete?: (UserDataForTable: User) => void;
 }
 
 export const UserActions = ({ user }: UserActionsProps) => {

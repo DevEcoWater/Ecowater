@@ -179,37 +179,7 @@ export default function UserDetailPage() {
                         </div>
                       </div>
                     )}
-                    {userData.meter ? (
-                      <>
-                        <div className="flex flex-col gap-2">
-                          <CardTitle>Información del Medidor</CardTitle>
-                          <div className="space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                              <div className="flex flex-col gap-2">
-                                <div className="text-sm font-medium text-muted-foreground">
-                                  ID del Medidor
-                                </div>
-                                <div className="font-medium">
-                                  {userData.meter.dev_eui
-                                    ? userData.meter.dev_eui
-                                    : "Sin medidor"}
-                                </div>
-                              </div>
-
-                              <div className="flex flex-col gap-2">
-                                <div className="text-sm font-medium text-muted-foreground">
-                                  Estado del medidor
-                                </div>
-                                <Chip status={userData.meter.status} />
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex flex-col gap-2 md:max-w-[300px] ">
-                          <Button>Ver Medidor</Button>
-                        </div>
-                      </>
-                    ) : (
+                    {!userData.meter && (
                       <div className="flex flex-col gap-2 space-y-2">
                         <div className="text-sm font-medium text-muted-foreground">
                           Información del Medidor
@@ -221,6 +191,35 @@ export default function UserDetailPage() {
                     )}
                   </div>
                 </div>
+                {userData.meter && (
+                  <div className="w-full flex flex-col justify-center gap-6 ">
+                    <div className="flex flex-col gap-4">
+                      <CardTitle>Información del Medidor</CardTitle>
+                      <div className="space-y-6">
+                        <div className="flex flex-col gap-2">
+                          <div className="text-sm font-medium text-muted-foreground">
+                            ID del Medidor
+                          </div>
+                          <div className="font-medium">
+                            {userData.meter.dev_eui
+                              ? userData.meter.dev_eui
+                              : "Sin medidor"}
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col gap-2">
+                          <div className="text-sm font-medium text-muted-foreground">
+                            Estado del medidor
+                          </div>
+                          <Chip status={userData.meter.status} />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-2 md:max-w-[300px] lg:mx-auto lg:w-[300px]">
+                      <Button>Ver Medidor</Button>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="flex items-center justify-center p-6">

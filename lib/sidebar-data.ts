@@ -1,12 +1,12 @@
 import { SidebarData } from "@/types/sidebar/sidebar-types";
 import {
-  LayoutDashboard, // IconLayoutDashboard
-  ListChecks, // IconChecklist
+  LayoutDashboard,
+  ListChecks,
   MapIcon,
   GaugeCircleIcon,
-  Settings, // IconSettings
-  Wrench, // IconTool
-  Users, // IconUsers
+  Settings,
+  Wrench,
+  Users,
 } from "lucide-react";
 import { AudioWaveform, Command, GalleryVerticalEnd } from "lucide-react";
 
@@ -34,18 +34,17 @@ export const sidebarData: SidebarData = {
       items: [
         {
           title: "Principal",
-          url: "/",
+          url: "/dashboard",
           icon: LayoutDashboard,
         },
         {
           title: "Medidores",
-          url: "/dashbard/medidores",
+          url: "/dashboard/medidores",
           icon: GaugeCircleIcon,
         },
         {
           title: "Mapa",
           url: "/dashboard/mapa",
-          // badge: "3",
           icon: MapIcon,
         },
         {

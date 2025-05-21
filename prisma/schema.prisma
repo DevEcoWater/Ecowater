@@ -37,11 +37,12 @@ model User {
 }
 
 model Address {
-  id   String @id(map: "Adress_pkey") @default(uuid())
-  lat  String
-  lng  String
-  data String
-  user User?
+  id        String  @id(map: "Adress_pkey") @default(uuid())
+  lat       String
+  lng       String
+  data      String
+  shortData String?
+  user      User?
 }
 
 model Role {

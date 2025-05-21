@@ -117,7 +117,7 @@ const MeterDashboard = () => {
                 title={data.title}
                 value={data.value}
                 icon={data.icon}
-                status={data.status as MeterStatus}
+                status={"ACTIVE"}
                 isLoading={false}
               />
             ))}

@@ -11,12 +11,13 @@ import {
   useReactTable,
   type VisibilityState,
 } from "@tanstack/react-table";
-import { User } from "@prisma/client"; // This is the type of user
-import { userColumns } from "./columns"; // Assuming columns are based on user type
+import { User } from "@prisma/client";
+import { userColumns } from "./columns";
 import { DataTable } from "../ui/data-table";
+import { UserDataForTable } from "@/types/users/user-types";
 
 interface UserTableProps {
-  data: User[]; // Ensure data is typed as User[]
+  data: UserDataForTable[];
   isLoading?: boolean;
   error?: Error | null;
 }
@@ -30,9 +31,11 @@ export const UserTable = ({ data, isLoading, error }: UserTableProps) => {
     React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
 
+  console.log(data, "data");
+
   const table = useReactTable({
-    data: data || [], // Ensure data is properly typed as User[]
-    columns: userColumns, // Pass the correctly typed columns
+    data: data || [],
+    columns: userColumns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
@@ -51,7 +54,7 @@ export const UserTable = ({ data, isLoading, error }: UserTableProps) => {
 
   return (
     <DataTable
-      columns={userColumns} // Make sure columns match the table data type
+      columns={userColumns}
       data={data}
       table={table}
       isLoading={isLoading}

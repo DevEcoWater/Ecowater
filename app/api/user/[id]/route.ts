@@ -61,7 +61,7 @@ export async function PUT(
 ) {
   try {
     const body = await req.json();
-    const { firstName, lastName, email, password, status, address } = body;
+    const { firstName, lastName, email, status, address } = body;
 
     const updatedUser = await prisma.user.update({
       where: { id: params.id },
@@ -73,6 +73,7 @@ export async function PUT(
         address: {
           update: {
             data: address.data,
+            shortData: address.shortData,
             lat: address.lat.toString(),
             lng: address.lng.toString(),
           },

@@ -39,6 +39,7 @@ const formSchema = z
     lastName: z.string().min(1, "Este campo es obligatorio"),
     email: z.string().email("Ingrese un email válido"),
     address: z.string().min(1, "Debe seleccionar una ubicación válida"),
+    shortData: z.string(),
     role_id: z.string(),
     password: z
       .string()
@@ -71,6 +72,7 @@ export default function RegisterUserPage() {
       lastName: "",
       email: "",
       address: "",
+      shortData: "",
       password: "",
       role_id: "5b42ecad-2634-4546-ae9e-ae8425469f48",
       confirmPassword: "",
@@ -81,12 +83,16 @@ export default function RegisterUserPage() {
   const [mapCenter, setMapCenter] = useState(defaultLocation);
   const { mutate: createUser, isPending: isCreatingUser } = useUserMutation();
 
+  console.log(form.getValues(), "form");
+
   const handlePlaceSelect = (place: {
     address: string;
+    shortData: string;
     location: { lat: number; lng: number };
   }) => {
     form.setValue("address", place.address, { shouldValidate: true });
     form.setValue("coordinates", place.location, { shouldValidate: true });
+    form.setValue("shortData", place.shortData);
     setMapCenter(place.location);
   };
 
@@ -105,6 +111,7 @@ export default function RegisterUserPage() {
         ...userData,
         address: {
           data: userData.address,
+          shortData: data.shortData,
           lat: data.coordinates.lat.toString(),
           lng: data.coordinates.lng.toString(),
         },
