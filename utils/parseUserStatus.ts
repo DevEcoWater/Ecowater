@@ -9,7 +9,7 @@ export const parseChipStatus = (status: MeterStatus | UserStatus) => {
     case "PENDING":
       return { text: "Pendiente", style: "INACTIVE" };
     case "MAINTENANCE":
-      return { text: "Mantenimiento", style: "INACTIVE" };
+      return { text: "Revisar", style: "INACTIVE" };
     case "BLOCKED":
       return { text: "Bloqueado", style: "BLOCKED" };
     case "FAULTY":
