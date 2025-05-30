@@ -38,8 +38,8 @@ export type UpdateUserFormValues = Omit<
   Partial<UserDetail>,
   "address" | "meter"
 > & {
-  id: string; // ✅ user.id is required for the PUT call
-  address?: Omit<Address, "id">; // ✅ still omit address.id
+  id: string;
+  address?: Omit<Address, "id">;
 };
 
 export interface UserResponse {
