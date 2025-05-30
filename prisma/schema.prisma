@@ -111,6 +111,7 @@ model Reading {
   check_code            String?
   ending_code           String?
   status                ReadingStatus @default(VALID)
+  plot                  String?
   meter                 Meter         @relation(fields: [meter_id], references: [id], onDelete: Cascade)
   rxInfos               RxInfo[]
   statuses              Status[]

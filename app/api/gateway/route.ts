@@ -49,28 +49,36 @@ export async function POST(request: Request) {
         device_name: deviceName,
         application_id: applicationID,
         application_name: applicationName,
-        lat: rxInfo[0]?.location?.latitude,
-        lng: rxInfo[0]?.location?.longitude,
-        status: "ACTIVE",
-        operational_status: "OPERATIONAL",
+        lat: rxInfo[0]?.location?.latitude
+          ? parseFloat(rxInfo[0].location.latitude)
+          : null,
+        lng: rxInfo[0]?.location?.longitude
+          ? parseFloat(rxInfo[0].location.longitude)
+          : null,
+        status: finalAlertStatus.meter_status,
+        operational_status: finalAlertStatus.operational_status,
       },
       create: {
         dev_eui: devEUI,
         device_name: deviceName,
         application_id: applicationID,
         application_name: applicationName,
-        lat: rxInfo[0]?.location?.latitude,
-        lng: rxInfo[0]?.location?.longitude,
-        status: "ACTIVE",
-        operational_status: "OPERATIONAL",
+        lat: rxInfo[0]?.location?.latitude
+          ? parseFloat(rxInfo[0].location.latitude)
+          : null,
+        lng: rxInfo[0]?.location?.longitude
+          ? parseFloat(rxInfo[0].location.longitude)
+          : null,
+        status: finalAlertStatus.meter_status,
+        operational_status: finalAlertStatus.operational_status,
       },
     });
 
-    // Create the reading
     const reading = await prisma.reading.create({
       data: {
         meter_id: meter.id,
         timestamp: new Date(timestamp * 1000).toISOString(),
+        plot: data,
         fCnt,
         fPort,
         adr,
@@ -88,7 +96,6 @@ export async function POST(request: Request) {
       },
     });
 
-    // Create or update gateways and insert RxInfo entries
     for (const rx of rxInfo) {
       const gateway = await prisma.gateway.upsert({
         where: { gateway_code: rx.gatewayID },
@@ -104,9 +111,15 @@ export async function POST(request: Request) {
           gateway_id: gateway.id,
           lora_snr: rx.loRaSNR,
           rssi: rx.rssi,
-          latitude: rx.location?.latitude,
-          longitude: rx.location?.longitude,
-          altitude: rx.location?.altitude,
+          latitude: rx.location?.latitude
+            ? parseFloat(rx.location.latitude)
+            : null,
+          longitude: rx.location?.longitude
+            ? parseFloat(rx.location.longitude)
+            : null,
+          altitude: rx.location?.altitude
+            ? parseFloat(rx.location.altitude)
+            : null,
           time: rx.time,
           error_detail: null,
           status: "RECEIVED",

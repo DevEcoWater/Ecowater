@@ -68,16 +68,9 @@ const metrics = [
 const MeterDashboard = () => {
   return (
     <>
-      {/* ===== Top Heading ===== */}
-      <Header fixed>
-        <div className="ml-auto flex items-center space-x-4">
-          <Profile />
-        </div>
-      </Header>
-
       {/* ===== Content ===== */}
-      <Main>
-        <div className="p-6 mx-auto">
+      <Main className="p-0">
+        <div className="mx-auto">
           {/* Meter Header */}
           <Card className="p-6 mb-4">
             <CardContent className="flex justify-between items-center p-0">

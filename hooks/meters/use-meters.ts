@@ -1,17 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { useUsersQuery } from "./use-user-query";
-import { User } from "@prisma/client";
+import { Meter, User } from "@prisma/client";
 import { TCounts } from "@/types/users/user-types";
+import { useMetersQuery } from "./use-meter-query";
+import { MeterStatusCounts } from "@/types/meters/meter-types";
 
-export interface UseUsersOptions {
+export interface UseMetersOptions {
   initialFilter?: string;
   initialPage?: number;
   initialLimit?: number;
 }
-export interface UseUsersReturn {
-  data: User[] | null;
+export interface UseMetersReturn {
+  data: Meter[] | null;
   isLoading: boolean;
   error: Error | null;
   searchQuery: string;
@@ -25,10 +26,10 @@ export interface UseUsersReturn {
   setLimit: (limit: number) => void;
   totalPages: number;
   total: number;
-  counts: TCounts;
+  counts: MeterStatusCounts;
 }
 
-export const useUsers = (options?: UseUsersOptions): UseUsersReturn => {
+export const useMeters = (options?: UseMetersOptions): UseMetersReturn => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterState, setFilterState] = useState(
     options?.initialFilter || "total"
@@ -41,9 +42,7 @@ export const useUsers = (options?: UseUsersOptions): UseUsersReturn => {
     data: queryData,
     isLoading,
     error,
-  } = useUsersQuery(page, limit, searchQuery, filterState);
-
-  console.log(queryData, "queryData");
+  } = useMetersQuery(page, limit, searchQuery, filterState);
 
   const resetFilters = () => {
     setFilterState("total");

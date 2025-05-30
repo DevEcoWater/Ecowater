@@ -13,8 +13,8 @@ import {
   MarkerClusterer,
   SuperClusterAlgorithm,
 } from "@googlemaps/markerclusterer";
-import { useMeters } from "@/hooks/meters/user-meter-query";
 import { MeterStatus } from "@prisma/client";
+import { useMeters } from "@/hooks/meters/use-meters";
 
 const containerStyle = {
   width: "100%",
@@ -27,7 +27,7 @@ const center = {
 };
 
 function Map() {
-  const { data, isLoading, isError, error } = useMeters();
+  const { data, isLoading, error } = useMeters();
   const { isLoaded } = useJsApiLoader({
     id: "google-map-script",
     googleMapsApiKey:
@@ -50,10 +50,7 @@ function Map() {
   );
   const [zoomLevel, setZoomLevel] = useState<number>(2);
 
-  const markers = useMemo(
-    () => data?.data?.filter((item) => item.lat) || [],
-    [data]
-  );
+  const markers = useMemo(() => data?.filter((item) => item.lat) || [], [data]);
 
   useEffect(() => {
     if (map && markers.length > 0) {
@@ -121,7 +118,7 @@ function Map() {
   };
 
   if (isLoading) return <Skeleton className="h-[617px] w-full bg-gray-300" />;
-  if (isError) return <p>Error: {error?.message}</p>;
+  if (error) return <p>Error: {error?.message}</p>;
 
   return isLoaded ? (
     <GoogleMap
