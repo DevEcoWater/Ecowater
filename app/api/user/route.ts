@@ -15,6 +15,7 @@ export async function GET(req: Request) {
 
     const [rawUsers, total] = await Promise.all([
       prisma.user.findMany({
+        skip: (page - 1) * limit,
         take: limit,
         include: {
           userRoles: { include: { role: true } },
@@ -26,12 +27,12 @@ export async function GET(req: Request) {
       prisma.user.count(),
     ]);
 
-    const users = rawUsers.map(({ userRoles, ...user }) => ({
+    const usersWithRoles = rawUsers.map(({ userRoles, ...user }) => ({
       ...user,
       role: userRoles[0]?.role.role_name ?? "Unknown",
     }));
 
-    let filteredUsers = users;
+    let filteredUsers = usersWithRoles;
 
     if (search) {
       filteredUsers = filteredUsers.filter((user) =>
@@ -46,23 +47,23 @@ export async function GET(req: Request) {
       );
     }
 
-    const paginatedData = filteredUsers.slice((page - 1) * limit, page * limit);
-    const totalFiltered = filteredUsers.length;
-
     const counts = {
-      actives: users.filter((user) => user.status === "ACTIVE").length,
-      inactives: users.filter((user) => user.status === "INACTIVE").length,
-      pendings: users.filter((user) => user.status === "PENDING").length,
-      blockeds: users.filter((user) => user.status === "BLOCKED").length,
+      actives: usersWithRoles.filter((user) => user.status === "ACTIVE").length,
+      inactives: usersWithRoles.filter((user) => user.status === "INACTIVE")
+        .length,
+      pendings: usersWithRoles.filter((user) => user.status === "PENDING")
+        .length,
+      blockeds: usersWithRoles.filter((user) => user.status === "BLOCKED")
+        .length,
     };
 
     return NextResponse.json<PaginatedUserResponse>({
-      data: paginatedData,
+      data: usersWithRoles,
       pagination: {
         total: total,
         page,
         limit,
-        totalPages: Math.ceil(totalFiltered / limit),
+        totalPages: Math.ceil(total / limit),
       },
       counts,
     });
