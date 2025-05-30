@@ -4,10 +4,9 @@ import { useRouter } from "next/navigation";
 import { CirclePlus, Search, RefreshCw } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
-import { useUsers } from "@/hooks/users/use-users";
 import { useUserFilters } from "@/hooks/users/use-users-filters";
 import { FilterTabs } from "./filter-tabs";
-import { UserTable as UserTableComponent } from "./user-table";
+import { MeterTable as MeterTableComponent } from "./meter-table";
 import {
   Pagination,
   PaginationContent,
@@ -16,9 +15,9 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { useMeters } from "@/hooks/meters/use-meters";
 
-const Users = () => {
-  const router = useRouter();
+const Meters = () => {
   const {
     data,
     isLoading,
@@ -32,7 +31,7 @@ const Users = () => {
     setPage,
     totalPages,
     total,
-  } = useUsers();
+  } = useMeters();
 
   const { inputValue, setInputValue, handleSearch, handleFilterChange } =
     useUserFilters({
@@ -40,11 +39,7 @@ const Users = () => {
       onFilterChange: setFilterState,
     });
 
-  const handleRedirect = () => {
-    router.push("/dashboard/usuarios/crear");
-  };
-
-  console.log(totalPages);
+  console.log(data, "data");
 
   return (
     <div className="py-10">
@@ -54,7 +49,7 @@ const Users = () => {
             <div className="flex items-center flex-wrap gap-2">
               <div className="flex w-full md:w-[350px]">
                 <Input
-                  placeholder="Filtrar por email..."
+                  placeholder="Filtrar por código del medidor"
                   value={inputValue}
                   onChange={(event) => setInputValue(event.target.value)}
                   onKeyDown={(e) => {
@@ -75,11 +70,6 @@ const Users = () => {
                 Limpiar
               </Button>
             </div>
-
-            <Button onClick={handleRedirect} className="w-full md:w-[150px]">
-              Crear usuario
-              <CirclePlus className="ml-2 h-4 w-4" />
-            </Button>
           </div>
 
           {/* Second row: Filter Tabs */}
@@ -98,7 +88,7 @@ const Users = () => {
         </div>
       </div>
       <div>
-        <UserTableComponent
+        <MeterTableComponent
           data={data || []}
           isLoading={isLoading}
           error={error}
@@ -112,7 +102,7 @@ const Users = () => {
             <PaginationContent>
               <PaginationItem>
                 <PaginationPrevious
-                  onClick={() => setPage(page - 1)}
+                  onClick={() => setPage(Math.max(1, page - 1))}
                   className={
                     page <= 1
                       ? "pointer-events-none opacity-50"
@@ -164,4 +154,4 @@ const Users = () => {
   );
 };
 
-export default Users;
+export default Meters;
