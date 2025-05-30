@@ -18,11 +18,11 @@ export interface MeterData {
 }
 
 export function parseMeterData(input: string): MeterData {
-  if (input.length !== 98) {
-    throw new Error(
-      `⚠️ Longitud incorrecta. Esperado: 98, Recibido: ${input.length}`
-    );
-  }
+  // if (input.length !== 98) {
+  //   throw new Error(
+  //     `⚠️ Longitud incorrecta. Esperado: 98, Recibido: ${input.length}`
+  //   );
+  // }
 
   return {
     startCode: input.slice(0, 2),
