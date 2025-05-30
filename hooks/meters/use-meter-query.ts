@@ -1,21 +1,25 @@
 import {
-  Meter,
   MeterFormData,
   PaginatedMeterResponse,
 } from "@/types/meters/meter-types";
+import { Meter } from "@prisma/client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 // Function to fetch all meters with pagination
-export const useMetersQuery = (page = 1, limit = 10) => {
+export const useMetersQuery = (page = 1, limit = 10, search, filter) => {
   return useQuery<PaginatedMeterResponse, Error>({
-    queryKey: ["meters", page, limit],
+    queryKey: ["meters", page, limit, search, filter],
     queryFn: async () => {
-      const response = await fetch(`/api/meter?page=${page}&limit=${limit}`);
+      const response = await fetch(
+        `/api/meter?search=${search}&status=${filter}&page=${page}&limit=${limit}`
+      );
       if (!response.ok) {
         throw new Error("Failed to fetch meters");
       }
       return response.json();
     },
+    retry: 3,
+    refetchInterval: 10000,
   });
 };
 
@@ -162,10 +166,6 @@ export const useAssignMeterMutation = () => {
 // Legacy hooks for backward compatibility
 export function useMeter(id: string) {
   return useMeterQuery(id);
-}
-
-export function useMeters() {
-  return useMetersQuery();
 }
 
 export const useMeterMutation = useCreateMeterMutation;
