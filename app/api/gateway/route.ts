@@ -6,12 +6,7 @@ import { parseInstantaneousFlow } from "@/utils/parseInstantaneousFlow";
 import { parseTemperature } from "@/utils/parseTemperature";
 import { parseTimestamp } from "@/utils/parseTimestamp ";
 import { PrismaClient } from "@prisma/client";
-import dayjs from "dayjs";
-import utc from "dayjs/plugin/utc";
-import timezone from "dayjs/plugin/timezone";
-
-dayjs.extend(utc);
-dayjs.extend(timezone);
+import { convertTimestampToArgentinaTime } from "@/utils/timestampConverter";
 
 const prisma = new PrismaClient();
 
@@ -83,9 +78,7 @@ export async function POST(request: Request) {
     const reading = await prisma.reading.create({
       data: {
         meter_id: meter.id,
-        timestamp: dayjs(timestamp * 1000)
-          .tz("America/Argentina/Buenos_Aires")
-          .format("YYYY-MM-DDTHH:mm:ss.SSS[Z]"),
+        timestamp: convertTimestampToArgentinaTime(timestamp),
         plot: data,
         fCnt,
         fPort,
