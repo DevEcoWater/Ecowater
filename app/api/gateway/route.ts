@@ -6,6 +6,7 @@ import { parseInstantaneousFlow } from "@/utils/parseInstantaneousFlow";
 import { parseTemperature } from "@/utils/parseTemperature";
 import { parseTimestamp } from "@/utils/parseTimestamp ";
 import { PrismaClient } from "@prisma/client";
+import { convertTimestampToArgentinaTime } from "@/utils/timestampConverter";
 
 const prisma = new PrismaClient();
 
@@ -77,7 +78,7 @@ export async function POST(request: Request) {
     const reading = await prisma.reading.create({
       data: {
         meter_id: meter.id,
-        timestamp: new Date(timestamp * 1000).toISOString(),
+        timestamp: convertTimestampToArgentinaTime(timestamp),
         plot: data,
         fCnt,
         fPort,
