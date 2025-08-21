@@ -1,12 +1,12 @@
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-import UserTable from "@/components/usuarios/users";
+import Users from "@/components/usuarios/users";
 
 export default function UsuariosPage() {
   return (
     <div className="w-full">
       <Suspense fallback={<UsersListSkeleton />}>
-        <UserTable />
+        <Users />
       </Suspense>
     </div>
   );

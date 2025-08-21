@@ -7,7 +7,7 @@ import { Input } from "../ui/input";
 import { useUsers } from "@/hooks/users/use-users";
 import { useUserFilters } from "@/hooks/users/use-users-filters";
 import { FilterTabs } from "./filter-tabs";
-import { UserTable as UserTableComponent } from "./user-table";
+import { UserTable } from "./user-table";
 import {
   Pagination,
   PaginationContent,
@@ -41,13 +41,11 @@ const Users = () => {
     });
 
   const handleRedirect = () => {
-    router.push("/dashboard/usuarios/crear");
+    router.push("/dashboard/usuarios/nuevo");
   };
 
-  console.log(totalPages);
-
   return (
-    <div className="py-10">
+    <div className="w-full h-full">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-col gap-4 md:gap-6 md:flex-col w-full">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between w-full gap-4">
@@ -65,8 +63,7 @@ const Users = () => {
                 <Button
                   onClick={handleSearch}
                   className="rounded-l-none h-10"
-                  type="submit"
-                >
+                  type="submit">
                   <Search className="h-4 w-4" />
                 </Button>
               </div>
@@ -98,11 +95,7 @@ const Users = () => {
         </div>
       </div>
       <div>
-        <UserTableComponent
-          data={data || []}
-          isLoading={isLoading}
-          error={error}
-        />
+        <UserTable data={data || []} isLoading={isLoading} error={error} />
       </div>
 
       {/* Add pagination */}
@@ -138,8 +131,7 @@ const Users = () => {
                     <PaginationLink
                       onClick={() => setPage(pageNum)}
                       isActive={page === pageNum}
-                      className="cursor-pointer"
-                    >
+                      className="cursor-pointer">
                       {pageNum}
                     </PaginationLink>
                   </PaginationItem>

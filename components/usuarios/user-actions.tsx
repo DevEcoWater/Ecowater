@@ -45,11 +45,11 @@ export const UserActions = ({ user }: UserActionsProps) => {
     user.status === "INACTIVE" || user.status === "BLOCKED";
 
   const handleViewUser = () => {
-    router.push(`/dashboard/usuarios/detalle/${user.id}`);
+    router.push(`/dashboard/usuarios/${user.id}`);
   };
 
   const handleEditUser = () => {
-    router.push(`/dashboard/usuarios/editar/${user.id}`);
+    router.push(`/dashboard/usuarios/${user.id}/editar`);
   };
   const handleDelete = () => {
     setUserToDelete(user);
@@ -78,8 +78,7 @@ export const UserActions = ({ user }: UserActionsProps) => {
           <Button
             variant="ghost"
             className="h-8 w-8 p-0"
-            onClick={(e) => e.stopPropagation()}
-          >
+            onClick={(e) => e.stopPropagation()}>
             <span className="sr-only">Abrir menú</span>
             <MoreHorizontal className="h-4 w-4" />
           </Button>
@@ -88,21 +87,18 @@ export const UserActions = ({ user }: UserActionsProps) => {
           align="end"
           sideOffset={8}
           // portalled={false}
-          collisionPadding={10}
-        >
+          collisionPadding={10}>
           <DropdownMenuLabel>Acciones</DropdownMenuLabel>
           <DropdownMenuItem
             className="cursor-pointer flex items-center gap-2"
-            onSelect={handleViewUser}
-          >
+            onSelect={handleViewUser}>
             <User2 className="h-4 w-4" />
             Detalle del usuario
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             className="cursor-pointer flex items-center gap-2"
-            onSelect={handleEditUser}
-          >
+            onSelect={handleEditUser}>
             <NotebookPen className="h-4 w-4" />
             Editar usuario
           </DropdownMenuItem>
@@ -118,16 +114,14 @@ export const UserActions = ({ user }: UserActionsProps) => {
           {isUserInactive ? (
             <DropdownMenuItem
               className="cursor-pointer flex items-center gap-2 text-green-600"
-              onSelect={handleReactivate}
-            >
+              onSelect={handleReactivate}>
               <RefreshCw className="h-4 w-4" />
               Reactivar usuario
             </DropdownMenuItem>
           ) : (
             <DropdownMenuItem
               className="cursor-pointer flex items-center gap-2 text-destructive"
-              onSelect={handleDelete}
-            >
+              onSelect={handleDelete}>
               <Trash2 className="h-4 w-4" />
               Desactivar usuario
             </DropdownMenuItem>
