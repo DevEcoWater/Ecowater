@@ -30,7 +30,7 @@ export const meterColumns: ColumnDef<MeterDataForTable>[] = [
     id: "address",
     header: "Dirección del cliente",
     cell: ({ row }) => {
-      const shortData = row.original.userMeter?.shortData;
+      const shortData = row.original.userMeter?.shortData.split(",")[0];
       return shortData || "Sin dirección";
     },
   },
