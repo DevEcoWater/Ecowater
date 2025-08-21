@@ -74,7 +74,7 @@ export default function RegisterUserPage() {
       address: "",
       shortData: "",
       password: "",
-      role_id: "5b42ecad-2634-4546-ae9e-ae8425469f48",
+      role_id: "10e34911-a3b5-4d3f-891a-99cefc440ef8",
       confirmPassword: "",
       coordinates: defaultLocation,
     },
@@ -82,8 +82,6 @@ export default function RegisterUserPage() {
 
   const [mapCenter, setMapCenter] = useState(defaultLocation);
   const { mutate: createUser, isPending: isCreatingUser } = useUserMutation();
-
-  console.log(form.getValues(), "form");
 
   const handlePlaceSelect = (place: {
     address: string;
@@ -103,7 +101,7 @@ export default function RegisterUserPage() {
       email: data.email,
       address: data.address,
       password: data.password,
-      role_id: "5b42ecad-2634-4546-ae9e-ae8425469f48",
+      role_id: "10e34911-a3b5-4d3f-891a-99cefc440ef8",
     };
 
     createUser(
@@ -143,9 +141,12 @@ export default function RegisterUserPage() {
   const isLoading = isCreatingUser;
 
   return (
-    <div className="mx-auto py-6 space-y-8">
+    <div className="mx-auto w-full h-full ">
       <Form {...form}>
-        <form onKeyDown={handleKeyDown} onSubmit={form.handleSubmit(onSubmit)}>
+        <form
+          onKeyDown={handleKeyDown}
+          onSubmit={form.handleSubmit(onSubmit)}
+          autoComplete="off">
           <div className="grid grid-cols-1 gap-6">
             <Card className="lg:col-span-2">
               <CardHeader>
@@ -163,7 +164,11 @@ export default function RegisterUserPage() {
                       <FormItem>
                         <FormLabel>Nombre</FormLabel>
                         <FormControl>
-                          <Input placeholder="Nombre del usuario" {...field} />
+                          <Input
+                            placeholder="Nombre del usuario"
+                            {...field}
+                            autoComplete="off"
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -180,6 +185,7 @@ export default function RegisterUserPage() {
                           <Input
                             placeholder="Apellido del usuario"
                             {...field}
+                            autoComplete="off"
                           />
                         </FormControl>
                         <FormMessage />
@@ -196,7 +202,11 @@ export default function RegisterUserPage() {
                       <FormItem>
                         <FormLabel>Correo Electrónico</FormLabel>
                         <FormControl>
-                          <Input placeholder="correo@ejemplo.com" {...field} />
+                          <Input
+                            placeholder="correo@ejemplo.com"
+                            {...field}
+                            autoComplete="off"
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -212,8 +222,9 @@ export default function RegisterUserPage() {
                         <FormControl>
                           <Input
                             disabled
-                            value="Usuario"
-                            placeholder="Usuario"
+                            value="Administrador"
+                            placeholder="Administrador"
+                            autoComplete="off"
                           />
                         </FormControl>
                         <FormMessage />
@@ -234,6 +245,7 @@ export default function RegisterUserPage() {
                             type="password"
                             placeholder="Ingrese su contraseña"
                             {...field}
+                            autoComplete="new-password"
                           />
                         </FormControl>
                         <FormMessage />
@@ -252,6 +264,7 @@ export default function RegisterUserPage() {
                             type="password"
                             placeholder="Reingrese su contraseña"
                             {...field}
+                            autoComplete="new-password"
                           />
                         </FormControl>
                         <FormMessage />
@@ -311,8 +324,7 @@ export default function RegisterUserPage() {
                 <Button
                   type="submit"
                   className="w-full sm:w-[200px]"
-                  disabled={isLoading}
-                >
+                  disabled={isLoading}>
                   <Save className="mr-2 h-4 w-4" />
                   {isLoading ? "Guardando..." : "Guardar Cambios"}
                 </Button>
@@ -321,8 +333,7 @@ export default function RegisterUserPage() {
                   variant="outline"
                   className="w-full sm:w-[200px]"
                   onClick={() => router.back()}
-                  disabled={isLoading}
-                >
+                  disabled={isLoading}>
                   Cancelar
                 </Button>
               </div>

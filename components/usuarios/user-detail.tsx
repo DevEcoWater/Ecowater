@@ -23,6 +23,7 @@ export default function UserDetailPage() {
   const userId = params.id as string;
 
   const { data: userData, isLoading: isLoadingUser } = useUserQuery(userId);
+  console.log(userData, "userData");
 
   const [mapCenter, setMapCenter] = useState(defaultLocation);
 
@@ -39,9 +40,8 @@ export default function UserDetailPage() {
     }
   }, [userData]);
 
-  console.log(userData?.status);
   return (
-    <div className="mx-auto py-6 space-y-8">
+    <div className="mx-auto w-full h-full">
       <div className="grid grid-cols-1 gap-6">
         {/* User Information Section */}
         <Card className="lg:col-span-2">
@@ -108,8 +108,8 @@ export default function UserDetailPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         <Home className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">
-                          {userData.address.data}
+                        <span className="font-medium text-sm">
+                          {userData.address.data.split(",")[0]}
                         </span>
                       </div>
                     </div>
@@ -137,15 +137,13 @@ export default function UserDetailPage() {
                         {userData.role ? (
                           <Badge
                             className="flex gap-2 justify-center items-center rounded-xl py-1 px-2.5 text-sm w-[100px]"
-                            variant="outline"
-                          >
+                            variant="outline">
                             {formatUserType(userData.role)}
                           </Badge>
                         ) : (
                           <Badge
                             className="flex gap-2 justify-center items-center rounded-xl py-1 px-2.5 text-sm w-[100px]"
-                            variant="outline"
-                          >
+                            variant="outline">
                             Rol desconocido
                           </Badge>
                         )}

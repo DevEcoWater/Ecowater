@@ -38,7 +38,8 @@ const otherColumns: ColumnDef<UserDataForTable>[] = [
     id: "address",
     header: "Dirección",
     cell: ({ row }) => {
-      const shortData = row.original.address?.shortData;
+      // split the address data by comma and return the first element
+      const shortData = row.original.address.data.split(",")[0];
       return shortData || "Sin dirección";
     },
   },

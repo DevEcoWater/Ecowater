@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { useRef, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import {
   useUserQuery,
@@ -12,7 +12,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter, useParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Save, AlertCircle } from "lucide-react";
+import { Save } from "lucide-react";
+import { useWatch } from "react-hook-form";
 
 import {
   Form,
@@ -21,7 +22,6 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -92,7 +92,7 @@ export default function UpdateUserForm() {
 
   const [mapCenter, setMapCenter] = useState(defaultLocation);
   const [originalStatus, setOriginalStatus] = useState<string | null>(null);
-
+  const watchedStatus = useWatch({ control: form.control, name: "status" });
   const { data: userData, isLoading: isLoadingUser } = useUserQuery(userId);
 
   const { mutate: updateUser, isPending: isUpdatingUser } =
@@ -120,10 +120,7 @@ export default function UpdateUserForm() {
         lng: Number(userData.address.lng),
       });
     }
-    console.log(userData, "userData");
   }, [userData, isLoadingUser, form]);
-
-  console.log(form.getValues(), "form values");
 
   const handlePlaceSelect = (place: {
     address: string;
@@ -136,8 +133,6 @@ export default function UpdateUserForm() {
 
     setMapCenter(place.location);
   };
-
-  console.log(form.getValues(), "form values");
 
   const onSubmit = ({
     firstName,
@@ -193,7 +188,7 @@ export default function UpdateUserForm() {
   const isLoading = isLoadingUser || isUpdatingUser;
 
   return (
-    <div className="mx-auto py-6 space-y-8">
+    <div className="mx-auto w-full h-full">
       <Form {...form}>
         <form onKeyDown={handleKeyDown} onSubmit={form.handleSubmit(onSubmit)}>
           <div className="grid grid-cols-1 gap-6">
@@ -280,8 +275,7 @@ export default function UpdateUserForm() {
                         <Select
                           disabled={isLoadingUser}
                           onValueChange={field.onChange}
-                          value={field.value ?? UserStatus.ACTIVE}
-                        >
+                          value={field.value ?? UserStatus.ACTIVE}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Seleccione un estado" />
@@ -354,26 +348,6 @@ export default function UpdateUserForm() {
                   />
                 )}
               </div>
-              {/* {watchedStatus && (
-                <Alert
-                  variant={
-                    watchedStatus === "ACTIVE" ? "default" : "destructive"
-                  }
-                  className="mt-4"
-                >
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>
-                    {watchedStatus === "ACTIVE"
-                      ? "El usuario será activado"
-                      : "El usuario será desactivado"}
-                  </AlertTitle>
-                  <AlertDescription>
-                    {watchedStatus === "ACTIVE"
-                      ? "Al guardar los cambios, el usuario podrá acceder al sistema."
-                      : "Al guardar los cambios, el usuario no podrá acceder al sistema."}
-                  </AlertDescription>
-                </Alert>
-              )} */}
 
               {isLoading && (
                 <div className="text-sm text-muted-foreground">
@@ -384,8 +358,7 @@ export default function UpdateUserForm() {
                 <Button
                   type="submit"
                   className="w-full sm:w-[200px]"
-                  disabled={isLoading}
-                >
+                  disabled={isLoading}>
                   <Save className="mr-2 h-4 w-4" />
                   {isLoading ? "Guardando..." : "Guardar Cambios"}
                 </Button>
@@ -394,8 +367,7 @@ export default function UpdateUserForm() {
                   variant="outline"
                   className="w-full sm:w-[200px]"
                   onClick={() => router.back()}
-                  disabled={isLoading}
-                >
+                  disabled={isLoading}>
                   Cancelar
                 </Button>
               </div>
