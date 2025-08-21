@@ -8,8 +8,15 @@ import {
 import { AppSidebar } from "@/components/app-sidebar";
 import { cn } from "@/lib/utils";
 import { GoogleMapsProvider } from "@/providers/google-maps-provider";
+import { PageHeaderInitializer } from "@/components/dashboard/page-header/page-header-initializer";
+import { PageHeaderRenderer } from "@/components/dashboard/page-header/PageHeaderRender";
+import { Header } from "@/components/layout/panel/header";
+import { Main } from "@/components/layout/panel/main";
+import Profile from "@/components/profile";
+import { Separator } from "@/components/ui/separator";
+import { PageHeaderProvider } from "@/context/page-header-provider";
 
-export default function RootLayout({
+export default function DashboardLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
@@ -30,10 +37,27 @@ export default function RootLayout({
                 "flex h-svh flex-col",
                 "group-data-[scroll-locked=1]/body:h-full",
                 "group-data-[scroll-locked=1]/body:has-[main.fixed-main]:h-svh"
-              )}
-            >
-              {/* ===== Content ===== */}
-              {children}
+              )}>
+              {/* ===== Header Global con Profile ===== */}
+              <Header fixed>
+                <div className="flex w-full items-center justify-end">
+                  <Profile />
+                </div>
+              </Header>
+
+              {/* ===== Contenido Principal con PageHeader ===== */}
+              <PageHeaderProvider>
+                <PageHeaderInitializer />
+                <Main>
+                  <PageHeaderRenderer />
+                  <Separator className="my-4 lg:my-6" />
+                  <div className="flex flex-1 flex-col space-y-2 md:space-y-2 lg:flex-row lg:space-x-12 lg:space-y-0 ">
+                    <div className="flex w-full overflow-y-auto pr-4">
+                      <div className="flex flex-1 flex-col">{children}</div>
+                    </div>
+                  </div>
+                </Main>
+              </PageHeaderProvider>
             </div>
           </SidebarInset>
         </GoogleMapsProvider>
