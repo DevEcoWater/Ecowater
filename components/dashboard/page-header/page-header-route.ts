@@ -3,9 +3,9 @@ export function getPageHeaderFromPath(pathname: string | null) {
 
   const routes: { pattern: RegExp; title: string; description: string }[] = [
     {
-      pattern: /\/dashboard/,
+      pattern: /^\/dashboard$/,
       title: "Dashboard",
-      description: "Panel de control principal",
+      description: "Panel de control principal - Monitoreo en tiempo real",
     },
     {
       pattern: /\/mapa/,
