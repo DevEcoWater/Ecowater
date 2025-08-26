@@ -22,8 +22,6 @@ export function parseMeterData(input: string): MeterData {
     ? input.slice(2)
     : input;
 
-  console.log("filterInput", filterInput);
-
   return {
     startCode: filterInput.slice(0, 2),
     meterType: filterInput.slice(2, 4),
