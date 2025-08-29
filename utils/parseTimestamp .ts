@@ -28,3 +28,8 @@ export const parseTimestamp = (timestamp: string): string => {
 
   return argentinaTime.toString();
 };
+
+export const parseUnixTimeToArgentina = (unixTime: number): string => {
+  const date = new Date(unixTime * 1000);
+  return dayjs(date).tz("America/Argentina/Buenos_Aires").toISOString();
+};
