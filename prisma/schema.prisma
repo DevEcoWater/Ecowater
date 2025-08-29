@@ -121,38 +121,22 @@ model Reading {
 }
 
 model Status {
-  id              String      @id @default(uuid())
-  reading_id      String
-  status_type_id  String
-  status_value_id String
-  created_at      DateTime    @default(now())
-  reading         Reading     @relation(fields: [reading_id], references: [id], onDelete: Cascade)
-  status_type     StatusType  @relation(fields: [status_type_id], references: [id], onDelete: Cascade)
-  status_value    StatusValue @relation(fields: [status_value_id], references: [id], onDelete: Cascade)
+  id                 String            @id @default(uuid())
+  reading_id         String
+  valve_status       String // "open" | "closed" | "abnormal" | "unknown"
+  battery_voltage    String // "normal" | "low"
+  battery_status     Boolean
+  empty_pipe_alarm   Boolean
+  reverse_flow_alarm Boolean
+  over_range_alarm   Boolean
+  water_temp_alarm   Boolean
+  ee_alarm           Boolean
+  meter_status       MeterStatus
+  operational_status OperationalStatus
+  created_at         DateTime          @default(now())
+  reading            Reading           @relation(fields: [reading_id], references: [id], onDelete: Cascade)
 
   @@index([reading_id])
-  @@index([status_type_id])
-  @@index([status_value_id])
-}
-
-model StatusType {
-  id          String        @id @default(uuid())
-  name        String        @unique
-  description String?
-  statuses    Status[]
-  values      StatusValue[]
-}
-
-model StatusValue {
-  id             String     @id @default(uuid())
-  status_type_id String
-  value          String
-  description    String?
-  statuses       Status[]
-  statusType     StatusType @relation(fields: [status_type_id], references: [id], onDelete: Cascade)
-
-  @@unique([status_type_id, value])
-  @@index([status_type_id])
 }
 
 model RxInfo {
