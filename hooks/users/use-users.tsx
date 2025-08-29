@@ -43,8 +43,6 @@ export const useUsers = (options?: UseUsersOptions): UseUsersReturn => {
     error,
   } = useUsersQuery(page, limit, searchQuery, filterState);
 
-  console.log(queryData, "queryData");
-
   const resetFilters = () => {
     setFilterState("total");
     setSearchQuery("");
