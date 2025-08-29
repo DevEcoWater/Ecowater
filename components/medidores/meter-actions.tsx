@@ -29,14 +29,12 @@ export const MeterActions = ({ meter }: MeterActionsProps) => {
   const router = useRouter();
 
   const handleViewMeter = () => {
-    router.push(`/dashboard/medidores/${meter.id}`);
+    router.push(`/dashboard/medidores/${meter}`);
   };
 
   const handleViewUser = () => {
-    router.push(`/dashboard/usuarios/detalle/${meter.userMeter.user_id}`);
+    router.push(`/dashboard/usuarios/${meter.user_id}`);
   };
-
-  console.log(meter, "meter");
 
   return (
     <>
@@ -53,7 +51,7 @@ export const MeterActions = ({ meter }: MeterActionsProps) => {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" sideOffset={8} collisionPadding={10}>
           <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-          {meter.userMeter ? (
+          {meter ? (
             <DropdownMenuItem
               className="flex items-center gap-2"
               onSelect={handleViewUser}

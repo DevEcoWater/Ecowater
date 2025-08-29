@@ -56,7 +56,7 @@ export const meterColumns: ColumnDef<MeterDataForTable>[] = [
     id: "actions",
     header: "Acciones",
     cell: ({ row }) => {
-      const meter = row.original;
+      const meter = row.original.readings[0].meter_id;
       return (
         <div onClick={(e) => e.stopPropagation()}>
           <MeterActions meter={meter} />

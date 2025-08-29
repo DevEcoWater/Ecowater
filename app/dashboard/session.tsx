@@ -17,8 +17,6 @@ const ProtectedRoutesWIthSession: React.FC<ProtectedRouteProps> = ({
   const { status } = useSession();
   const { toast } = useToast();
 
-  console.log(status, "status");
-
   useEffect(() => {
     if (status === "unauthenticated") {
       toast({
