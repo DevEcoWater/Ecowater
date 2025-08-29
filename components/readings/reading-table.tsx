@@ -12,16 +12,15 @@ import {
   type VisibilityState,
 } from "@tanstack/react-table";
 import { DataTable } from "../ui/data-table";
-import { meterColumns } from "./columns";
-import { MeterDataForTable } from "@/types/meters/meter-types";
+import { readingsColumns } from "./columns";
 
-interface MeterTableProps {
-  data: MeterDataForTable[];
+interface ReadingTableProps {
+  data: any[];
   isLoading?: boolean;
   error?: Error | null;
 }
 
-export const MeterTable = ({ data, isLoading, error }: MeterTableProps) => {
+export const ReadingTable = ({ data, isLoading, error }: ReadingTableProps) => {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
@@ -32,7 +31,7 @@ export const MeterTable = ({ data, isLoading, error }: MeterTableProps) => {
 
   const table = useReactTable({
     data: data || [],
-    columns: meterColumns,
+    columns: readingsColumns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
@@ -51,7 +50,7 @@ export const MeterTable = ({ data, isLoading, error }: MeterTableProps) => {
 
   return (
     <DataTable
-      columns={meterColumns}
+      columns={readingsColumns}
       data={data}
       table={table}
       isLoading={isLoading}

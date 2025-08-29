@@ -1,6 +1,5 @@
 "use client";
 
-import { Button } from "./button";
 import React from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ColumnDef, flexRender } from "@tanstack/react-table";
@@ -13,11 +12,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { X } from "lucide-react";
+import type { Table as ReactTable } from "@tanstack/react-table";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
-  table: any;
+  table: ReactTable<TData>;
   isLoading: boolean;
   error: any;
 }

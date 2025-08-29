@@ -39,8 +39,6 @@ const Meters = () => {
       onFilterChange: setFilterState,
     });
 
-  console.log(data, "data");
-
   return (
     <div className="py-10">
       <div className="flex flex-wrap items-center justify-between gap-4">
