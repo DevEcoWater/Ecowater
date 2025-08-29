@@ -4,7 +4,10 @@ import { parseMeterData } from "@/utils/parseMeterData";
 import { parseFlowHex } from "@/utils/parseFlowHex";
 import { parseInstantaneousFlow } from "@/utils/parseInstantaneousFlow";
 import { parseTemperature } from "@/utils/parseTemperature";
-import { parseTimestamp } from "@/utils/parseTimestamp ";
+import {
+  parseTimestamp,
+  parseUnixTimeToArgentina,
+} from "@/utils/parseTimestamp ";
 import { PrismaClient } from "@prisma/client";
 import { convertTimestampToArgentinaTime } from "@/utils/timestampConverter";
 
@@ -28,7 +31,6 @@ export async function POST(request: Request) {
 
     const parseData = parseMeterData(data);
     const { alarmStatus, spare } = parseData;
-
     const byte1 = parseInt(alarmStatus, 16);
     const byte2 = parseInt(spare.slice(0, 2), 16);
 
@@ -43,7 +45,8 @@ export async function POST(request: Request) {
       timestamps: parseTimestamp(parseData.timestamps),
     };
 
-    // Upsert the meter
+    console.log(finalAlertStatus, "finalAlertStatus");
+
     const meter = await prisma.meter.upsert({
       where: { dev_eui: devEUI },
       update: {
@@ -94,6 +97,22 @@ export async function POST(request: Request) {
         check_code: parseData.checkCode,
         ending_code: parseData.endingCode,
         status: "VALID",
+      },
+    });
+
+    await prisma.status.create({
+      data: {
+        reading_id: reading.id,
+        valve_status: finalAlertStatus.valve_status,
+        battery_voltage: finalAlertStatus.battery_voltage,
+        battery_status: finalAlertStatus.battery_status,
+        empty_pipe_alarm: finalAlertStatus.empty_pipe_alarm,
+        reverse_flow_alarm: finalAlertStatus.reverse_flow_alarm,
+        over_range_alarm: finalAlertStatus.over_range_alarm,
+        water_temp_alarm: finalAlertStatus.water_temp_alarm,
+        ee_alarm: finalAlertStatus.ee_alarm,
+        meter_status: finalAlertStatus.meter_status,
+        operational_status: finalAlertStatus.operational_status,
       },
     });
 
