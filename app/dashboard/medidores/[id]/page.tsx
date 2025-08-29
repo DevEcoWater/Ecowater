@@ -130,7 +130,24 @@ const MeterDashboard = () => {
                   </div>
                 </div>
               </div>
-            </CardContent>
+            </CardHeader>
+            {expandedSections.metrics && (
+              <CardContent className="pt-0">
+                <div className="grid grid-cols-2 gap-3">
+                  {metrics.map((metric, index) => (
+                    <MeterCard
+                      key={index}
+                      title={metric.title}
+                      value={metric.value}
+                      icon={metric.icon}
+                      status={meterData.status}
+                      isLoading={false}
+                      meterDetail={false}
+                    />
+                  ))}
+                </div>
+              </CardContent>
+            )}
           </Card>
         </div>
 
@@ -294,12 +311,16 @@ const MeterDashboard = () => {
                   status={meterData.status}
                   signal={true}
                   valve_status={
-                    meterData.reading.statuses &&
-                    meterData.reading.statuses.valve_status
+                    meterData.reading.statuses.valve_status as
+                      | "open"
+                      | "closed"
+                      | "abnormal"
+                      | "unkown"
                   }
                   battery_voltage={
-                    meterData.reading.statuses &&
-                    meterData.reading.statuses.battery_voltage
+                    meterData.reading.statuses.battery_voltage as
+                      | "normal"
+                      | "low"
                   }
                 />
               </CardContent>
@@ -323,7 +344,7 @@ const MeterDashboard = () => {
             </CardHeader>
             {expandedSections.alerts && (
               <CardContent className="pt-0">
-                {/* <AlertComponent readingData={meterData.reading} /> */}
+                <AlertComponent readingData={meterData.reading} />
               </CardContent>
             )}
           </Card>
@@ -416,12 +437,16 @@ const MeterDashboard = () => {
                     status={meterData.status}
                     signal={true}
                     valve_status={
-                      meterData.reading.statuses &&
-                      meterData.reading.statuses.valve_status
+                      meterData.reading.statuses.valve_status as
+                        | "open"
+                        | "closed"
+                        | "abnormal"
+                        | "unkown"
                     }
                     battery_voltage={
-                      meterData.reading.statuses &&
-                      meterData.reading.statuses.battery_voltage
+                      meterData.reading.statuses.battery_voltage as
+                        | "normal"
+                        | "low"
                     }
                   />
                 </CardContent>
