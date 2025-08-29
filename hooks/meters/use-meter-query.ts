@@ -1,5 +1,6 @@
 import {
   MeterFormData,
+  MeterReading,
   PaginatedMeterResponse,
 } from "@/types/meters/meter-types";
 import { Meter } from "@prisma/client";
@@ -25,7 +26,7 @@ export const useMetersQuery = (page = 1, limit = 10, search, filter) => {
 
 // Function to fetch a single meter by ID
 export const useMeterQuery = (id: string) => {
-  return useQuery<Meter, Error>({
+  return useQuery<MeterReading, Error>({
     queryKey: ["meter", id],
     queryFn: async () => {
       if (!id) throw new Error("Meter ID is required");
@@ -34,6 +35,7 @@ export const useMeterQuery = (id: string) => {
       if (!response.ok) {
         throw new Error("Failed to fetch meter");
       }
+
       return response.json();
     },
     enabled: !!id,

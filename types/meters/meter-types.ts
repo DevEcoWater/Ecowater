@@ -1,7 +1,15 @@
-import { Meter } from "@prisma/client";
+import { Meter, Reading, Status } from "@prisma/client";
 
 export interface MeterDataForTable extends Omit<Meter, ""> {
   userMeter?: TUserMeter;
+}
+
+export interface MeterReading extends Meter {
+  reading: StatusReading;
+}
+
+interface StatusReading extends Reading {
+  statuses: Status;
 }
 
 type TUserMeter = {
