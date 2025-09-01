@@ -26,7 +26,9 @@ import { useMeterReadings } from "@/hooks/readings/user-readings-";
 import { ChartAreaInteractive } from "@/components/area-chart";
 import { ReadingTable } from "@/components/readings/reading-table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { read } from "fs";
+import { DashboardSkeleton } from "@/components/medidores/detail/MeterDetailSkeleton";
+import { UserButton } from "@/components/medidores/detail/UserButton";
+import { Separator } from "@/components/ui/separator";
 
 const MeterDashboard = () => {
   const { id } = useParams();
@@ -50,6 +52,8 @@ const MeterDashboard = () => {
       [section]: !prev[section],
     }));
   };
+
+  console.log("meterData", meterData);
 
   const metrics = [
     {
@@ -79,60 +83,89 @@ const MeterDashboard = () => {
   ];
 
   if (isLoadingMeter) {
-    return <div>Loading...</div>;
+    return (
+      <div>
+        <DashboardSkeleton />
+      </div>
+    );
   }
 
   return (
     <>
       {/* ===== Content ===== */}
       <Main className="p-0">
-        <div className="md:hidden sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
-          <div className="p-4">
-            <Card className="border-0 shadow-sm">
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  <Database
-                    className="p-2 rounded-lg bg-blue-100 text-blue-600 flex-shrink-0"
-                    size={40}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <h1 className="text-lg font-bold truncate">
+        <div className="md:hidden sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <Card className="border shadow-sm rounded-xl">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between gap-4">
+                {/* Left side */}
+                <div className="flex gap-4 items-center">
+                  <div className="text-left min-w-0">
+                    <p className="text-lg font-medium truncate">
                       Medidor {meterData.id.slice(-8)}
-                    </h1>
+                    </p>
                     <p className="text-sm text-muted-foreground truncate">
                       DEV_EUI: {meterData.dev_eui}
                     </p>
-                    <div className="flex items-center gap-2 mt-2">
-                      <Clock size={14} className="text-muted-foreground" />
-                      <p className="text-xs text-muted-foreground">
-                        Última actualización: 25/08/2025 16:06
-                      </p>
-                    </div>
                   </div>
-                  <Chip showDot status={meterData.status} />
+                  {meterData.user && (
+                    <>
+                      <Separator orientation="vertical" className="h-10" />
+                      <div className="flex-shrink-0">
+                        <UserButton userId={meterData.user} />
+                      </div>
+                    </>
+                  )}
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+
+                {/* Right side */}
+                <div className="flex flex-col items-end">
+                  <Chip showDot status={meterData.status} />
+                  <div className="flex items-center justify-end gap-1 mt-1">
+                    <Clock size={12} className="text-muted-foreground" />
+                    <p className="text-xs text-muted-foreground truncate">
+                      Última actualización:{" "}
+                      {dayjs(meterData.updated_at).format("DD/MM/YYYY HH:mm")}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        <div className="hidden md:block border-b bg-background">
+        {/* Desktop */}
+        <div className="hidden md:block bg-background border bg-white shadow-sm rounded-xl">
           <div className="p-6">
             <div className="flex items-center justify-between gap-4">
-              <div className="text-left">
-                <p className="text-lg font-medium">
-                  Medidor {meterData.id.slice(-8)}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  DEV_EUI: {meterData.dev_eui}
-                </p>
+              {/* Left side */}
+              <div className="flex gap-4 items-center">
+                <div className="text-left">
+                  <p className="text-lg font-medium">
+                    Medidor {meterData.id.slice(-8)}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    DEV_EUI: {meterData.dev_eui}
+                  </p>
+                </div>
+                {meterData.user && (
+                  <>
+                    <Separator orientation="vertical" className="h-10" />
+                    <div>
+                      <UserButton userId={meterData.user} />
+                    </div>
+                  </>
+                )}
               </div>
+
+              {/* Right side */}
               <div className="flex flex-col items-end">
                 <Chip showDot status={meterData.status} />
                 <div className="flex items-center justify-end gap-1 mt-1">
                   <Clock size={12} className="text-muted-foreground" />
                   <p className="text-sm text-muted-foreground">
-                    Última actualización: 25/08/2025 16:06
+                    Última actualización:{" "}
+                    {dayjs(meterData.updated_at).format("DD/MM/YYYY HH:mm")}
                   </p>
                 </div>
               </div>
@@ -140,7 +173,7 @@ const MeterDashboard = () => {
           </div>
         </div>
 
-        <div className="md:hidden p-4 space-y-4">
+        <div className="md:hidden space-y-4 py-4">
           {/* Collapsible Metrics Section */}
           <Card>
             <CardHeader
@@ -261,16 +294,12 @@ const MeterDashboard = () => {
                   status={meterData.status}
                   signal={true}
                   valve_status={
-                    meterData.reading.statuses.valve_status as
-                      | "open"
-                      | "closed"
-                      | "abnormal"
-                      | "unkown"
+                    meterData.reading.statuses &&
+                    meterData.reading.statuses.valve_status
                   }
                   battery_voltage={
-                    meterData.reading.statuses.battery_voltage as
-                      | "normal"
-                      | "low"
+                    meterData.reading.statuses &&
+                    meterData.reading.statuses.battery_voltage
                   }
                 />
               </CardContent>
@@ -294,13 +323,13 @@ const MeterDashboard = () => {
             </CardHeader>
             {expandedSections.alerts && (
               <CardContent className="pt-0">
-                <AlertComponent readingData={meterData.reading} />
+                {/* <AlertComponent readingData={meterData.reading} /> */}
               </CardContent>
             )}
           </Card>
         </div>
 
-        <div className="hidden md:block p-6">
+        <div className="hidden md:block py-6">
           <div className="grid grid-cols-12 gap-6">
             {/* Main Content Area - Left Side */}
             <div className="col-span-8 space-y-6">
@@ -387,16 +416,12 @@ const MeterDashboard = () => {
                     status={meterData.status}
                     signal={true}
                     valve_status={
-                      meterData.reading.statuses.valve_status as
-                        | "open"
-                        | "closed"
-                        | "abnormal"
-                        | "unkown"
+                      meterData.reading.statuses &&
+                      meterData.reading.statuses.valve_status
                     }
                     battery_voltage={
-                      meterData.reading.statuses.battery_voltage as
-                        | "normal"
-                        | "low"
+                      meterData.reading.statuses &&
+                      meterData.reading.statuses.battery_voltage
                     }
                   />
                 </CardContent>

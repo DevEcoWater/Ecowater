@@ -342,9 +342,9 @@ function Map() {
     () => ({
       minZoom: 2,
       maxZoom: 16,
-      restriction: bounds
-        ? { latLngBounds: bounds, strictBounds: true }
-        : undefined,
+      // restriction: bounds
+      //   ? { latLngBounds: bounds, strictBounds: true }
+      //   : undefined,
       styles:
         mapTheme === "satellite"
           ? hidePoiLabels
@@ -516,7 +516,8 @@ function Map() {
       mapContainerStyle={containerStyle}
       center={center}
       onLoad={onLoad}
-      onUnmount={onUnmount}>
+      onUnmount={onUnmount}
+    >
       <div className="absolute right-4 top-4 z-[1] w-[280px]">
         <Collapsible defaultOpen>
           <div className="bg-white rounded-md shadow">
@@ -529,7 +530,8 @@ function Map() {
                   <span className="text-sm font-medium">Estilo</span>
                   <Select
                     value={mapTheme}
-                    onValueChange={(v) => setMapTheme(v as any)}>
+                    onValueChange={(v) => setMapTheme(v as any)}
+                  >
                     <SelectTrigger className="w-[150px]">
                       <SelectValue placeholder="Tema del mapa" />
                     </SelectTrigger>
@@ -568,10 +570,12 @@ function Map() {
                         "FAULTY",
                       ] as MeterStatus[]
                     ).map((s) => (
-                      <label
+                      <div
                         key={s}
-                        className="flex items-center justify-between gap-2">
-                        <span>{s}</span>
+                        className="flex items-center justify-between"
+                      >
+                        <Chip key={s} status={s} />
+
                         <Checkbox
                           checked={visibleStatuses[s]}
                           onCheckedChange={(v) =>
@@ -581,7 +585,7 @@ function Map() {
                             }))
                           }
                         />
-                      </label>
+                      </div>
                     ))}
                   </div>
                   <div className="flex gap-2 pt-2">
@@ -597,7 +601,8 @@ function Map() {
                           );
                           map.fitBounds(gBounds);
                         }
-                      }}>
+                      }}
+                    >
                       <Minimize2 className="w-4 h-4" /> Ajustar
                     </Button>
                     <Button
@@ -607,7 +612,8 @@ function Map() {
                         if (!map) return;
                         map.setZoom(12);
                         map.panTo(center as google.maps.LatLngLiteral);
-                      }}>
+                      }}
+                    >
                       <RefreshCw className="w-4 h-4" /> Reset
                     </Button>
                   </div>
@@ -632,14 +638,16 @@ function Map() {
               icon={{
                 url: createColoredIcon(textColor),
                 scaledSize: new google.maps.Size(30, 45),
-              }}>
+              }}
+            >
               {activeMarker === index && (
                 <InfoWindow
                   position={{
                     lat: item.lat,
                     lng: item.lng,
                   }}
-                  onCloseClick={() => setActiveMarker(null)}>
+                  onCloseClick={() => setActiveMarker(null)}
+                >
                   <div className="p-2 bg-white rounded shadow-lg flex flex-col justify-start items-start gap-4">
                     <div className="flex gap-2 justify-between w-full items-center">
                       <p className="text-balance text-sm text-muted-foreground">
@@ -672,7 +680,8 @@ function Map() {
                     <div>
                       <Link
                         href={`/dashboard/medidores/${item.id}`}
-                        className="text-primary underline">
+                        className="text-primary underline"
+                      >
                         Ver medidor
                       </Link>
                     </div>
@@ -686,7 +695,8 @@ function Map() {
       {activeCluster && (
         <InfoWindow
           position={activeCluster.position}
-          onCloseClick={() => setActiveCluster(null)}>
+          onCloseClick={() => setActiveCluster(null)}
+        >
           <div className="p-2 bg-white rounded shadow-lg max-w-xs">
             <h3 className="text-lg font-bold">Información de la zona</h3>
             <p className="text-sm text-gray-600">
@@ -708,7 +718,8 @@ function Map() {
                       <Chip status={markerData.status} />{" "}
                       <Link
                         href={`/dashboard/medidores/${markerData.id}`}
-                        className="text-primary underline">
+                        className="text-primary underline"
+                      >
                         Ver medidor
                       </Link>
                     </p>
