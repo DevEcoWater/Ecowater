@@ -9,13 +9,9 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
+import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
+import { Calendar, CalendarDays, Clock, Timer } from "lucide-react";
 
 type ReadingData = {
   timestamp: string;
@@ -141,17 +137,43 @@ export function ChartAreaInteractive({
       <CardHeader className="flex items-center justify-between py-5 border-b">
         {children}
         {enableTimeRange && (
-          <Select value={timeRange} onValueChange={setTimeRange}>
-            <SelectTrigger className="w-[160px] rounded-lg sm:flex hidden">
-              <SelectValue placeholder="Período de tiempo" />
-            </SelectTrigger>
-            <SelectContent className="rounded-xl">
-              <SelectItem value="day">1 día</SelectItem>
-              <SelectItem value="week">1 semana</SelectItem>
-              <SelectItem value="month">1 mes</SelectItem>
-              <SelectItem value="6months">6 meses</SelectItem>
-            </SelectContent>
-          </Select>
+          <Tabs
+            value={timeRange}
+            onValueChange={(value) =>
+              setTimeRange(value as "day" | "week" | "month" | "6months")
+            }
+          >
+            <TabsList className="grid w-full grid-cols-4 sm:flex gap-2">
+              <TabsTrigger
+                value="day"
+                className="flex items-center gap-2 px-3 py-1.5"
+              >
+                <Clock size={16} />
+                <span className="hidden sm:inline">1 día</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="week"
+                className="flex items-center gap-2 px-3 py-1.5"
+              >
+                <CalendarDays size={16} />
+                <span className="hidden sm:inline">1 semana</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="month"
+                className="flex items-center gap-2 px-3 py-1.5"
+              >
+                <Calendar size={16} />
+                <span className="hidden sm:inline">1 mes</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="6months"
+                className="flex items-center gap-2 px-3 py-1.5"
+              >
+                <Timer size={16} />
+                <span className="hidden sm:inline">6 meses</span>
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         )}
       </CardHeader>
 

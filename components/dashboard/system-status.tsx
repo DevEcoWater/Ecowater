@@ -1,17 +1,19 @@
 import React from "react";
 import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { chipConfig } from "@/utils/getChipColor";
 import { MeterStatus } from "@prisma/client";
 
 interface DeviceCardProps {
-  status: MeterStatus;
-  signal: boolean;
-  valve_status: "open" | "closed" | "abnormal" | "unkown";
-  battery_voltage: "normal" | "low";
+  status?: MeterStatus;
+  signal?: boolean;
+  valve_status?: "open" | "closed" | "abnormal" | "unkown";
+  battery_voltage?: "normal" | "low";
+  isLoading?: boolean; // 👈 new prop for skeleton state
 }
 
 export const statusMap: Record<
-  DeviceCardProps["status"],
+  NonNullable<DeviceCardProps["status"]>,
   { label: string; style: keyof typeof chipConfig }
 > = {
   ACTIVE: { label: "Operativo", style: "ACTIVE" },
@@ -29,7 +31,7 @@ const signalMap: Record<
 };
 
 const valveMap: Record<
-  DeviceCardProps["valve_status"],
+  NonNullable<DeviceCardProps["valve_status"]>,
   { label: string; style: keyof typeof chipConfig }
 > = {
   open: { label: "Abierta", style: "ACTIVE" },
@@ -39,7 +41,7 @@ const valveMap: Record<
 };
 
 const batteryMap: Record<
-  DeviceCardProps["battery_voltage"],
+  NonNullable<DeviceCardProps["battery_voltage"]>,
   { label: string; style: keyof typeof chipConfig }
 > = {
   normal: { label: "Normal", style: "ACTIVE" },
@@ -50,12 +52,25 @@ const StatusItem = ({
   title,
   value,
   style,
+  isLoading,
 }: {
   title: string;
-  value: string;
-  style: keyof typeof chipConfig;
+  value?: string;
+  style?: keyof typeof chipConfig;
+  isLoading?: boolean;
 }) => {
-  const chip = chipConfig[style] ?? chipConfig.DEFAULT;
+  if (isLoading) {
+    return (
+      <div className="p-2 rounded flex flex-col justify-center items-center gap-1 w-full">
+        <Skeleton className="h-4 w-16" />
+        <Skeleton className="h-5 w-20" />
+      </div>
+    );
+  }
+
+  const chip = style
+    ? chipConfig[style] ?? chipConfig.DEFAULT
+    : chipConfig.DEFAULT;
   return (
     <div
       className="p-2 rounded flex flex-col justify-center items-center gap-1 w-full"
@@ -63,7 +78,7 @@ const StatusItem = ({
     >
       <p className="text-sm">{title}</p>
       <p className="font-semibold" style={{ color: chip.textColor }}>
-        {value}
+        {value ?? "Desconocido"}
       </p>
     </div>
   );
@@ -74,29 +89,42 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
   signal,
   valve_status,
   battery_voltage,
+  isLoading = false,
 }) => {
   return (
     <Card className="flex flex-col gap-4 p-4">
       <div className="grid grid-cols-2 gap-4">
         <StatusItem
           title="Estado"
-          value={statusMap[status].label}
-          style={statusMap[status].style}
+          value={status ? statusMap[status].label : undefined}
+          style={status ? statusMap[status].style : undefined}
+          isLoading={isLoading}
         />
         <StatusItem
           title="Señal"
-          value={signalMap[String(signal)].label}
-          style={signalMap[String(signal)].style}
+          value={
+            signal !== undefined ? signalMap[String(signal)].label : undefined
+          }
+          style={
+            signal !== undefined ? signalMap[String(signal)].style : undefined
+          }
+          isLoading={isLoading}
         />
         <StatusItem
           title="Válvula"
-          value={valveMap[valve_status].label}
-          style={valveMap[valve_status].style}
+          value={valve_status ? valveMap[valve_status].label : undefined}
+          style={valve_status ? valveMap[valve_status].style : undefined}
+          isLoading={isLoading}
         />
         <StatusItem
           title="Voltaje Batería"
-          value={batteryMap[battery_voltage].label}
-          style={batteryMap[battery_voltage].style}
+          value={
+            battery_voltage ? batteryMap[battery_voltage].label : undefined
+          }
+          style={
+            battery_voltage ? batteryMap[battery_voltage].style : undefined
+          }
+          isLoading={isLoading}
         />
       </div>
     </Card>

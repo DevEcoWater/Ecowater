@@ -3,13 +3,21 @@ import {
   TriangleAlert,
   Thermometer,
   Battery,
-  Gauge,
   RotateCcw,
   Wrench,
 } from "lucide-react";
 
 const AlertComponent = ({ readingData }) => {
-  console.log(readingData, "readingData alertz");
+  if (!readingData || !readingData.statuses) {
+    return (
+      <div className="flex items-center gap-2 p-4 border border-yellow-200 rounded-lg bg-yellow-50">
+        <TriangleAlert size={18} className="text-yellow-700" />
+        <p className="text-sm text-yellow-800">
+          No fue posible encontrar información de las alertas.
+        </p>
+      </div>
+    );
+  }
 
   const status = readingData.statuses;
 
@@ -22,9 +30,9 @@ const AlertComponent = ({ readingData }) => {
 
   const batteryLabels: Record<string, string> = {
     normal: "Normal",
-    low: "Bateria baja",
+    low: "Batería baja",
   };
-  // Define all possible alerts with their conditions and messages
+
   const possibleAlerts = [
     {
       condition: status.water_temp_alarm,
@@ -36,7 +44,7 @@ const AlertComponent = ({ readingData }) => {
       condition:
         status.battery_status === "low" || status.battery_voltage !== "normal",
       message: `Problema con la batería: ${
-        batteryLabels[status.battery_voltage] || "Ver Bateria"
+        batteryLabels[status.battery_voltage] || "Ver Batería"
       }`,
       icon: <Battery size={15} />,
       error: false,
@@ -51,7 +59,7 @@ const AlertComponent = ({ readingData }) => {
       condition:
         status.meter_status === "MAINTENANCE" ||
         status.operational_status === "NEEDS_MAINTENANCE",
-      message: `Mantenimiento Requerido`,
+      message: `Mantenimiento requerido`,
       icon: <Wrench size={15} />,
       error: false,
     },
@@ -60,7 +68,6 @@ const AlertComponent = ({ readingData }) => {
       message: `Estado de la válvula: ${
         valveLabels[status.valve_status] ?? "Desconocida"
       }`,
-
       icon: <TriangleAlert size={15} />,
       error: false,
     },
@@ -72,20 +79,21 @@ const AlertComponent = ({ readingData }) => {
     },
     {
       condition: readingData.error_code !== null,
-      message: `Codigo de error: ${readingData.error_code}`,
+      message: `Código de error: ${readingData.error_code}`,
       icon: <TriangleAlert size={15} />,
       error: false,
     },
     {
       condition: status.ee_alarm,
-      message: `Error Circuito Electrico`,
+      message: `Error Circuito Eléctrico`,
       icon: <TriangleAlert size={15} />,
       error: true,
     },
     {
       condition: status.empty_type_alarm,
-      message: `Alarma de tubería vacia`,
+      message: `Alarma de tubería vacía`,
       icon: <TriangleAlert size={15} />,
+      error: false,
     },
     {
       condition: status.over_range_alarm,
@@ -101,7 +109,6 @@ const AlertComponent = ({ readingData }) => {
     },
   ];
 
-  // Filter to only include active alerts
   const activeAlerts = possibleAlerts.filter((alert) => alert.condition);
 
   if (activeAlerts.length === 0) {

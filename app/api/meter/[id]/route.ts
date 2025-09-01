@@ -12,6 +12,13 @@ export async function GET(_: Request, { params }: Context) {
   try {
     const meter = await prisma.meter.findUnique({
       where: { id: params.id },
+      include: {
+        userMeters: {
+          include: {
+            user: true,
+          },
+        },
+      },
     });
 
     if (!meter)
@@ -22,12 +29,10 @@ export async function GET(_: Request, { params }: Context) {
       orderBy: { timestamp: "desc" },
       include: {
         statuses: {
-          take: 1, // only 1
+          take: 1,
         },
       },
     });
-
-    console.log(lastReading, "lastReading");
 
     const formattedReading = lastReading
       ? {
@@ -36,12 +41,18 @@ export async function GET(_: Request, { params }: Context) {
         }
       : null;
 
-    console.log(formattedReading, "formattedReading");
-
-    return NextResponse.json({
+    // ✅ Flatten user relation
+    const userMeter = meter.userMeters[0] || null;
+    const rawResponse = {
       ...meter,
+      user: userMeter ? userMeter.user.id : null,
       reading: formattedReading,
-    });
+    };
+
+    // remove nested userMeters if you don't want it
+    delete rawResponse.userMeters;
+
+    return NextResponse.json(rawResponse);
   } catch (error) {
     console.error("[GET METER]", error);
     return NextResponse.json(

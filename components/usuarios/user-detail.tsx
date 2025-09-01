@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { GoogleMap, Marker } from "@react-google-maps/api";
-import { X, Mail, User, Calendar, Home } from "lucide-react";
+import { X, Mail, User, Calendar, Home, Activity, Shield } from "lucide-react";
 
 import { useUserQuery } from "@/hooks/users/use-user-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,10 +20,10 @@ const defaultLocation = { lat: -34.603722, lng: -58.381592 };
 
 export default function UserDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const userId = params.id as string;
 
   const { data: userData, isLoading: isLoadingUser } = useUserQuery(userId);
-  console.log(userData, "userData");
 
   const [mapCenter, setMapCenter] = useState(defaultLocation);
 
@@ -39,6 +39,12 @@ export default function UserDetailPage() {
       }
     }
   }, [userData]);
+
+  const handleRedirect = (url: string) => {
+    if (url) {
+      router.push(`/dashboard/medidores/${url}`);
+    }
+  };
 
   return (
     <div className="mx-auto w-full h-full">
@@ -56,13 +62,13 @@ export default function UserDetailPage() {
                 <Skeleton className="h-12 w-full" />
               </div>
             ) : userData ? (
-              <div className="space-y-6">
+              <div className="space-y-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <div className="text-sm font-medium text-muted-foreground">
                       Nombre Completo
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 bg-muted px-3 py-2 rounded-md border">
                       <User className="h-4 w-4 text-muted-foreground" />
                       <span className="font-medium">
                         {userData.firstName} {userData.lastName}
@@ -74,7 +80,7 @@ export default function UserDetailPage() {
                     <div className="text-sm font-medium text-muted-foreground">
                       Correo Electrónico
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 bg-muted px-3 py-2 rounded-md border">
                       <Mail className="h-4 w-4 text-muted-foreground" />
                       <span className="font-medium">{userData.email}</span>
                     </div>
@@ -85,7 +91,7 @@ export default function UserDetailPage() {
                       <div className="text-sm font-medium text-muted-foreground">
                         Fecha de Registro
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 bg-muted px-3 py-2 rounded-md border">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
                         <span className="font-medium">
                           {new Date(userData.created_at).toLocaleDateString(
@@ -106,9 +112,9 @@ export default function UserDetailPage() {
                       <div className="text-sm font-medium text-muted-foreground">
                         Dirección
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 bg-muted px-3 py-2 rounded-md border">
                         <Home className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium text-sm">
+                        <span className="font-medium">
                           {userData.address.data.split(",")[0]}
                         </span>
                       </div>
@@ -126,98 +132,136 @@ export default function UserDetailPage() {
                   </div>
                 )}
 
-                <div className="space-y-6">
-                  <CardTitle>Roles y Permisos</CardTitle>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <div className="text-sm font-medium text-muted-foreground">
-                        Roles asignados
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Roles y Permisos Card */}
+                  <Card className="border shadow-sm">
+                    <CardHeader className="pb-4">
+                      <div className="flex items-center gap-2">
+                        <Shield className="h-5 w-5 text-primary" />
+                        <CardTitle className="text-lg font-semibold">
+                          Roles y Permisos
+                        </CardTitle>
                       </div>
-                      <div className="flex flex-wrap gap-2">
-                        {userData.role ? (
-                          <Badge
-                            className="flex gap-2 justify-center items-center rounded-xl py-1 px-2.5 text-sm w-[100px]"
-                            variant="outline">
-                            {formatUserType(userData.role)}
-                          </Badge>
-                        ) : (
-                          <Badge
-                            className="flex gap-2 justify-center items-center rounded-xl py-1 px-2.5 text-sm w-[100px]"
-                            variant="outline">
-                            Rol desconocido
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                    {/* Estado */}
-                    <div className="flex flex-col gap-2 space-y-2">
-                      <div className="text-sm font-medium text-muted-foreground">
-                        Estado de la cuenta
-                      </div>
-                      <Chip
-                        status={userData?.status}
-                        style={{ marginTop: 0 }}
-                      />
-                    </div>
-                    {/* Última actualización */}
-                    {userData.updated_at && (
-                      <div className="flex flex-col gap-2 space-y-2">
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div className="space-y-3">
                         <div className="text-sm font-medium text-muted-foreground">
-                          Última actualización
+                          Roles asignados
                         </div>
-                        <div className="font-medium">
-                          {new Date(userData.updated_at).toLocaleDateString(
-                            "es-AR",
-                            {
-                              day: "2-digit",
-                              month: "2-digit",
-                              year: "numeric",
-                            }
+                        <div className="flex flex-wrap gap-2">
+                          {userData.role ? (
+                            <Badge
+                              className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 transition-colors px-3 py-1 text-sm font-medium"
+                              variant="outline"
+                            >
+                              {formatUserType(userData.role)}
+                            </Badge>
+                          ) : (
+                            <Badge
+                              className="bg-muted text-muted-foreground border-border px-3 py-1 text-sm"
+                              variant="outline"
+                            >
+                              Rol desconocido
+                            </Badge>
                           )}
                         </div>
                       </div>
-                    )}
-                    {!userData.meter && (
-                      <div className="flex flex-col gap-2 space-y-2">
+
+                      <div className="space-y-3">
                         <div className="text-sm font-medium text-muted-foreground">
-                          Información del Medidor
+                          Estado de la cuenta
                         </div>
-                        <div className="font-medium">
-                          No hay medidor asociado
-                        </div>
+                        <Chip
+                          status={userData?.status}
+                          style={{ marginTop: 0 }}
+                        />
                       </div>
-                    )}
-                  </div>
-                </div>
-                {userData.meter && (
-                  <div className="w-full flex flex-col justify-center gap-6 ">
-                    <div className="flex flex-col gap-4">
-                      <CardTitle>Información del Medidor</CardTitle>
-                      <div className="space-y-6">
-                        <div className="flex flex-col gap-2">
+
+                      {userData.updated_at && (
+                        <div className="space-y-2">
+                          <div className="text-sm font-medium text-muted-foreground">
+                            Última actualización
+                          </div>
+                          <div className="flex items-center gap-2 bg-muted px-3 py-2 rounded-md border">
+                            <Calendar className="h-4 w-4 text-muted-foreground" />
+                            <span className="font-medium">
+                              {new Date(userData.updated_at).toLocaleDateString(
+                                "es-AR",
+                                {
+                                  day: "2-digit",
+                                  month: "2-digit",
+                                  year: "numeric",
+                                }
+                              )}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Información del Medidor Card */}
+                  {userData.meter ? (
+                    <Card className="border shadow-sm ">
+                      <CardHeader className="pb-4">
+                        <div className="flex items-center gap-2">
+                          <Activity className="h-5 w-5 text-primary" />
+                          <CardTitle className="text-lg font-semibold">
+                            Información del Medidor
+                          </CardTitle>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-6">
+                        <div className="space-y-3">
                           <div className="text-sm font-medium text-muted-foreground">
                             ID del Medidor
                           </div>
-                          <div className="font-medium">
-                            {userData.meter.dev_eui
-                              ? userData.meter.dev_eui
-                              : "Sin medidor"}
+                          <div className="font-mono text-sm bg-muted px-3 py-2 rounded-md border">
+                            {userData.meter.dev_eui || "Sin medidor"}
                           </div>
                         </div>
 
-                        <div className="flex flex-col gap-2">
+                        <div className="space-y-3">
                           <div className="text-sm font-medium text-muted-foreground">
                             Estado del medidor
                           </div>
                           <Chip status={userData.meter.status} />
                         </div>
-                      </div>
-                    </div>
-                    <div className="flex flex-col gap-2 md:max-w-[300px] lg:mx-auto lg:w-[300px]">
-                      <Button>Ver Medidor</Button>
-                    </div>
-                  </div>
-                )}
+
+                        <div className="pt-4 border-t">
+                          <Button
+                            onClick={() =>
+                              handleRedirect(userData && userData.meter.id)
+                            }
+                            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
+                          >
+                            Ver Medidor
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <Card className="border-2 border-dashed border-muted-foreground/20 shadow-sm">
+                      <CardHeader className="pb-4">
+                        <div className="flex items-center gap-2">
+                          <Activity className="h-5 w-5 text-muted-foreground" />
+                          <CardTitle className="text-lg font-semibold text-muted-foreground">
+                            Información del Medidor
+                          </CardTitle>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="flex flex-col items-center justify-center py-8 text-center">
+                        <div className="text-muted-foreground">
+                          <Activity className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                          <p className="font-medium">No hay medidor asociado</p>
+                          <p className="text-sm mt-1">
+                            Este usuario no tiene un medidor configurado
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
               </div>
             ) : (
               <div className="flex items-center justify-center p-6">
