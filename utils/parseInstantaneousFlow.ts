@@ -1,7 +1,4 @@
-export const parseInstantaneousFlow = (
-  input: string,
-  unit: string = "m3/h"
-): string => {
+export const parseInstantaneousFlow = (input: string): number => {
   const clean = input.replace(/\D+/g, "");
 
   if (clean.length < 6) {
@@ -12,5 +9,5 @@ export const parseInstantaneousFlow = (
   const decimalPart = clean.slice(0, 4);
   const value = parseFloat(`${integerPart}.${decimalPart}`);
 
-  return `${value.toFixed(4)}${unit}`;
+  return parseFloat(value.toFixed(4));
 };
