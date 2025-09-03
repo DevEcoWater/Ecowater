@@ -1,6 +1,6 @@
-export const parseFlowHex = (input: string, unit: string): string => {
+export const parseFlowHex = (input: string): number => {
   if (input.includes(".")) {
-    return input;
+    return parseFloat(input);
   }
 
   const cleanHex = input.replace(/\s+|\W+/g, "");
@@ -26,5 +26,5 @@ export const parseFlowHex = (input: string, unit: string): string => {
 
   const finalResult = parseInt(flowDecimalString) * factor;
 
-  return finalResult.toFixed(4) + unit;
+  return parseFloat(finalResult.toFixed(4));
 };

@@ -32,7 +32,7 @@ export function parseMeterData(input: string): MeterData {
     cumulativeFlow: filterInput.slice(28, 38),
     cumulativeDailyFlow: filterInput.slice(38, 48),
     reverseFlow: filterInput.slice(48, 58),
-    instantaneousFlow: filterInput.slice(58, 68),
+    instantaneousFlow: filterInput.slice(60, 68),
     realTimeTemperature: filterInput.slice(68, 74),
     timestamps: filterInput.slice(74, 88),
     alarmStatus: filterInput.slice(88, 90),
