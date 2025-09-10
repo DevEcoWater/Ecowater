@@ -3,12 +3,9 @@
 import React from "react";
 import "@/app/globals.css";
 import Image from "next/image";
-import { QueryClient } from "@tanstack/react-query";
 export interface LayoutProps {
   children: React.ReactNode;
 }
-
-const queryClient = new QueryClient();
 
 export function Layout({ children }: LayoutProps): React.JSX.Element {
   return (

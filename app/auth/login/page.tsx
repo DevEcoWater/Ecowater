@@ -1,13 +1,13 @@
 import LoginForm from "@/components/authenticate/login-form";
 import { Layout } from "../../../components/layout/auth/layout";
-import { ProtectedRoutesWIthSession } from "@/app/dashboard/session";
+import { AuthGuard } from "@/components/auth/auth-guard";
 
 export default function Login(): React.JSX.Element {
   return (
-    <ProtectedRoutesWIthSession>
+    <AuthGuard requireAuth={false} redirectTo="/dashboard">
       <Layout>
         <LoginForm />
       </Layout>
-    </ProtectedRoutesWIthSession>
+    </AuthGuard>
   );
 }
