@@ -5,8 +5,6 @@ const prisma = new PrismaClient();
 
 export async function GET() {
   try {
-    console.log("[URGENCIES] Iniciando consulta...");
-
     // Obtener medidores con problemas críticos
     const criticalMeters = await prisma.meter.findMany({
       where: {
@@ -31,11 +29,6 @@ export async function GET() {
       },
       take: 10,
     });
-
-    console.log(
-      "[URGENCIES] Medidores críticos encontrados:",
-      criticalMeters.length
-    );
 
     // Obtener lecturas con alarmas
     const alarmReadings = await prisma.reading.findMany({
@@ -66,11 +59,6 @@ export async function GET() {
       take: 20,
     });
 
-    console.log(
-      "[URGENCIES] Lecturas con alarmas encontradas:",
-      alarmReadings.length
-    );
-
     // Obtener medidores sin lecturas recientes (más de 24 horas)
     const inactiveMeters = await prisma.meter.findMany({
       where: {
@@ -96,11 +84,6 @@ export async function GET() {
       take: 10,
     });
 
-    console.log(
-      "[URGENCIES] Medidores inactivos encontrados:",
-      inactiveMeters.length
-    );
-
     // Obtener usuarios con medidores problemáticos
     const usersWithProblems = await prisma.user.findMany({
       where: {
@@ -122,11 +105,6 @@ export async function GET() {
       },
       take: 10,
     });
-
-    console.log(
-      "[URGENCIES] Usuarios con problemas encontrados:",
-      usersWithProblems.length
-    );
 
     // Formatear alertas por prioridad con verificaciones de seguridad
     const alerts = {
@@ -248,8 +226,6 @@ export async function GET() {
           : "CRITICAL",
     };
 
-    console.log("[URGENCIES] Métricas calculadas:", urgencyMetrics);
-
     const response = {
       alerts,
       urgencyMetrics,
@@ -268,10 +244,8 @@ export async function GET() {
       })),
     };
 
-    console.log("[URGENCIES] Respuesta preparada exitosamente");
     return NextResponse.json(response);
   } catch (error) {
-    console.error("[URGENCIES] Error:", error);
     return NextResponse.json(
       {
         error: "Failed to fetch urgency information",
@@ -282,9 +256,8 @@ export async function GET() {
   } finally {
     try {
       await prisma.$disconnect();
-      console.log("[URGENCIES] Conexión cerrada");
     } catch (error) {
-      console.error("[URGENCIES] Error cerrando conexión:", error);
+      // Error silencioso al cerrar conexión
     }
   }
 }

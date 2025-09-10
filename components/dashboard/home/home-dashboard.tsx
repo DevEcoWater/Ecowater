@@ -3,35 +3,23 @@
 import React, { useState } from "react";
 import { SummaryCards } from "./summary-cards/summary-cards";
 import { ConsumptionChart } from "./consumption-chart/consumption-chart";
-import { UrgenciesSection } from "./urgencies/urgencies-section";
 import { useDashboardStats } from "@/hooks/dashboard/use-dashboard-stats";
 import { useConsumptionData } from "@/hooks/dashboard/use-consumption-data";
 import { useUrgencies } from "@/hooks/dashboard/use-urgencies";
-import { useLastUpdate } from "@/hooks/dashboard/use-last-update";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle, Clock } from "lucide-react";
 
 export function HomeDashboard() {
-  const [consumptionPeriod, setConsumptionPeriod] = useState<
-    "7d" | "30d" | "90d"
-  >("7d");
-
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
   const { data: consumption, isLoading: consumptionLoading } =
-    useConsumptionData(consumptionPeriod);
+    useConsumptionData();
   const { data: urgencies, isLoading: urgenciesLoading } = useUrgencies();
-  const { data: lastUpdate, isLoading: lastUpdateLoading } = useLastUpdate();
 
-  if (
-    statsLoading ||
-    consumptionLoading ||
-    urgenciesLoading ||
-    lastUpdateLoading
-  ) {
+  if (statsLoading || consumptionLoading || urgenciesLoading) {
     return <DashboardSkeleton />;
   }
 
-  if (!stats || !consumption || !urgencies || !lastUpdate) {
+  if (!stats || !consumption || !urgencies) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
@@ -56,7 +44,11 @@ export function HomeDashboard() {
           <Clock className="w-4 h-4" />
           <span>
             Última actualización:{" "}
-            {formatLastUpdate(lastUpdate.systemStatus.lastUpdate)}
+            {consumption?.series && consumption.series.length > 0
+              ? formatLastUpdate(
+                  consumption.series[consumption.series.length - 1].fecha
+                )
+              : "Sin datos"}
           </span>
         </div>
       </div>
@@ -68,17 +60,13 @@ export function HomeDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Gráfico de consumo (80%) */}
         <div className="lg:col-span-3">
-          <ConsumptionChart
-            data={consumption}
-            period={consumptionPeriod}
-            onPeriodChange={setConsumptionPeriod}
-          />
+          <ConsumptionChart data={consumption} />
         </div>
 
         {/* Sección de urgencias (20%) */}
-        <div className="lg:col-span-1">
+        {/* <div className="lg:col-span-1">
           <UrgenciesSection urgencies={urgencies} />
-        </div>
+        </div> */}
       </div>
     </div>
   );

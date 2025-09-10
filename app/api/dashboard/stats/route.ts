@@ -5,14 +5,9 @@ const prisma = new PrismaClient();
 
 export async function GET() {
   try {
-    console.log("[DASHBOARD STATS] Iniciando consulta...");
-
-    // Verificar conexión a la base de datos
     try {
       await prisma.$connect();
-      console.log("[DASHBOARD STATS] Conexión a BD exitosa");
     } catch (connectionError) {
-      console.error("[DASHBOARD STATS] Error de conexión:", connectionError);
       return NextResponse.json(
         { error: "Database connection failed", details: connectionError },
         { status: 500 }
@@ -27,62 +22,147 @@ export async function GET() {
 
     try {
       totalUsers = await prisma.user.count();
-      console.log("[DASHBOARD STATS] Usuarios contados:", totalUsers);
     } catch (error) {
-      console.error("[DASHBOARD STATS] Error contando usuarios:", error);
       totalUsers = 0;
     }
 
     try {
       totalMeters = await prisma.meter.count();
-      console.log("[DASHBOARD STATS] Medidores contados:", totalMeters);
     } catch (error) {
-      console.error("[DASHBOARD STATS] Error contando medidores:", error);
       totalMeters = 0;
     }
 
     try {
       totalCooperatives = await prisma.cooperative.count();
-      console.log(
-        "[DASHBOARD STATS] Cooperativas contadas:",
-        totalCooperatives
-      );
     } catch (error) {
-      console.error("[DASHBOARD STATS] Error contando cooperativas:", error);
       totalCooperatives = 0;
     }
 
     try {
-      totalReadings = await prisma.reading.count();
-      console.log("[DASHBOARD STATS] Lecturas contadas:", totalReadings);
-    } catch (error) {
-      console.error("[DASHBOARD STATS] Error contando lecturas:", error);
-      totalReadings = 0;
-    }
+      // Contar lecturas del mes actual
+      const tz = "America/Argentina/Buenos_Aires";
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
-    // Obtener lecturas recientes (últimas 24 horas)
-    let recentReadings = 0;
-    try {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
+      const toMidnight = (d: Date) => {
+        const ymd = new Intl.DateTimeFormat("sv-SE", {
+          timeZone: tz,
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        }).format(d);
+        return new Date(ymd + "T00:00:00Z");
+      };
 
-      recentReadings = await prisma.reading.count({
+      const startMid = toMidnight(startOfMonth);
+      const endMidExcl = toMidnight(endOfMonth);
+
+      totalReadings = await prisma.reading.count({
         where: {
           timestamp: {
-            gte: yesterday,
+            gte: startMid,
+            lt: endMidExcl,
           },
         },
       });
-      console.log(
-        "[DASHBOARD STATS] Lecturas recientes contadas:",
-        recentReadings
-      );
     } catch (error) {
-      console.error(
-        "[DASHBOARD STATS] Error contando lecturas recientes:",
-        error
+      totalReadings = 0;
+    }
+
+    // Obtener consumo total del MES ACTUAL COMPLETO (1 al 30/31)
+    let totalConsumption = 0;
+    try {
+      const tz = "America/Argentina/Buenos_Aires";
+      const now = new Date();
+
+      // Mes actual completo: del 1 al último día del mes
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+      // Convertir a medianoche en timezone local
+      const toMidnight = (d: Date) => {
+        const ymd = new Intl.DateTimeFormat("sv-SE", {
+          timeZone: tz,
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        }).format(d);
+        return new Date(ymd + "T00:00:00Z");
+      };
+
+      const startMid = toMidnight(startOfMonth); // 00:00 AR del 1 del mes
+      const endMidExcl = toMidnight(endOfMonth); // 00:00 AR del 1 del mes siguiente
+
+      // Usar el mismo método de cierres que consumption API
+      const consumptionResult = await prisma.$queryRawUnsafe(
+        `
+        WITH base AS (
+          SELECT
+            meter_id,
+            timezone($3, (timestamp AT TIME ZONE $3)) AS local_ts,
+            cumulative_flow::text AS cf_raw,
+            timestamp
+          FROM "Reading"
+          WHERE timezone($3, (timestamp AT TIME ZONE $3)) >= $1
+            AND timezone($3, (timestamp AT TIME ZONE $3)) < $2
+            AND cumulative_flow IS NOT NULL
+            AND cumulative_flow <> ''
+        ),
+        norm AS (
+          SELECT
+            meter_id,
+            local_ts,
+            CAST(regexp_replace(cf_raw, '[^0-9\\.,-]', '', 'g') AS numeric) AS cf,
+            timestamp
+          FROM base
+        ),
+        -- Método de cierres para el mes completo
+        daily_buckets AS (
+          SELECT DISTINCT date_trunc('day', local_ts) AS bucket_local
+          FROM norm
+        ),
+        daily_closures AS (
+          SELECT
+            n.meter_id,
+            db.bucket_local,
+            MAX(n.cf) AS cierre_dia,
+            LAG(MAX(n.cf)) OVER (
+              PARTITION BY n.meter_id 
+              ORDER BY db.bucket_local
+            ) AS cierre_dia_anterior
+          FROM norm n
+          JOIN daily_buckets db ON date_trunc('day', n.local_ts) = db.bucket_local
+          GROUP BY n.meter_id, db.bucket_local
+        ),
+        consumo_por_medidor AS (
+          SELECT
+            meter_id,
+            bucket_local,
+            CASE 
+              WHEN cierre_dia_anterior IS NULL THEN
+                (SELECT GREATEST(MAX(cf) - MIN(cf), 0) 
+                 FROM norm n2 
+                 WHERE n2.meter_id = daily_closures.meter_id 
+                 AND date_trunc('day', n2.local_ts) = daily_closures.bucket_local)
+              ELSE
+                GREATEST(cierre_dia - cierre_dia_anterior, 0)
+            END AS consumo_diario
+          FROM daily_closures
+        )
+        SELECT
+          CAST(ROUND(SUM(consumo_diario)::numeric, 2) AS double precision) AS total_consumo
+        FROM consumo_por_medidor;
+      `,
+        startMid,
+        endMidExcl,
+        tz
       );
-      recentReadings = 0;
+
+      totalConsumption = Number(consumptionResult[0]?.total_consumo || 0);
+    } catch (error) {
+      console.error("[DASHBOARD STATS] Error calculando consumo total:", error);
+      totalConsumption = 0;
     }
 
     // Obtener medidores con problemas
@@ -96,15 +176,7 @@ export async function GET() {
           ],
         },
       });
-      console.log(
-        "[DASHBOARD STATS] Medidores problemáticos contados:",
-        problematicMeters
-      );
     } catch (error) {
-      console.error(
-        "[DASHBOARD STATS] Error contando medidores problemáticos:",
-        error
-      );
       problematicMeters = 0;
     }
 
@@ -116,15 +188,7 @@ export async function GET() {
           status: "ACTIVE",
         },
       });
-      console.log(
-        "[DASHBOARD STATS] Cooperativas activas contadas:",
-        activeCooperatives
-      );
     } catch (error) {
-      console.error(
-        "[DASHBOARD STATS] Error contando cooperativas activas:",
-        error
-      );
       activeCooperatives = 0;
     }
 
@@ -155,7 +219,7 @@ export async function GET() {
       },
       readings: {
         total: totalReadings,
-        recent: recentReadings,
+        recent: totalConsumption, // Consumo total del mes actual completo (1 al 30/31)
       },
       alerts: {
         problematicMeters,
@@ -172,10 +236,8 @@ export async function GET() {
       },
     };
 
-    console.log("[DASHBOARD STATS] Respuesta preparada:", response);
     return NextResponse.json(response);
   } catch (error) {
-    console.error("[DASHBOARD STATS] Error general:", error);
     return NextResponse.json(
       {
         error: "Failed to fetch dashboard statistics",
@@ -187,9 +249,8 @@ export async function GET() {
   } finally {
     try {
       await prisma.$disconnect();
-      console.log("[DASHBOARD STATS] Conexión cerrada");
     } catch (error) {
-      console.error("[DASHBOARD STATS] Error cerrando conexión:", error);
+      // Error silencioso al cerrar conexión
     }
   }
 }

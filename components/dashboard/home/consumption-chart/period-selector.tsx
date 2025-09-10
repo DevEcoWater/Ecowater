@@ -3,8 +3,8 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface PeriodSelectorProps {
-  currentPeriod: "7d" | "30d" | "90d";
-  onPeriodChange: (period: "7d" | "30d" | "90d") => void;
+  currentPeriod: "7d" | "30d" | "90d" | "1y";
+  onPeriodChange: (period: "7d" | "30d" | "90d" | "1y") => void;
 }
 
 export function PeriodSelector({
@@ -15,6 +15,7 @@ export function PeriodSelector({
     { value: "7d", label: "7 días" },
     { value: "30d", label: "30 días" },
     { value: "90d", label: "90 días" },
+    { value: "1y", label: "1 año" },
   ] as const;
 
   return (

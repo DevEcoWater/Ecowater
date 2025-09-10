@@ -1,42 +1,23 @@
 import { useQuery } from "@tanstack/react-query";
 
 export interface ConsumptionData {
-  chartData: Array<{
-    date: string;
-    totalFlow: number;
-    instantFlow: number;
-    reverseFlow: number;
-    readings: number;
+  meterId: string; // "all" o UUID específico
+  startDate: string; // "2025-01-15"
+  endDate: string; // "2025-01-22"
+  period: string; // "7d", "30d", "90d", "1y"
+  groupBy: "day" | "month"; // Agrupación temporal
+  series: Array<{
+    fecha: string; // "2025-01-15"
+    consumo_m3: number; // 2.45 (m³)
+    medidores_activos: number; // 3
   }>;
-  metrics: {
-    totalConsumption: number;
-    averageDailyConsumption: number;
-    totalReadings: number;
-    period: string;
-    dateRange: {
-      start: string;
-      end: string;
-    };
-  };
-  topMeters: Array<{
-    meter_id: string;
-    _sum: {
-      cumulative_flow: string | null;
-    };
-    _count: {
-      id: number;
-    };
-  }>;
-  period: string;
 }
 
-export const useConsumptionData = (period: "7d" | "30d" | "90d" = "7d") => {
+export const useConsumptionData = () => {
   return useQuery<ConsumptionData, Error>({
-    queryKey: ["consumption-data", period],
+    queryKey: ["consumption-data", "month"],
     queryFn: async () => {
-      const response = await fetch(
-        `/api/dashboard/consumption?period=${period}`
-      );
+      const response = await fetch(`/api/dashboard/consumption?period=month`);
       if (!response.ok) {
         throw new Error("Failed to fetch consumption data");
       }

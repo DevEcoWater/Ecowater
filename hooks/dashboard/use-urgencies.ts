@@ -73,7 +73,7 @@ export interface UrgencyData {
 }
 
 async function fetchUrgencies(): Promise<UrgencyData> {
-  const response = await fetch("/api/dashboard/urgencies-simple");
+  const response = await fetch("/api/dashboard/urgencies");
   if (!response.ok) {
     throw new Error("Failed to fetch urgencies");
   }
