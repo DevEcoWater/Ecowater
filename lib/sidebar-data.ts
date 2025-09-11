@@ -58,8 +58,8 @@ export const sidebarData: SidebarData = {
       title: "Otros",
       items: [
         {
-          title: "Cuenta",
-          url: "/settings/account",
+          title: "Configuración",
+          url: "/dashboard/configuracion",
           icon: Wrench,
         },
       ],

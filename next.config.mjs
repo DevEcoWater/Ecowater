@@ -4,18 +4,26 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "ih1.redbubble.net"
+        hostname: "ih1.redbubble.net",
       },
       {
         protocol: "https",
-        hostname: "cloudflare-ipfs.com"
+        hostname: "cloudflare-ipfs.com",
       },
       {
         protocol: "https",
-        hostname: "utfs.io"
-      }
-    ]
-  }
+        hostname: "utfs.io",
+      },
+    ],
+  },
+  webpack(config) {
+    config.module.rules.push({
+      test: /\.svg$/i,
+      issuer: /\.[jt]sx?$/,
+      use: ["@svgr/webpack"], // ✅ add svgr
+    });
+    return config;
+  },
 };
 
 export default nextConfig;
