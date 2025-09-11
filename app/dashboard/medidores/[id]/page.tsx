@@ -130,7 +130,7 @@ const MeterDashboard = () => {
                   </div>
                 </div>
               </div>
-            </CardHeader>
+            </CardContent>
             {expandedSections.metrics && (
               <CardContent className="pt-0">
                 <div className="grid grid-cols-2 gap-3">
