@@ -1,12 +1,10 @@
 import { Suspense } from "react";
-import { Skeleton } from "@/components/ui/skeleton";
-import Meters from "@/components/medidores/meters";
-
+import { AccountSection } from "@/components/cooperative/account-section";
 export default function MetersPage() {
   return (
     <div className="w-full">
       <Suspense>
-        <Meters />
+        <AccountSection />
       </Suspense>
     </div>
   );
