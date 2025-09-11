@@ -1,9 +1,21 @@
 // app/api/cooperative/route.ts
 import { PrismaClient } from "@prisma/client";
 import { NextResponse } from "next/server";
+const prisma = new PrismaClient();
 
 export async function GET() {
-  const prisma = new PrismaClient();
-  const cooperatives = await prisma.cooperative.findMany();
+  const cooperatives = await prisma.cooperative.findFirstOrThrow();
   return NextResponse.json(cooperatives);
+}
+
+export async function PUT(req: Request) {
+  const data = await req.json();
+  const existing = await prisma.cooperative.findFirst();
+
+  const updated = await prisma.cooperative.update({
+    where: { id: existing.id },
+    data,
+  });
+
+  return NextResponse.json(updated);
 }
