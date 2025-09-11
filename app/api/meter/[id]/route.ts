@@ -34,6 +34,8 @@ export async function GET(_: Request, { params }: Context) {
       },
     });
 
+    console.log(lastReading, "lastReading");
+
     const formattedReading = lastReading
       ? {
           ...lastReading,

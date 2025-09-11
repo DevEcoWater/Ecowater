@@ -131,6 +131,23 @@ const MeterDashboard = () => {
                 </div>
               </div>
             </CardContent>
+            {expandedSections.metrics && (
+              <CardContent className="pt-0">
+                <div className="grid grid-cols-2 gap-3">
+                  {metrics.map((metric, index) => (
+                    <MeterCard
+                      key={index}
+                      title={metric.title}
+                      value={metric.value}
+                      icon={metric.icon}
+                      status={meterData.status}
+                      isLoading={false}
+                      meterDetail={false}
+                    />
+                  ))}
+                </div>
+              </CardContent>
+            )}
           </Card>
         </div>
 
@@ -323,7 +340,7 @@ const MeterDashboard = () => {
             </CardHeader>
             {expandedSections.alerts && (
               <CardContent className="pt-0">
-                {/* <AlertComponent readingData={meterData.reading} /> */}
+                <AlertComponent readingData={meterData.reading} />
               </CardContent>
             )}
           </Card>
