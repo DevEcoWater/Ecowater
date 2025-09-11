@@ -18,7 +18,14 @@ export const authOptions: NextAuthOptions = {
         if (!credentials) return null;
 
         const { email, password } = credentials;
-        const user = await prisma.user.findUnique({ where: { email } });
+        const user = await prisma.user.findUnique({
+          where: { email },
+          include: {
+            userRoles: {
+              include: { role: true },
+            },
+          },
+        });
 
         if (!user) return null;
 
@@ -26,26 +33,39 @@ export const authOptions: NextAuthOptions = {
 
         if (!isPasswordValid) return null;
 
-        return { id: user.id, email: user.email, role: user.status };
+        const role = user.userRoles[0]?.role.role_name || null;
+
+        return {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: role,
+        };
       },
     }),
   ],
-  session: { strategy: "jwt" },
+  session: {
+    strategy: "jwt" as const,
+  },
   callbacks: {
-    async session({ session, token }) {
-      if (token?.user) {
-        session.user = token.user;
-      }
-      return session;
-    },
     async jwt({ token, user }) {
       if (user) {
-        token.user = {
-          id: user.id,
-          email: user.email,
-        };
+        token.firstName = user.firstName;
+        token.lastName = user.lastName;
+        token.sub = user.id;
+        token.role = user.role;
       }
       return token;
+    },
+    async session({ session, token }) {
+      if (token) {
+        session.user.id = token.sub!;
+        session.user.firstName = token.firstName as string;
+        session.user.lastName = token.lastName as string;
+        session.user.role = token.role as string;
+      }
+      return session;
     },
   },
   pages: {
