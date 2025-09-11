@@ -1,6 +1,7 @@
 import type React from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { formatUserType } from "@/utils/formatUserType";
+import { getInitials } from "@/utils/getInitials";
 
 interface UserAvatarProps {
   firstName: string;
@@ -13,7 +14,7 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
   lastName,
   role,
 }) => {
-  const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+  const initials = getInitials(firstName, lastName);
 
   return (
     <div className="flex items-center gap-3">
