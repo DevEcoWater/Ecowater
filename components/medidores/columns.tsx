@@ -30,7 +30,9 @@ export const meterColumns: ColumnDef<MeterDataForTable>[] = [
     id: "address",
     header: "Dirección del cliente",
     cell: ({ row }) => {
+      console.log(row.original, "row original");
       const shortData = row.original.userMeter?.shortData.split(",")[0];
+
       return shortData || "Sin dirección";
     },
   },
@@ -56,7 +58,7 @@ export const meterColumns: ColumnDef<MeterDataForTable>[] = [
     id: "actions",
     header: "Acciones",
     cell: ({ row }) => {
-      const meter = row.original;
+      const meter = row.original.userMeter ?? { meter_id: row.original.id };
       return (
         <div onClick={(e) => e.stopPropagation()}>
           <MeterActions meter={meter} />

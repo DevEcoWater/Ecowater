@@ -10,17 +10,49 @@ type Context = {
 
 export async function GET(_: Request, { params }: Context) {
   try {
-    const meter = await prisma.userMeter.findFirst({
-      where: { user_id: params.id },
+    const meter = await prisma.meter.findUnique({
+      where: { id: params.id },
       include: {
-        meter: true,
+        userMeters: {
+          include: {
+            user: true,
+          },
+        },
       },
     });
 
     if (!meter)
       return NextResponse.json({ error: "Meter not found" }, { status: 404 });
 
-    return NextResponse.json(meter);
+    const lastReading = await prisma.reading.findFirst({
+      where: { meter_id: meter.id },
+      orderBy: { timestamp: "desc" },
+      include: {
+        statuses: {
+          take: 1,
+        },
+      },
+    });
+
+    const formattedReading = lastReading
+      ? {
+          ...lastReading,
+          statuses: lastReading.statuses[0] || null,
+        }
+      : null;
+
+    // ✅ Flatten user relation
+    const userMeter = meter.userMeters[0] || null;
+    const rawResponse = {
+      ...meter,
+      user: userMeter ? userMeter.user.id : null,
+      reading: formattedReading,
+    };
+
+    // remove nested userMeters if you don't want it
+    delete rawResponse.userMeters;
+
+    return NextResponse.json(rawResponse);
   } catch (error) {
     console.error("[GET METER]", error);
     return NextResponse.json(

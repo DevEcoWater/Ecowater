@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import {
   type ColumnFiltersState,
   getCoreRowModel,
@@ -12,27 +12,23 @@ import {
   type VisibilityState,
 } from "@tanstack/react-table";
 import { DataTable } from "../ui/data-table";
-import { meterColumns } from "./columns";
-import { MeterDataForTable } from "@/types/meters/meter-types";
+import { readingsColumns } from "./columns";
 
-interface MeterTableProps {
-  data: MeterDataForTable[];
+interface ReadingTableProps {
+  data: any[];
   isLoading?: boolean;
   error?: Error | null;
 }
 
-export const MeterTable = ({ data, isLoading, error }: MeterTableProps) => {
-  const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
-  );
-  const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({});
-  const [rowSelection, setRowSelection] = React.useState({});
+export const ReadingTable = ({ data, isLoading, error }: ReadingTableProps) => {
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [rowSelection, setRowSelection] = useState({});
 
   const table = useReactTable({
     data: data || [],
-    columns: meterColumns,
+    columns: readingsColumns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
@@ -51,7 +47,7 @@ export const MeterTable = ({ data, isLoading, error }: MeterTableProps) => {
 
   return (
     <DataTable
-      columns={meterColumns}
+      columns={readingsColumns}
       data={data}
       table={table}
       isLoading={isLoading}

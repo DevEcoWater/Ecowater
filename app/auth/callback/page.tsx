@@ -15,7 +15,7 @@ export default function AuthCallback() {
     if (status === "authenticated" && session) {
       router.push("/dashboard");
     } else if (status === "unauthenticated") {
-      router.push("/auth/signin");
+      router.push("/auth/login");
     }
   }, [status, session, router]);
 

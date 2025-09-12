@@ -27,20 +27,20 @@ const otherColumns: ColumnDef<UserDataForTable>[] = [
     header: "Email",
   },
   {
-    accessorKey: "created_at",
-    header: "Fecha de registro",
-    cell: ({ row }) => {
-      const date = row.original.created_at;
-      return new Date(date).toLocaleDateString("es-ES");
-    },
-  },
-  {
     id: "address",
     header: "Dirección",
     cell: ({ row }) => {
       // split the address data by comma and return the first element
       const shortData = row.original.address.data.split(",")[0];
       return shortData || "Sin dirección";
+    },
+  },
+  {
+    accessorKey: "created_at",
+    header: "Fecha de registro",
+    cell: ({ row }) => {
+      const date = row.original.created_at;
+      return new Date(date).toLocaleDateString("es-ES");
     },
   },
   {

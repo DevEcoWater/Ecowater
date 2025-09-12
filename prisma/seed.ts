@@ -28,59 +28,6 @@ async function main() {
     },
   });
 
-  // Sembrar tipos de estado
-  await prisma.statusType.upsert({
-    where: { name: "valve_status" },
-    update: {},
-    create: {
-      name: "valve_status",
-      description: "Estado de la válvula del medidor",
-      values: {
-        create: [
-          { value: "open", description: "Válvula abierta" },
-          { value: "closed", description: "Válvula cerrada" },
-          {
-            value: "partially_open",
-            description: "Válvula parcialmente abierta",
-          },
-        ],
-      },
-    },
-  });
-
-  await prisma.statusType.upsert({
-    where: { name: "battery_status" },
-    update: {},
-    create: {
-      name: "battery_status",
-      description: "Estado de la batería del medidor",
-      values: {
-        create: [
-          { value: "good", description: "Batería en buen estado" },
-          { value: "low", description: "Batería baja" },
-          { value: "critical", description: "Batería en estado crítico" },
-        ],
-      },
-    },
-  });
-
-  await prisma.statusType.upsert({
-    where: { name: "alarm_status" },
-    update: {},
-    create: {
-      name: "alarm_status",
-      description: "Estado de alarmas del medidor",
-      values: {
-        create: [
-          { value: "none", description: "Sin alarmas" },
-          { value: "leak_detected", description: "Fuga detectada" },
-          { value: "reverse_flow", description: "Flujo inverso detectado" },
-          { value: "tamper_detected", description: "Manipulación detectada" },
-        ],
-      },
-    },
-  });
-
   // Opción 1: Usar create directamente si sabes que la base de datos está vacía
   try {
     await prisma.cooperative.create({

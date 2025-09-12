@@ -7,6 +7,8 @@ import { CooperativeForm } from "./cooperative-form";
 export function AccountSection() {
   const { data: session } = useSession();
 
+  console.log(session, "session");
+
   const userRoles = session.user.role || [];
   const isAdmin = userRoles.includes("admin");
 

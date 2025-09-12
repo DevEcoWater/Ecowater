@@ -15,6 +15,7 @@ import {
 
 interface ConsumptionChartProps {
   data: ConsumptionData;
+  color?: string;
 }
 
 export function ConsumptionChart({ data }: ConsumptionChartProps) {

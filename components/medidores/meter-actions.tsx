@@ -18,25 +18,28 @@ import { UserDataForTable } from "@/types/users/user-types";
 import { MeterDataForTable } from "@/types/meters/meter-types";
 
 interface MeterActionsProps {
-  meter: MeterDataForTable;
+  meter: TMeterInfo;
   onViewDetails?: (user: MeterDataForTable) => void;
   onEdit?: (MeterDataForTable: MeterDataForTable) => void;
   onViewMeter?: (MeterDataForTable: MeterDataForTable) => void;
   onDelete?: (MeterDataForTable: User) => void;
 }
 
+type TMeterInfo = {
+  meter_id: string;
+  user_id?: string;
+};
+
 export const MeterActions = ({ meter }: MeterActionsProps) => {
   const router = useRouter();
 
   const handleViewMeter = () => {
-    router.push(`/dashboard/medidores/${meter.id}`);
+    router.push(`/dashboard/medidores/${meter.meter_id}`);
   };
 
   const handleViewUser = () => {
-    router.push(`/dashboard/usuarios/detalle/${meter.userMeter.user_id}`);
+    router.push(`/dashboard/usuarios/${meter.user_id}`);
   };
-
-  console.log(meter, "meter");
 
   return (
     <>
@@ -53,18 +56,17 @@ export const MeterActions = ({ meter }: MeterActionsProps) => {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" sideOffset={8} collisionPadding={10}>
           <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-          {meter.userMeter ? (
+          {meter.user_id ? (
             <DropdownMenuItem
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 cursor-pointer"
               onSelect={handleViewUser}
             >
               <User2 className="h-4 w-4" />
               Detalle de usuario
             </DropdownMenuItem>
           ) : (
-            <DropdownMenuItem className="cursor-pointer flex items-center gap-2">
-              <UserPlus className="h-4 w-4" />
-              Asignar usuario
+            <DropdownMenuItem disabled>
+              No hay usuario asociado
             </DropdownMenuItem>
           )}
 

@@ -8,6 +8,7 @@ import { useConsumptionData } from "@/hooks/dashboard/use-consumption-data";
 import { useUrgencies } from "@/hooks/dashboard/use-urgencies";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle, Clock } from "lucide-react";
+import { UrgenciesSection } from "./urgencies/urgencies-section";
 
 export function HomeDashboard() {
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
@@ -64,9 +65,9 @@ export function HomeDashboard() {
         </div>
 
         {/* Sección de urgencias (20%) */}
-        {/* <div className="lg:col-span-1">
+        <div className="lg:col-span-1">
           <UrgenciesSection urgencies={urgencies} />
-        </div> */}
+        </div>
       </div>
     </div>
   );
