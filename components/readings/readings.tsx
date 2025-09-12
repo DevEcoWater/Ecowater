@@ -13,23 +13,18 @@ import { ReadingTable } from "./reading-table";
 import { useMeterReadings } from "@/hooks/readings/user-readings-";
 
 const Readings = ({ meterId }: { meterId: string }) => {
-  const { data, isLoading, error, page, setPage, totalPages } =
-    useMeterReadings(meterId);
+  const { data, page, setPage, totalPages } = useMeterReadings(meterId);
 
   return (
     <div className="py-10">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-col gap-4 md:gap-6 md:flex-col w-full">
           <div>
-            <ReadingTable
-              data={data || []}
-              isLoading={isLoading}
-              error={error}
-            />
+            <ReadingTable data={data || []} isLoading={!data} />
           </div>
 
           {/* Add pagination */}
-          {!isLoading && data && totalPages > 1 && (
+          {data && totalPages > 1 && (
             <div className="mt-4 flex justify-center">
               <Pagination>
                 <PaginationContent>

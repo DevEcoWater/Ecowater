@@ -50,8 +50,6 @@ const MeterDashboard = () => {
     alerts: true,
   });
 
-  console.log("meterData", meterData);
-
   const metrics = [
     {
       title: "Flujo Acumulado",
