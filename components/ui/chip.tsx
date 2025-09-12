@@ -6,7 +6,7 @@ import type React from "react";
 import { CSSProperties } from "react";
 
 type Props = {
-  status: MeterStatus | UserStatus;
+  status: MeterStatus | UserStatus | "Desconocido";
   showDot?: boolean;
   style?: CSSProperties;
 };
@@ -34,7 +34,7 @@ const Chip: React.FC<Props> = ({ status, showDot = false, style }) => {
         ...style,
       }}
       className={`flex gap-2 justify-center items-center rounded-xl py-1 px-2.5 text-sm transition-all ${
-        showDot ? "w-auto" : "w-[100px]"
+        showDot ? "w-auto" : "min-w-[100px] w-fit"
       }`}
     >
       {showDot && (

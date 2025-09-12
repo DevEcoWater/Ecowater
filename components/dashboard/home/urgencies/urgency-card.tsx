@@ -82,7 +82,8 @@ export function UrgencyCard({ urgency }: UrgencyCardProps) {
 
   return (
     <div
-      className={`p-3 rounded-lg border ${style.bgColor} ${style.borderColor}`}>
+      className={`p-3 rounded-lg border ${style.bgColor} ${style.borderColor}`}
+    >
       <div className="flex items-start gap-3">
         <div className={`p-2 rounded-lg bg-white ${style.iconColor}`}>
           <Icon className="w-4 h-4" />
@@ -101,13 +102,13 @@ export function UrgencyCard({ urgency }: UrgencyCardProps) {
           )}
           <div className="flex items-center gap-2 text-xs text-gray-500">
             <Clock className="w-3 h-3" />
-            <span>
+            {/* <span>
               {urgency.type === "INACTIVE_METER"
                 ? urgency.lastActivity
                 : formatTimestamp(
                     urgency.timestamp || new Date().toISOString()
                   )}
-            </span>
+            </span> */}
           </div>
         </div>
       </div>

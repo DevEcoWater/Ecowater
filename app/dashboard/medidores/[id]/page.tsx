@@ -40,11 +40,7 @@ const MeterDashboard = () => {
   const { data: consumption, isLoading: consumptionLoading } =
     useConsumptionFromMeterData(id as string);
 
-  console.log("consumption", consumption);
-
   const { data: readingsData } = useMeterReadings(id as string);
-
-  console.log("readingsData", readingsData);
 
   const [viewMode, setViewMode] = useState<"graph" | "table">("graph");
   const [expandedSections, setExpandedSections] = useState({
