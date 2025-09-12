@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import Chip from "@/components/ui/chip";
 import {
   Clock,
-  Database,
   Droplets,
   ChartColumn,
   ThermometerSun,
@@ -23,12 +22,13 @@ import dayjs from "dayjs";
 import AlertComponent from "@/components/medidores/detail/Alerts";
 import DeviceCard from "@/components/dashboard/system-status";
 import { useMeterReadings } from "@/hooks/readings/user-readings-";
-import { ChartAreaInteractive } from "@/components/area-chart";
 import { ReadingTable } from "@/components/readings/reading-table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DashboardSkeleton } from "@/components/medidores/detail/MeterDetailSkeleton";
 import { UserButton } from "@/components/medidores/detail/UserButton";
 import { Separator } from "@/components/ui/separator";
+import { ConsumptionChart } from "@/components/dashboard/home/consumption-chart/consumption-chart";
+import { useConsumptionFromMeterData } from "@/hooks/dashboard/use-consumption-data";
 
 const MeterDashboard = () => {
   const { id } = useParams();
@@ -36,7 +36,15 @@ const MeterDashboard = () => {
   const { data: meterData, isLoading: isLoadingMeter } = useMeterQuery(
     id as string
   );
+
+  const { data: consumption, isLoading: consumptionLoading } =
+    useConsumptionFromMeterData(id as string);
+
+  console.log("consumption", consumption);
+
   const { data: readingsData } = useMeterReadings(id as string);
+
+  console.log("readingsData", readingsData);
 
   const [viewMode, setViewMode] = useState<"graph" | "table">("graph");
   const [expandedSections, setExpandedSections] = useState({
@@ -46,43 +54,36 @@ const MeterDashboard = () => {
     alerts: true,
   });
 
-  const toggleSection = (section: keyof typeof expandedSections) => {
-    setExpandedSections((prev) => ({
-      ...prev,
-      [section]: !prev[section],
-    }));
-  };
-
   console.log("meterData", meterData);
 
   const metrics = [
     {
       title: "Flujo Acumulado",
-      value: `${meterData && meterData.reading.cumulative_flow}`,
+      value: `${meterData && meterData.reading.cumulative_flow} m³`,
       icon: Droplets,
       status: "default",
     },
     {
       title: "Flujo Instantáneo",
-      value: `${meterData && meterData.reading.instantaneous_flow}`,
+      value: `${meterData && meterData.reading.instantaneous_flow} m³`,
       icon: ChartColumn,
       status: "default",
     },
     {
       title: "Flujo Reverso",
-      value: `${meterData && meterData.reading.reverse_flow}`,
+      value: `${meterData && meterData.reading.reverse_flow} m³`,
       icon: Activity,
       status: "error",
     },
     {
       title: "Temperatura",
-      value: `${meterData && meterData.reading.real_time_temperature}`,
+      value: `${meterData && meterData.reading.real_time_temperature}°C`,
       icon: ThermometerSun,
       status: "inactive",
     },
   ];
 
-  if (isLoadingMeter) {
+  if (isLoadingMeter || consumptionLoading) {
     return (
       <div>
         <DashboardSkeleton />
@@ -90,13 +91,20 @@ const MeterDashboard = () => {
     );
   }
 
+  const toggleSection = (section: keyof typeof expandedSections) => {
+    setExpandedSections((prev) => ({
+      ...prev,
+      [section]: !prev[section],
+    }));
+  };
+
   return (
     <>
       {/* ===== Content ===== */}
       <Main className="p-0">
         <div className="md:hidden sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <Card className="border shadow-sm rounded-xl">
-            <CardContent className="p-4">
+            <CardContent className="p-6">
               <div className="flex items-center justify-between gap-4">
                 {/* Left side */}
                 <div className="flex gap-4 items-center">
@@ -120,7 +128,12 @@ const MeterDashboard = () => {
 
                 {/* Right side */}
                 <div className="flex flex-col items-end">
-                  <Chip showDot status={meterData.status} />
+                  <Chip
+                    showDot
+                    status={
+                      meterData.reading.statuses?.meter_status || "Desconocido"
+                    }
+                  />
                   <div className="flex items-center justify-end gap-1 mt-1">
                     <Clock size={12} className="text-muted-foreground" />
                     <p className="text-xs text-muted-foreground truncate">
@@ -132,8 +145,8 @@ const MeterDashboard = () => {
               </div>
             </CardContent>
             {expandedSections.metrics && (
-              <CardContent className="pt-0">
-                <div className="grid grid-cols-2 gap-3">
+              <CardContent className="hidden pt-0">
+                <div className="hidden md:grid grid-cols-2 gap-3">
                   {metrics.map((metric, index) => (
                     <MeterCard
                       key={index}
@@ -177,7 +190,12 @@ const MeterDashboard = () => {
 
               {/* Right side */}
               <div className="flex flex-col items-end">
-                <Chip showDot status={meterData.status} />
+                <Chip
+                  showDot
+                  status={
+                    meterData.reading.statuses?.meter_status || "Desconocido"
+                  }
+                />
                 <div className="flex items-center justify-end gap-1 mt-1">
                   <Clock size={12} className="text-muted-foreground" />
                   <p className="text-sm text-muted-foreground">
@@ -215,7 +233,10 @@ const MeterDashboard = () => {
                       title={metric.title}
                       value={metric.value}
                       icon={metric.icon}
-                      status={meterData.status}
+                      status={
+                        meterData.reading.statuses?.meter_status ||
+                        meterData.status
+                      }
                       isLoading={false}
                       meterDetail={false}
                     />
@@ -271,7 +292,7 @@ const MeterDashboard = () => {
                   </TabsList>
 
                   <TabsContent value="graph" className="mt-0">
-                    <ChartAreaInteractive data={readingsData || []} />
+                    <ConsumptionChart data={consumption} />
                   </TabsContent>
 
                   <TabsContent value="table" className="mt-0">
@@ -308,19 +329,21 @@ const MeterDashboard = () => {
             {expandedSections.status && (
               <CardContent className="pt-0">
                 <DeviceCard
-                  status={meterData.status}
+                  status={meterData.reading.statuses?.meter_status}
                   signal={true}
                   valve_status={
-                    meterData.reading.statuses.valve_status as
+                    meterData.reading.statuses?.valve_status as
                       | "open"
                       | "closed"
                       | "abnormal"
                       | "unkown"
+                      | undefined
                   }
                   battery_voltage={
-                    meterData.reading.statuses.battery_voltage as
+                    meterData.reading.statuses?.battery_voltage as
                       | "normal"
                       | "low"
+                      | undefined
                   }
                 />
               </CardContent>
@@ -362,7 +385,10 @@ const MeterDashboard = () => {
                     title={metric.title}
                     value={metric.value}
                     icon={metric.icon}
-                    status={meterData.status}
+                    status={
+                      meterData.reading.statuses?.meter_status ||
+                      meterData.status
+                    }
                     isLoading={false}
                     meterDetail={false}
                   />
@@ -407,7 +433,7 @@ const MeterDashboard = () => {
 
                     <TabsContent value="graph" className="mt-0">
                       <div className="h-[400px]">
-                        <ChartAreaInteractive data={readingsData || []} />
+                        <ConsumptionChart data={consumption} />
                       </div>
                     </TabsContent>
 
@@ -434,19 +460,21 @@ const MeterDashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <DeviceCard
-                    status={meterData.status}
+                    status={meterData.reading.statuses?.meter_status}
                     signal={true}
                     valve_status={
-                      meterData.reading.statuses.valve_status as
+                      meterData.reading.statuses?.valve_status as
                         | "open"
                         | "closed"
                         | "abnormal"
                         | "unkown"
+                        | undefined
                     }
                     battery_voltage={
-                      meterData.reading.statuses.battery_voltage as
+                      meterData.reading.statuses?.battery_voltage as
                         | "normal"
                         | "low"
+                        | undefined
                     }
                   />
                 </CardContent>

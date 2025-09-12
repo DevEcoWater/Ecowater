@@ -2,30 +2,33 @@
 
 import type { ColumnDef } from "@tanstack/react-table";
 import Chip from "../ui/chip";
-import { MeterDataForTable } from "@/types/meters/meter-types";
-import { normalizeStatus } from "@/utils/normalizeReadingStatusForChip";
+import { StatusReading } from "@/types/meters/meter-types";
 
-export const readingsColumns: ColumnDef<MeterDataForTable>[] = [
+export const readingsColumns: ColumnDef<StatusReading>[] = [
   {
-    accessorKey: "created_at",
+    accessorKey: "timestamp",
     header: "Fecha y Hora",
     cell: ({ row }) => {
-      const date = row.original.statuses.created_at;
-      return new Date(date).toLocaleDateString("es-ES");
+      const date = row.original.timestamp;
+      return new Date(date).toLocaleString("es-ES", {
+        timeZone: "UTC",
+        dateStyle: "short",
+        timeStyle: "medium",
+      });
     },
   },
   {
     accessorKey: "cumulative_flow",
     header: "Flujo acumulado",
     cell: ({ row }) => {
-      return row.original.cumulative_flow;
+      return row.original.cumulative_flow + " m3" || "N/A";
     },
   },
   {
     id: "instantaneous_flow",
     header: "Flujo instantáneo",
     cell: ({ row }) => {
-      return row.original.instantaneous_flow;
+      return row.original.instantaneous_flow + " m3" || "N/A";
     },
   },
 
@@ -33,7 +36,7 @@ export const readingsColumns: ColumnDef<MeterDataForTable>[] = [
     accessorKey: "real_time_temperature",
     header: "Temperatura",
     cell: ({ row }) => {
-      return row.original.real_time_temperature || "N/A";
+      return row.original.real_time_temperature + " °C" || "N/A";
     },
   },
 
@@ -41,7 +44,7 @@ export const readingsColumns: ColumnDef<MeterDataForTable>[] = [
     accessorKey: "meter_status",
     header: "Estado del medidor",
     cell: ({ row }) => {
-      const status = row.original.statuses.meter_status;
+      const status = row.original.statuses?.meter_status || "Desconocido";
       return <Chip status={status} />;
     },
   },
