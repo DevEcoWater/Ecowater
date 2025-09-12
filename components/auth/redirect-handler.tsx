@@ -13,7 +13,7 @@ interface RedirectHandlerProps {
 
 export function RedirectHandler({
   redirectTo = "/dashboard",
-  fallbackTo = "/auth/signin",
+  fallbackTo = "/auth/login",
   loadingMessage = "Cargando...",
 }: RedirectHandlerProps) {
   const { data: session, status } = useSession();
