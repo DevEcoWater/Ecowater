@@ -192,6 +192,26 @@ export async function GET() {
       activeCooperatives = 0;
     }
 
+    // Obtener timestamp de la última lectura
+    let lastReadingTimestamp = null;
+    try {
+      const lastReading = await prisma.reading.findFirst({
+        orderBy: {
+          timestamp: "desc",
+        },
+        select: {
+          timestamp: true,
+        },
+      });
+      lastReadingTimestamp = lastReading?.timestamp || null;
+    } catch (error) {
+      console.error(
+        "[DASHBOARD STATS] Error obteniendo última lectura:",
+        error
+      );
+      lastReadingTimestamp = null;
+    }
+
     // Por ahora, usar valores por defecto para los estados
     const userCounts = {
       total: totalUsers,
@@ -234,6 +254,7 @@ export async function GET() {
             ? "GOOD"
             : "ATTENTION",
       },
+      lastReadingTimestamp,
     };
 
     return NextResponse.json(response);
