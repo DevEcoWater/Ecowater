@@ -6,9 +6,10 @@ export interface MeterDataForTable extends Omit<Meter, ""> {
 
 export interface MeterReading extends Meter {
   reading: StatusReading;
+  user?: string;
 }
 
-interface StatusReading extends Reading {
+export interface StatusReading extends Reading {
   statuses: Status;
 }
 

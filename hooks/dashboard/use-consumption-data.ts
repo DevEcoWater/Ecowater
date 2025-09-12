@@ -27,3 +27,20 @@ export const useConsumptionData = () => {
     staleTime: 30000, // Considerar datos frescos por 30 segundos
   });
 };
+
+export const useConsumptionFromMeterData = (meterId: string) => {
+  return useQuery<ConsumptionData, Error>({
+    queryKey: ["consumption-data", "month"],
+    queryFn: async () => {
+      const response = await fetch(
+        `/api/dashboard/consumption?period=month&meterId=${meterId}`
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch consumption data");
+      }
+      return response.json();
+    },
+    refetchInterval: 60000, // Refrescar cada minuto
+    staleTime: 30000, // Considerar datos frescos por 30 segundos
+  });
+};
