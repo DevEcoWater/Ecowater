@@ -45,10 +45,8 @@ export function HomeDashboard() {
           <Clock className="w-4 h-4" />
           <span>
             Última actualización:{" "}
-            {consumption?.series && consumption.series.length > 0
-              ? formatLastUpdate(
-                  consumption.series[consumption.series.length - 1].fecha
-                )
+            {stats?.lastReadingTimestamp
+              ? formatLastUpdate(stats.lastReadingTimestamp)
               : "Sin datos"}
           </span>
         </div>

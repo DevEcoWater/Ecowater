@@ -32,6 +32,7 @@ export interface DashboardStats {
     totalEntities: number;
     systemHealth: "EXCELLENT" | "GOOD" | "ATTENTION";
   };
+  lastReadingTimestamp: string | null;
 }
 
 export const useDashboardStats = () => {
