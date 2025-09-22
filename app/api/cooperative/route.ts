@@ -9,13 +9,32 @@ export async function GET() {
 }
 
 export async function PUT(req: Request) {
-  const data = await req.json();
-  const existing = await prisma.cooperative.findFirst();
+  try {
+    const data = await req.json();
+    const existing = await prisma.cooperative.findFirst();
 
-  const updated = await prisma.cooperative.update({
-    where: { id: existing.id },
-    data,
-  });
+    if (!existing) {
+      return NextResponse.json(
+        { error: "No cooperative found to update" },
+        { status: 404 }
+      );
+    }
 
-  return NextResponse.json(updated);
+    const updated = await prisma.cooperative.update({
+      where: { id: existing.id },
+      data,
+    });
+
+    return NextResponse.json(updated);
+  } catch (error) {
+    console.error("PUT error:", error);
+    return NextResponse.json(
+      { error: "Failed to update cooperative" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function OPTIONS() {
+  return NextResponse.json({}, { status: 200 });
 }
