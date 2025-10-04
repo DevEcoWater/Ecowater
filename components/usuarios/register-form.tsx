@@ -31,7 +31,7 @@ import { Separator } from "@/components/ui/separator";
 import CoordinateMap from "@/components/ui/coordinateMap";
 import AddressAutocomplete from "@/components/ui/address-autocomplete";
 
-const defaultLocation = { lat: -34.603722, lng: -58.381592 };
+const defaultLocation = { lat: -34.9035949, lng: -58.0373327 };
 
 const formSchema = z
   .object({

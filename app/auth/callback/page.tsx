@@ -10,8 +10,6 @@ export default function AuthCallback() {
   const { data: session, status } = useSession();
 
   useEffect(() => {
-    console.log("Auth callback - status:", status, "session:", session);
-
     if (status === "authenticated" && session) {
       router.push("/dashboard");
     } else if (status === "unauthenticated") {

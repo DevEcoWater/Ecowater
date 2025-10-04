@@ -4,15 +4,15 @@ import { TriangleAlert } from "lucide-react";
 
 interface AlertsCardProps {
   activeAlerts: number;
+  color: string;
+  backgroundColor: string;
 }
 
-export function AlertsCard({ activeAlerts }: AlertsCardProps) {
-  const getAlertLevel = (count: number) => {
-    if (count === 0) return "text-green-600 bg-green-100";
-    if (count < 5) return "text-yellow-600 bg-yellow-100";
-    return "text-orange-600 bg-orange-100";
-  };
-
+export function AlertsCard({
+  activeAlerts,
+  color,
+  backgroundColor,
+}: AlertsCardProps) {
   const getAlertText = (count: number) => {
     if (count === 0) return "Sin alertas";
     if (count < 5) return "Pocas alertas";
@@ -25,15 +25,18 @@ export function AlertsCard({ activeAlerts }: AlertsCardProps) {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-gray-600">Alertas Activas</p>
-            <p className="text-3xl font-bold text-orange-600 mt-2">
+            <p style={{ color: color }} className="text-3xl font-bold  mt-2">
               {activeAlerts}
             </p>
             <p className="text-sm text-gray-500 mt-1">
               {getAlertText(activeAlerts)}
             </p>
           </div>
-          <div className={`p-3 rounded-lg ${getAlertLevel(activeAlerts)}`}>
-            <TriangleAlert className="w-8 h-8" />
+          <div
+            style={{ backgroundColor: backgroundColor }}
+            className={`p-3 rounded-lg`}
+          >
+            <TriangleAlert style={{ color: color }} className="w-8 h-8" />
           </div>
         </div>
       </CardContent>

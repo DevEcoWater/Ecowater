@@ -29,16 +29,20 @@ import { UserButton } from "@/components/medidores/detail/UserButton";
 import { Separator } from "@/components/ui/separator";
 import { ConsumptionChart } from "@/components/dashboard/home/consumption-chart/consumption-chart";
 import { useConsumptionFromMeterData } from "@/hooks/dashboard/use-consumption-data";
+import { PeriodSelector } from "@/components/dashboard/home/consumption-chart/period-selector";
 
 const MeterDashboard = () => {
   const { id } = useParams();
 
+  const [selectedPeriod, setSelectedPeriod] = useState<
+    "7d" | "30d" | "90d" | "1y"
+  >("7d");
   const { data: meterData, isLoading: isLoadingMeter } = useMeterQuery(
     id as string
   );
 
   const { data: consumption, isLoading: consumptionLoading } =
-    useConsumptionFromMeterData(id as string);
+    useConsumptionFromMeterData(id as string, selectedPeriod);
 
   const { data: readingsData } = useMeterReadings(id as string);
 
@@ -187,16 +191,21 @@ const MeterDashboard = () => {
                 <Chip
                   showDot
                   status={
-                    meterData.reading.statuses?.meter_status || "Desconocido"
+                    meterData.connectivity?.status === "ONLINE"
+                      ? "ACTIVE"
+                      : meterData.connectivity?.status === "STALE"
+                      ? "INACTIVE"
+                      : meterData.connectivity?.status === "OFFLINE"
+                      ? "INACTIVE"
+                      : "Desconocido"
                   }
                 />
-                <div className="flex items-center justify-end gap-1 mt-1">
-                  <Clock size={12} className="text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">
-                    Última actualización:{" "}
-                    {dayjs(meterData.updated_at).format("DD/MM/YYYY HH:mm")}
+
+                {meterData.dataFreshness?.warning && (
+                  <p className="text-xs text-orange-600 mt-1">
+                    ⚠️ {meterData.dataFreshness.warning}
                   </p>
-                </div>
+                )}
               </div>
             </div>
           </div>
@@ -227,10 +236,7 @@ const MeterDashboard = () => {
                       title={metric.title}
                       value={metric.value}
                       icon={metric.icon}
-                      status={
-                        meterData.reading.statuses?.meter_status ||
-                        meterData.status
-                      }
+                      status={meterData.status}
                       isLoading={false}
                       meterDetail={false}
                     />
@@ -262,6 +268,14 @@ const MeterDashboard = () => {
             </CardHeader>
             {expandedSections.chart && (
               <CardContent className="pt-0">
+                <div className="mb-4">
+                  <PeriodSelector
+                    currentPeriod={selectedPeriod}
+                    onPeriodChange={setSelectedPeriod}
+                    meterStatus={meterData.status || "Desconocido"}
+                  />
+                </div>
+
                 <Tabs
                   value={viewMode}
                   onValueChange={(value) =>
@@ -286,7 +300,10 @@ const MeterDashboard = () => {
                   </TabsList>
 
                   <TabsContent value="graph" className="mt-0">
-                    <ConsumptionChart data={consumption} />
+                    <ConsumptionChart
+                      data={consumption}
+                      meterStatus={meterData.status || "Desconocido"}
+                    />
                   </TabsContent>
 
                   <TabsContent value="table" className="mt-0">
@@ -323,7 +340,7 @@ const MeterDashboard = () => {
             {expandedSections.status && (
               <CardContent className="pt-0">
                 <DeviceCard
-                  status={meterData.reading.statuses?.meter_status}
+                  status={meterData.status}
                   signal={true}
                   valve_status={
                     meterData.reading.statuses?.valve_status as
@@ -361,7 +378,7 @@ const MeterDashboard = () => {
             </CardHeader>
             {expandedSections.alerts && (
               <CardContent className="pt-0">
-                <AlertComponent readingData={meterData.reading} />
+                <AlertComponent meterId={meterData.id} />
               </CardContent>
             )}
           </Card>
@@ -379,10 +396,7 @@ const MeterDashboard = () => {
                     title={metric.title}
                     value={metric.value}
                     icon={metric.icon}
-                    status={
-                      meterData.reading.statuses?.meter_status ||
-                      meterData.status
-                    }
+                    status={meterData.status}
                     isLoading={false}
                     meterDetail={false}
                   />
@@ -424,10 +438,20 @@ const MeterDashboard = () => {
                         Tabla
                       </TabsTrigger>
                     </TabsList>
+                    <div className="mb-4 mx-auto w-[300px]">
+                      <PeriodSelector
+                        currentPeriod={selectedPeriod}
+                        onPeriodChange={setSelectedPeriod}
+                        meterStatus={meterData.status || "Desconocido"}
+                      />
+                    </div>
 
                     <TabsContent value="graph" className="mt-0">
-                      <div className="h-[400px]">
-                        <ConsumptionChart data={consumption} />
+                      <div className="h-full">
+                        <ConsumptionChart
+                          data={consumption}
+                          meterStatus={meterData.status || "Desconocido"}
+                        />
                       </div>
                     </TabsContent>
 
@@ -454,7 +478,7 @@ const MeterDashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <DeviceCard
-                    status={meterData.reading.statuses?.meter_status}
+                    status={meterData.status}
                     signal={true}
                     valve_status={
                       meterData.reading.statuses?.valve_status as
@@ -482,7 +506,7 @@ const MeterDashboard = () => {
                   </h2>
                 </CardHeader>
                 <CardContent>
-                  <AlertComponent readingData={meterData.reading} />
+                  <AlertComponent meterId={meterData.id} />
                 </CardContent>
               </Card>
             </div>

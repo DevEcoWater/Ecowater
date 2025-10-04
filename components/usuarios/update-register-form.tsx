@@ -46,8 +46,9 @@ import { UserStatus } from "@prisma/client";
 import AddressAutocomplete from "@/components/ui/address-autocomplete";
 import CoordinateMap from "@/components/ui/coordinateMap";
 import { UpdateUserFormValues } from "@/types/users/user-types";
+import { useSession } from "next-auth/react";
 
-const defaultLocation = { lat: -34.603722, lng: -58.381592 };
+const defaultLocation = { lat: -34.9035949, lng: -58.0373327 };
 
 // Define form schema with Zod
 const formSchema = z.object({
@@ -73,6 +74,7 @@ declare global {
 
 export default function UpdateUserForm() {
   const { toast } = useToast();
+  const session = useSession();
   const router = useRouter();
   const params = useParams();
   const userId = params.id as string;
@@ -266,33 +268,36 @@ export default function UpdateUserForm() {
                     )}
                   />
 
-                  <FormField
-                    control={form.control}
-                    name="status"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Estado del Usuario</FormLabel>
-                        <Select
-                          disabled={isLoadingUser}
-                          onValueChange={field.onChange}
-                          value={field.value ?? UserStatus.ACTIVE}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Seleccione un estado" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent avoidCollisions={false}>
-                            <SelectItem value="ACTIVE">Activo</SelectItem>
-                            <SelectItem value="INACTIVE">Inactivo</SelectItem>
-                            <SelectItem value="PENDING">Pendiente</SelectItem>
-                            <SelectItem value="BLOCKED">Bloqueado</SelectItem>
-                          </SelectContent>
-                        </Select>
+                  {session.data.user.role === "admin" && (
+                    <FormField
+                      control={form.control}
+                      name="status"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Estado del Usuario</FormLabel>
+                          <Select
+                            disabled={isLoadingUser}
+                            onValueChange={field.onChange}
+                            value={field.value ?? UserStatus.ACTIVE}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Seleccione un estado" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent avoidCollisions={false}>
+                              <SelectItem value="ACTIVE">Activo</SelectItem>
+                              <SelectItem value="INACTIVE">Inactivo</SelectItem>
+                              <SelectItem value="PENDING">Pendiente</SelectItem>
+                              <SelectItem value="BLOCKED">Bloqueado</SelectItem>
+                            </SelectContent>
+                          </Select>
 
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -358,7 +363,8 @@ export default function UpdateUserForm() {
                 <Button
                   type="submit"
                   className="w-full sm:w-[200px]"
-                  disabled={isLoading}>
+                  disabled={isLoading}
+                >
                   <Save className="mr-2 h-4 w-4" />
                   {isLoading ? "Guardando..." : "Guardar Cambios"}
                 </Button>
@@ -367,7 +373,8 @@ export default function UpdateUserForm() {
                   variant="outline"
                   className="w-full sm:w-[200px]"
                   onClick={() => router.back()}
-                  disabled={isLoading}>
+                  disabled={isLoading}
+                >
                   Cancelar
                 </Button>
               </div>

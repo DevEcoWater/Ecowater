@@ -13,13 +13,6 @@ export async function PUT(req: Request) {
     const data = await req.json();
     const existing = await prisma.cooperative.findFirst();
 
-    if (!existing) {
-      return NextResponse.json(
-        { error: "No cooperative found to update" },
-        { status: 404 }
-      );
-    }
-
     const updated = await prisma.cooperative.update({
       where: { id: existing.id },
       data,
@@ -27,14 +20,10 @@ export async function PUT(req: Request) {
 
     return NextResponse.json(updated);
   } catch (error) {
-    console.error("PUT error:", error);
+    console.error("[UPDATE COOPERATIVE]", error);
     return NextResponse.json(
       { error: "Failed to update cooperative" },
-      { status: 500 }
+      { status: 400 }
     );
   }
-}
-
-export async function OPTIONS() {
-  return NextResponse.json({}, { status: 200 });
 }

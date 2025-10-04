@@ -1,7 +1,18 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, MeterStatus } from "@prisma/client";
 
 const prisma = new PrismaClient();
+
+// Función para calcular el estado global de medidores
+function getOverallMeterStatus(statuses: MeterStatus[]): MeterStatus {
+  if (statuses.includes(MeterStatus.FAULTY)) return MeterStatus.FAULTY;
+  if (statuses.includes(MeterStatus.INACTIVE)) return MeterStatus.INACTIVE;
+  if (statuses.includes(MeterStatus.MAINTENANCE))
+    return MeterStatus.MAINTENANCE;
+  if (statuses.every((s) => s === MeterStatus.ACTIVE))
+    return MeterStatus.ACTIVE;
+  return MeterStatus.ACTIVE; // fallback
+}
 
 export async function GET() {
   try {
@@ -22,19 +33,19 @@ export async function GET() {
 
     try {
       totalUsers = await prisma.user.count();
-    } catch (error) {
+    } catch {
       totalUsers = 0;
     }
 
     try {
       totalMeters = await prisma.meter.count();
-    } catch (error) {
+    } catch {
       totalMeters = 0;
     }
 
     try {
       totalCooperatives = await prisma.cooperative.count();
-    } catch (error) {
+    } catch {
       totalCooperatives = 0;
     }
 
@@ -66,16 +77,15 @@ export async function GET() {
           },
         },
       });
-    } catch (error) {
+    } catch {
       totalReadings = 0;
     }
 
-    // Obtener consumo total del MES ACTUAL COMPLETO (1 al 30/31)
+    // Obtener consumo total del mes actual
     let totalConsumption = 0;
     try {
       const tz = "America/Argentina/Buenos_Aires";
       const now = new Date();
-
       // Mes actual completo: del 1 al último día del mes
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
@@ -91,10 +101,9 @@ export async function GET() {
         return new Date(ymd + "T00:00:00Z");
       };
 
-      const startMid = toMidnight(startOfMonth); // 00:00 AR del 1 del mes
-      const endMidExcl = toMidnight(endOfMonth); // 00:00 AR del 1 del mes siguiente
+      const startMid = toMidnight(startOfMonth);
+      const endMidExcl = toMidnight(endOfMonth);
 
-      // Usar el mismo método de cierres que consumption API
       const consumptionResult = await prisma.$queryRawUnsafe(
         `
         WITH base AS (
@@ -117,7 +126,6 @@ export async function GET() {
             timestamp
           FROM base
         ),
-        -- Método de cierres para el mes completo
         daily_buckets AS (
           SELECT DISTINCT date_trunc('day', local_ts) AS bucket_local
           FROM norm
@@ -161,14 +169,15 @@ export async function GET() {
 
       totalConsumption = Number(consumptionResult[0]?.total_consumo || 0);
     } catch (error) {
-      console.error("[DASHBOARD STATS] Error calculando consumo total:", error);
       totalConsumption = 0;
     }
 
-    // Obtener medidores con problemas
+    // Obtener medidores con problemas (incluyendo alertas de Status)
     let problematicMeters = 0;
+    let totalAlerts = 0;
     try {
-      problematicMeters = await prisma.meter.count({
+      // Medidores con problemas directos
+      const directProblems = await prisma.meter.count({
         where: {
           OR: [
             { status: "FAULTY" },
@@ -176,8 +185,43 @@ export async function GET() {
           ],
         },
       });
+
+      // Medidores con alertas críticas en Status
+      const criticalAlerts = await prisma.$queryRaw`
+        SELECT COUNT(DISTINCT r.meter_id) as count
+        FROM "Reading" r
+        JOIN "Status" s ON s.reading_id = r.id
+        WHERE (
+          s.empty_pipe_alarm = true OR
+          s.reverse_flow_alarm = true OR
+          s.ee_alarm = true OR
+          s.over_range_alarm = true OR
+          s.water_temp_alarm = true OR
+          s.valve_status = 'abnormal' OR
+          (s.battery_status = false OR s.battery_voltage = 'low')
+        )
+        AND r.timestamp >= NOW() - INTERVAL '24 hours'
+      `;
+
+      // Medidores inactivos (sin lecturas en 24h)
+      const inactiveMeters = await prisma.meter.count({
+        where: {
+          readings: {
+            none: {
+              timestamp: {
+                gte: new Date(Date.now() - 24 * 60 * 60 * 1000),
+              },
+            },
+          },
+        },
+      });
+
+      problematicMeters =
+        directProblems + Number(criticalAlerts[0]?.count || 0) + inactiveMeters;
+      totalAlerts = Number(criticalAlerts[0]?.count || 0) + inactiveMeters;
     } catch (error) {
       problematicMeters = 0;
+      totalAlerts = 0;
     }
 
     // Obtener cooperativas activas
@@ -188,11 +232,11 @@ export async function GET() {
           status: "ACTIVE",
         },
       });
-    } catch (error) {
+    } catch {
       activeCooperatives = 0;
     }
 
-    // Obtener timestamp de la última lectura
+    // Última lectura
     let lastReadingTimestamp = null;
     try {
       const lastReading = await prisma.reading.findFirst({
@@ -205,17 +249,25 @@ export async function GET() {
       });
       lastReadingTimestamp = lastReading?.timestamp || null;
     } catch (error) {
-      console.error(
-        "[DASHBOARD STATS] Error obteniendo última lectura:",
-        error
-      );
       lastReadingTimestamp = null;
     }
 
-    // Por ahora, usar valores por defecto para los estados
+    // Estados de medidores → overallStatus
+    let overallMeterStatus: MeterStatus = MeterStatus.ACTIVE;
+    try {
+      const meters = await prisma.meter.findMany({
+        select: { status: true },
+      });
+
+      overallMeterStatus = getOverallMeterStatus(meters.map((m) => m.status));
+    } catch {
+      overallMeterStatus = MeterStatus.ACTIVE;
+    }
+
+    // Armado de respuesta
     const userCounts = {
       total: totalUsers,
-      active: totalUsers, // Por ahora asumimos que todos están activos
+      active: totalUsers,
       inactive: 0,
       pending: 0,
       blocked: 0,
@@ -223,10 +275,11 @@ export async function GET() {
 
     const meterCounts = {
       total: totalMeters,
-      active: totalMeters - problematicMeters, // Medidores totales menos los problemáticos
+      active: totalMeters - problematicMeters,
       inactive: 0,
       maintenance: 0,
       faulty: problematicMeters,
+      overallStatus: overallMeterStatus, // 👈 agregado
     };
 
     const response = {
@@ -239,11 +292,11 @@ export async function GET() {
       },
       readings: {
         total: totalReadings,
-        recent: totalConsumption, // Consumo total del mes actual completo (1 al 30/31)
+        recent: totalConsumption,
       },
       alerts: {
         problematicMeters,
-        totalAlerts: problematicMeters,
+        totalAlerts,
       },
       summary: {
         totalEntities: totalUsers + totalMeters + totalCooperatives,
@@ -270,8 +323,8 @@ export async function GET() {
   } finally {
     try {
       await prisma.$disconnect();
-    } catch (error) {
-      // Error silencioso al cerrar conexión
+    } catch {
+      // Error silencioso
     }
   }
 }

@@ -9,12 +9,17 @@ import { useUrgencies } from "@/hooks/dashboard/use-urgencies";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle, Clock } from "lucide-react";
 import { UrgenciesSection } from "./urgencies/urgencies-section";
+import { getStatusColor } from "@/utils/getStatusColor";
 
 export function HomeDashboard() {
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
   const { data: consumption, isLoading: consumptionLoading } =
     useConsumptionData();
   const { data: urgencies, isLoading: urgenciesLoading } = useUrgencies();
+
+  const { color, backgroundColor } = getStatusColor(
+    stats?.meters?.overallStatus
+  );
 
   if (statsLoading || consumptionLoading || urgenciesLoading) {
     return <DashboardSkeleton />;
@@ -39,8 +44,7 @@ export function HomeDashboard() {
   return (
     <div className="space-y-6">
       {/* Header con última actualización */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+      <div className="flex items-center justify-end">
         <div className="flex items-center gap-2 text-sm text-gray-600">
           <Clock className="w-4 h-4" />
           <span>
@@ -53,13 +57,20 @@ export function HomeDashboard() {
       </div>
 
       {/* Cards de resumen */}
-      <SummaryCards stats={stats} />
+      <SummaryCards
+        stats={stats}
+        color={color}
+        backgroundColor={backgroundColor}
+      />
 
       {/* Gráfico de consumo y urgencias */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Gráfico de consumo (80%) */}
         <div className="lg:col-span-3">
-          <ConsumptionChart data={consumption} />
+          <ConsumptionChart
+            data={consumption}
+            meterStatus={stats?.meters?.overallStatus}
+          />
         </div>
 
         {/* Sección de urgencias (20%) */}
@@ -74,8 +85,7 @@ export function HomeDashboard() {
 function DashboardSkeleton() {
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <Skeleton className="h-8 w-32" />
+      <div className="flex items-center justify-end">
         <Skeleton className="h-6 w-48" />
       </div>
 

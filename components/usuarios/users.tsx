@@ -45,25 +45,26 @@ const Users = () => {
   };
 
   return (
-    <div className="w-full h-full">
+    <section className="w-full h-full py-10">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-col gap-4 md:gap-6 md:flex-col w-full">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between w-full gap-4">
             <div className="flex items-center flex-wrap gap-2">
               <div className="flex w-full md:w-[350px]">
                 <Input
-                  placeholder="Filtrar por email..."
+                  placeholder="Filtrar por nombre o apellido"
                   value={inputValue}
                   onChange={(event) => setInputValue(event.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") handleSearch();
                   }}
-                  className="rounded-r-none focus:outline-none"
+                  className="rounded-r-none focus:outline-none focus:ring-0 focus:ring-offset-0"
                 />
                 <Button
                   onClick={handleSearch}
                   className="rounded-l-none h-10"
-                  type="submit">
+                  type="submit"
+                >
                   <Search className="h-4 w-4" />
                 </Button>
               </div>
@@ -131,7 +132,8 @@ const Users = () => {
                     <PaginationLink
                       onClick={() => setPage(pageNum)}
                       isActive={page === pageNum}
-                      className="cursor-pointer">
+                      className="cursor-pointer"
+                    >
                       {pageNum}
                     </PaginationLink>
                   </PaginationItem>
@@ -152,7 +154,7 @@ const Users = () => {
           </Pagination>
         </div>
       )}
-    </div>
+    </section>
   );
 };
 

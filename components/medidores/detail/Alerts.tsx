@@ -1,14 +1,38 @@
 import React from "react";
-import {
-  TriangleAlert,
-  Thermometer,
-  Battery,
-  RotateCcw,
-  Wrench,
-} from "lucide-react";
+import { TriangleAlert, Clock } from "lucide-react";
+import { useMeterDetailUrgencies } from "@/hooks/urgencies/use-urgencies";
+import { MeterStatusBadge } from "@/components/ui/meter-status-badge";
 
-const AlertComponent = ({ readingData }) => {
-  if (!readingData || !readingData.statuses) {
+interface AlertComponentProps {
+  meterId: string;
+}
+
+const AlertComponent = ({ meterId }: AlertComponentProps) => {
+  const {
+    data: urgencies,
+    isLoading,
+    error,
+  } = useMeterDetailUrgencies(meterId);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-2 p-4 border border-gray-200 rounded-lg bg-gray-50">
+        <TriangleAlert size={18} className="text-gray-500" />
+        <p className="text-sm text-gray-600">Cargando alertas...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center gap-2 p-4 border border-red-200 rounded-lg bg-red-50">
+        <TriangleAlert size={18} className="text-red-700" />
+        <p className="text-sm text-red-800">Error al cargar las alertas.</p>
+      </div>
+    );
+  }
+
+  if (!urgencies) {
     return (
       <div className="flex items-center gap-2 p-4 border border-yellow-200 rounded-lg bg-yellow-50">
         <TriangleAlert size={18} className="text-yellow-700" />
@@ -19,127 +43,131 @@ const AlertComponent = ({ readingData }) => {
     );
   }
 
-  const status = readingData.statuses;
-
-  const valveLabels: Record<string, string> = {
-    open: "Abierta",
-    closed: "Cerrada",
-    abnormal: "Anómala",
-    unknown: "Desconocida",
-  };
-
-  const batteryLabels: Record<string, string> = {
-    normal: "Normal",
-    low: "Batería baja",
-  };
-
-  const possibleAlerts = [
-    {
-      condition: status.water_temp_alarm,
-      message: `Temperatura del agua: ${readingData.real_time_temperature}`,
-      icon: <Thermometer size={15} />,
-      error: false,
-    },
-    {
-      condition:
-        status.battery_status === "low" || status.battery_voltage !== "normal",
-      message: `Problema con la batería: ${
-        batteryLabels[status.battery_voltage] || "Ver Batería"
-      }`,
-      icon: <Battery size={15} />,
-      error: false,
-    },
-    {
-      condition: parseFloat(readingData.reverse_flow) > 0.1,
-      message: `Flujo reverso detectado: ${readingData.reverse_flow}`,
-      icon: <RotateCcw size={15} />,
-      error: false,
-    },
-    {
-      condition:
-        status.meter_status === "MAINTENANCE" ||
-        status.operational_status === "NEEDS_MAINTENANCE",
-      message: `Mantenimiento requerido`,
-      icon: <Wrench size={15} />,
-      error: false,
-    },
-    {
-      condition: status.valve_status !== "open",
-      message: `Estado de la válvula: ${
-        valveLabels[status.valve_status] ?? "Desconocida"
-      }`,
-      icon: <TriangleAlert size={15} />,
-      error: false,
-    },
-    {
-      condition: readingData.alarm_status && readingData.alarm_status !== "00",
-      message: `Alarma de estado: ${readingData.alarm_status}`,
-      icon: <TriangleAlert size={15} />,
-      error: false,
-    },
-    {
-      condition: readingData.error_code !== null,
-      message: `Código de error: ${readingData.error_code}`,
-      icon: <TriangleAlert size={15} />,
-      error: false,
-    },
-    {
-      condition: status.ee_alarm,
-      message: `Error Circuito Eléctrico`,
-      icon: <TriangleAlert size={15} />,
-      error: true,
-    },
-    {
-      condition: status.empty_type_alarm,
-      message: `Alarma de tubería vacía`,
-      icon: <TriangleAlert size={15} />,
-      error: false,
-    },
-    {
-      condition: status.over_range_alarm,
-      message: `Alarma de rango activada`,
-      icon: <TriangleAlert size={15} />,
-      error: false,
-    },
-    {
-      condition: status.reverse_flow_alarm,
-      message: `Error Flujo Invertido`,
-      icon: <TriangleAlert size={15} />,
-      error: true,
-    },
+  const allAlerts = [
+    ...urgencies.alerts.critical,
+    ...urgencies.alerts.high,
+    ...urgencies.alerts.medium,
+    ...urgencies.alerts.low,
+    ...urgencies.alerts.inactive,
   ];
 
-  const activeAlerts = possibleAlerts.filter((alert) => alert.condition);
-
-  if (activeAlerts.length === 0) {
+  if (allAlerts.length === 0) {
     return (
       <div className="p-4 border border-green-200 rounded-lg bg-green-50">
-        <p className="text-sm text-green-800">No hay alarmas activas.</p>
+        <p className="text-sm text-green-800">No hay alertas activas.</p>
       </div>
     );
   }
 
+  const getAlertStyle = (severity: string) => {
+    switch (severity) {
+      case "CRITICAL":
+        return {
+          bgColor: "bg-red-50",
+          borderColor: "border-red-200",
+          textColor: "text-red-800",
+          iconColor: "text-red-700",
+        };
+      case "HIGH":
+        return {
+          bgColor: "bg-orange-50",
+          borderColor: "border-orange-200",
+          textColor: "text-orange-800",
+          iconColor: "text-orange-700",
+        };
+      case "MEDIUM":
+        return {
+          bgColor: "bg-yellow-50",
+          borderColor: "border-yellow-200",
+          textColor: "text-yellow-800",
+          iconColor: "text-yellow-700",
+        };
+      default:
+        return {
+          bgColor: "bg-gray-50",
+          borderColor: "border-gray-200",
+          textColor: "text-gray-800",
+          iconColor: "text-gray-700",
+        };
+    }
+  };
+
+  const formatTimestamp = (timestamp: string) => {
+    try {
+      const date = new Date(timestamp);
+      return date.toLocaleString("es-ES", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return "Desconocido";
+    }
+  };
+
   return (
     <div className="flex flex-col gap-4">
-      {activeAlerts.map((alert, index) => (
-        <div
-          key={index}
-          className={`flex items-center justify-start gap-2 p-4 border ${
-            alert.error
-              ? "border-red-200 rounded-lg bg-red-50"
-              : "border-yellow-200 rounded-lg bg-yellow-50"
-          } `}
-        >
-          {alert.icon}
-          <p
-            className={`text-sm ${
-              alert.error ? "text-red-800" : "text-yellow-800"
-            } `}
-          >
-            {alert.message}
-          </p>
+      {/* Estado de conectividad */}
+      {allAlerts.length > 0 && allAlerts[0].connectivity && (
+        <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+          <div className="mb-2">
+            <h4 className="text-sm font-medium text-gray-700 mb-2">
+              Estado de Conectividad
+            </h4>
+            <MeterStatusBadge
+              connectivity={allAlerts[0].connectivity}
+              meterStatus={allAlerts[0].meter?.status}
+              operationalStatus={allAlerts[0].meter?.operational_status}
+              showDetails={true}
+              size="md"
+            />
+          </div>
         </div>
-      ))}
+      )}
+
+      {/* Alertas */}
+      {allAlerts.map((alert, index) => {
+        const style = getAlertStyle(alert.severity);
+        return (
+          <div
+            key={`${alert.type}-${index}`}
+            className={`flex items-start gap-3 p-4 border rounded-lg ${style.bgColor} ${style.borderColor}`}
+          >
+            <TriangleAlert size={18} className={`${style.iconColor} mt-0.5`} />
+            <div className="flex-1">
+              <div className="flex items-start justify-between">
+                <p className={`text-sm font-medium ${style.textColor} mb-1`}>
+                  {alert.message}
+                </p>
+                {alert.dataFreshness && !alert.dataFreshness.isRecent && (
+                  <span className="text-xs text-orange-600 bg-orange-100 px-2 py-1 rounded">
+                    {alert.dataFreshness.age}
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 text-xs text-gray-500">
+                <Clock size={12} />
+                <span>
+                  {alert.reading?.timestamp
+                    ? formatTimestamp(alert.reading.timestamp)
+                    : alert.created_at
+                    ? formatTimestamp(alert.created_at)
+                    : "Sin fecha"}
+                </span>
+              </div>
+
+              {alert.dataFreshness?.warning && (
+                <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
+                  ⚠️ {alert.dataFreshness.warning}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 };

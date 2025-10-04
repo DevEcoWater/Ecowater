@@ -16,6 +16,9 @@ import Profile from "@/components/profile";
 import { Separator } from "@/components/ui/separator";
 import { PageHeaderProvider } from "@/context/page-header-provider";
 import { AuthGuard } from "@/components/auth/auth-guard";
+import { configureDayjs } from "@/utils/configureDayjs";
+
+configureDayjs();
 
 export default function DashboardLayout({
   children,

@@ -45,8 +45,6 @@ export async function POST(request: Request) {
       timestamps: parseTimestamp(parseData.timestamps),
     };
 
-    console.log(finalAlertStatus, "finalAlertStatus");
-
     const meter = await prisma.meter.upsert({
       where: { dev_eui: devEUI },
       update: {
@@ -61,6 +59,7 @@ export async function POST(request: Request) {
           : null,
         status: finalAlertStatus.meter_status,
         operational_status: finalAlertStatus.operational_status,
+        updated_at: convertTimestampToArgentinaTime(timestamp),
       },
       create: {
         dev_eui: devEUI,
@@ -75,6 +74,7 @@ export async function POST(request: Request) {
           : null,
         status: finalAlertStatus.meter_status,
         operational_status: finalAlertStatus.operational_status,
+        created_at: convertTimestampToArgentinaTime(timestamp),
       },
     });
 
@@ -113,6 +113,7 @@ export async function POST(request: Request) {
         ee_alarm: finalAlertStatus.ee_alarm,
         meter_status: finalAlertStatus.meter_status,
         operational_status: finalAlertStatus.operational_status,
+        created_at: convertTimestampToArgentinaTime(timestamp),
       },
     });
 
@@ -152,7 +153,6 @@ export async function POST(request: Request) {
       { status: 200 }
     );
   } catch (error) {
-    console.error("Error saving meter data:", error);
     if (error instanceof Error) {
       return NextResponse.json(
         { message: "Error saving meter data", error: error.message },

@@ -25,6 +25,7 @@ import {
 import { DeleteUserModal } from "../modals/delete-user-modal";
 import { ReactivateUserModal } from "../modals/reactive-user-modal";
 import { UserDataForTable } from "@/types/users/user-types";
+import { useSession } from "next-auth/react";
 
 interface UserActionsProps {
   user: UserDataForTable;
@@ -36,6 +37,9 @@ interface UserActionsProps {
 
 export const UserActions = ({ user }: UserActionsProps) => {
   const router = useRouter();
+  const session = useSession();
+  const role = session.data?.user?.role || [];
+
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isReactivateModalOpen, setIsReactivateModalOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
@@ -46,6 +50,10 @@ export const UserActions = ({ user }: UserActionsProps) => {
 
   const handleViewUser = () => {
     router.push(`/dashboard/usuarios/${user.id}`);
+  };
+
+  const handleViewMeter = () => {
+    router.push(`/dashboard/medidores/${user.userMeters.meter_id}`);
   };
 
   const handleEditUser = () => {
@@ -78,7 +86,8 @@ export const UserActions = ({ user }: UserActionsProps) => {
           <Button
             variant="ghost"
             className="h-8 w-8 p-0"
-            onClick={(e) => e.stopPropagation()}>
+            onClick={(e) => e.stopPropagation()}
+          >
             <span className="sr-only">Abrir menú</span>
             <MoreHorizontal className="h-4 w-4" />
           </Button>
@@ -87,43 +96,57 @@ export const UserActions = ({ user }: UserActionsProps) => {
           align="end"
           sideOffset={8}
           // portalled={false}
-          collisionPadding={10}>
+          collisionPadding={10}
+        >
           <DropdownMenuLabel>Acciones</DropdownMenuLabel>
           <DropdownMenuItem
             className="cursor-pointer flex items-center gap-2"
-            onSelect={handleViewUser}>
+            onSelect={handleViewUser}
+          >
             <User2 className="h-4 w-4" />
             Detalle del usuario
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             className="cursor-pointer flex items-center gap-2"
-            onSelect={handleEditUser}>
+            onSelect={handleEditUser}
+          >
             <NotebookPen className="h-4 w-4" />
             Editar usuario
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             className="cursor-pointer flex items-center gap-2"
-            // onSelect={handleViewMeter}
+            onSelect={handleViewMeter}
           >
             <Gauge className="h-4 w-4" />
             Medidor asignado
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          {isUserInactive ? (
-            <DropdownMenuItem
-              className="cursor-pointer flex items-center gap-2 text-green-600"
-              onSelect={handleReactivate}>
-              <RefreshCw className="h-4 w-4" />
-              Reactivar usuario
-            </DropdownMenuItem>
+          {role === "admin" ? (
+            isUserInactive ? (
+              <DropdownMenuItem
+                className="cursor-pointer flex items-center gap-2 text-green-600"
+                onSelect={handleReactivate}
+              >
+                <RefreshCw className="h-4 w-4" />
+                Reactivar usuario
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem
+                className="cursor-pointer flex items-center gap-2 text-destructive"
+                onSelect={handleDelete}
+              >
+                <Trash2 className="h-4 w-4" />
+                Desactivar usuario
+              </DropdownMenuItem>
+            )
           ) : (
             <DropdownMenuItem
               className="cursor-pointer flex items-center gap-2 text-destructive"
-              onSelect={handleDelete}>
-              <Trash2 className="h-4 w-4" />
-              Desactivar usuario
+              onSelect={handleDelete}
+            >
+              No tenés permisos para desactivar usuarios
             </DropdownMenuItem>
           )}
         </DropdownMenuContent>

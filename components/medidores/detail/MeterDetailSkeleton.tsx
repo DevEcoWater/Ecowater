@@ -82,7 +82,7 @@ export function DashboardSkeleton() {
                         )}
                       </div>
                       {/* Chart area */}
-                      <div className="h-[320px] bg-muted/20 rounded-lg flex items-center justify-center">
+                      <div className="h-[23rem] bg-muted/20 rounded-lg flex items-center justify-center">
                         <Skeleton className="h-full w-full" />
                       </div>
                       {/* Chart legend */}

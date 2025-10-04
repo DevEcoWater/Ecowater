@@ -46,8 +46,17 @@ function CoordinateMap({
     scrollwheel: !readOnly,
     draggable: !readOnly,
     clickableIcons: !readOnly,
-    minZoom: 2,
-    maxZoom: 18,
+    minZoom: 15,
+    maxZoom: 17,
+    restriction: {
+      latLngBounds: {
+        north: -34.9035949 + 0.01,
+        south: -34.9035949 - 0.01,
+        east: -58.0373327 + 0.01,
+        west: -58.0373327 - 0.01,
+      },
+      strictBounds: true,
+    },
   };
 
   const onLoad = useCallback((map: google.maps.Map) => {
