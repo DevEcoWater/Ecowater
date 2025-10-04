@@ -24,7 +24,6 @@ export function AuthGuard({
   const router = useRouter();
 
   useEffect(() => {
-    console.log("AuthGuard - status:", status, "session:", !!session);
     if (status === "loading") return;
 
     if (requireAuth && status === "unauthenticated") {

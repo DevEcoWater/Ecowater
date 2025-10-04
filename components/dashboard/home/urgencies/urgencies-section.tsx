@@ -90,7 +90,8 @@ export function UrgenciesSection({
             </div>
             <button
               onClick={() => setIsExpanded(true)}
-              className="text-blue-600 hover:text-blue-800 text-sm">
+              className="text-blue-600 hover:text-blue-800 text-sm"
+            >
               Ver
             </button>
           </div>
@@ -109,7 +110,8 @@ export function UrgenciesSection({
           </CardTitle>
           <button
             onClick={() => setIsExpanded(false)}
-            className="text-gray-400 hover:text-gray-600">
+            className="text-gray-400 hover:text-gray-600"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>

@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import dayjs from "dayjs";
 
 export interface ConsumptionData {
   meterId: string; // "all" o UUID específico
@@ -14,33 +15,41 @@ export interface ConsumptionData {
 }
 
 export const useConsumptionData = () => {
-  return useQuery<ConsumptionData, Error>({
-    queryKey: ["consumption-data", "month"],
-    queryFn: async () => {
-      const response = await fetch(`/api/dashboard/consumption?period=month`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch consumption data");
-      }
-      return response.json();
-    },
-    refetchInterval: 60000, // Refrescar cada minuto
-    staleTime: 30000, // Considerar datos frescos por 30 segundos
-  });
-};
+  const startOfMonth = dayjs().startOf("month").format("YYYY-MM-DD");
+  const endOfMonth = dayjs().endOf("month").format("YYYY-MM-DD");
 
-export const useConsumptionFromMeterData = (meterId: string) => {
   return useQuery<ConsumptionData, Error>({
-    queryKey: ["consumption-data", "month"],
+    queryKey: ["consumption-data", startOfMonth, endOfMonth],
     queryFn: async () => {
       const response = await fetch(
-        `/api/dashboard/consumption?period=month&meterId=${meterId}`
+        `/api/dashboard/consumption?startDate=${startOfMonth}&endDate=${endOfMonth}`
       );
       if (!response.ok) {
         throw new Error("Failed to fetch consumption data");
       }
       return response.json();
     },
-    refetchInterval: 60000, // Refrescar cada minuto
-    staleTime: 30000, // Considerar datos frescos por 30 segundos
+    refetchInterval: 60000,
+    staleTime: 30000,
+  });
+};
+
+export const useConsumptionFromMeterData = (
+  meterId: string,
+  period: "7d" | "30d" | "90d" | "1y"
+) => {
+  return useQuery<ConsumptionData, Error>({
+    queryKey: ["consumption-data", meterId, period],
+    queryFn: async () => {
+      const response = await fetch(
+        `/api/dashboard/consumption?meterId=${meterId}&period=${period}`
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch consumption data");
+      }
+      return response.json();
+    },
+    refetchInterval: 60000,
+    staleTime: 30000,
   });
 };

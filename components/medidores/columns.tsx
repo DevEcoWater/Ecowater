@@ -4,11 +4,12 @@ import type { ColumnDef } from "@tanstack/react-table";
 import Chip from "../ui/chip";
 import { MeterActions } from "./meter-actions";
 import { MeterDataForTable } from "@/types/meters/meter-types";
+import dayjs from "dayjs";
 
 export const meterColumns: ColumnDef<MeterDataForTable>[] = [
   {
     accessorKey: "dev_eui",
-    header: "Codigo del Medidor",
+    header: "Código del Medidor",
   },
   {
     accessorKey: "created_at",
@@ -23,14 +24,13 @@ export const meterColumns: ColumnDef<MeterDataForTable>[] = [
     header: "Ultima actualización",
     cell: ({ row }) => {
       const date = row.original.updated_at;
-      return new Date(date).toLocaleDateString("es-ES");
+      return dayjs(date).format("DD/MM/YYYY HH:mm");
     },
   },
   {
     id: "address",
     header: "Dirección del cliente",
     cell: ({ row }) => {
-      console.log(row.original, "row original");
       const shortData = row.original.userMeter?.shortData.split(",")[0];
 
       return shortData || "Sin dirección";

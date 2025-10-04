@@ -1,3 +1,4 @@
+import { MeterStatus } from "@prisma/client";
 import { useQuery } from "@tanstack/react-query";
 
 export interface DashboardStats {
@@ -14,6 +15,7 @@ export interface DashboardStats {
     inactive: number;
     maintenance: number;
     faulty: number;
+    overallStatus: MeterStatus;
   };
   cooperatives: {
     total: number;

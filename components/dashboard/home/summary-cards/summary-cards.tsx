@@ -8,9 +8,15 @@ import { useUrgencies } from "@/hooks/urgencies/use-urgencies";
 
 interface SummaryCardsProps {
   stats: DashboardStats;
+  color: string;
+  backgroundColor: string;
 }
 
-export function SummaryCards({ stats }: SummaryCardsProps) {
+export function SummaryCards({
+  stats,
+  color,
+  backgroundColor,
+}: SummaryCardsProps) {
   const { data: urgencies } = useUrgencies({
     includeInactive: true,
     limit: 100,
@@ -24,16 +30,30 @@ export function SummaryCards({ stats }: SummaryCardsProps) {
   const totalErrors =
     (urgencies?.alerts.critical.length || 0) +
     (urgencies?.alerts.high.length || 0);
-
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      <ConsumptionCard totalConsumption={stats.readings.recent} period="mes" />
+      <ConsumptionCard
+        totalConsumption={stats.readings.recent}
+        period="mes"
+        color={color}
+        backgroundColor={backgroundColor}
+      />
       <MetersCard
         totalMeters={stats.meters.total}
         onlineMeters={stats.meters.active}
+        color={color}
+        backgroundColor={backgroundColor}
       />
-      <AlertsCard activeAlerts={totalAlerts} />
-      <ErrorsCard totalErrors={totalErrors} />
+      <AlertsCard
+        activeAlerts={totalAlerts}
+        color={color}
+        backgroundColor={backgroundColor}
+      />
+      <ErrorsCard
+        totalErrors={totalErrors}
+        color={color}
+        backgroundColor={backgroundColor}
+      />
     </div>
   );
 }

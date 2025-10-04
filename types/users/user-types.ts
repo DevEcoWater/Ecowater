@@ -1,4 +1,4 @@
-import { Address, Meter, User, UserStatus } from "@prisma/client";
+import { Address, Meter, User, UserMeter, UserStatus } from "@prisma/client";
 
 export interface UserDetail {
   id: string;
@@ -18,6 +18,7 @@ export interface UserDataForTable extends User {
   address?: any;
   role?: string;
   adress?: Address;
+  userMeters?: UserMeter;
 }
 export interface UserColumn
   extends Omit<
