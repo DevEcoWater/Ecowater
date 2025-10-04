@@ -21,14 +21,16 @@ const poppins = Poppins({
 export const metadata: Metadata = {
   title: "Eco Water",
   description: "",
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+    apple: "/icon.svg",
+  },
 };
 
 export default function Layout({ children }: LayoutProps): React.JSX.Element {
   return (
     <html lang="es">
-      <head>
-        <link rel="icon" href="/favicon.ico" />
-      </head>
       <body className={poppins.className}>
         <Providers>{children}</Providers>
       </body>
