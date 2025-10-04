@@ -187,16 +187,21 @@ const MeterDashboard = () => {
                 <Chip
                   showDot
                   status={
-                    meterData.reading.statuses?.meter_status || "Desconocido"
+                    meterData.connectivity?.status === "ONLINE"
+                      ? "ACTIVE"
+                      : meterData.connectivity?.status === "STALE"
+                      ? "INACTIVE"
+                      : meterData.connectivity?.status === "OFFLINE"
+                      ? "INACTIVE"
+                      : "Desconocido"
                   }
                 />
-                <div className="flex items-center justify-end gap-1 mt-1">
-                  <Clock size={12} className="text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">
-                    Última actualización:{" "}
-                    {dayjs(meterData.updated_at).format("DD/MM/YYYY HH:mm")}
+
+                {meterData.dataFreshness?.warning && (
+                  <p className="text-xs text-orange-600 mt-1">
+                    ⚠️ {meterData.dataFreshness.warning}
                   </p>
-                </div>
+                )}
               </div>
             </div>
           </div>
@@ -207,8 +212,7 @@ const MeterDashboard = () => {
           <Card>
             <CardHeader
               className="pb-3 cursor-pointer"
-              onClick={() => toggleSection("metrics")}
-            >
+              onClick={() => toggleSection("metrics")}>
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold">Métricas Principales</h2>
                 {expandedSections.metrics ? (
@@ -244,8 +248,7 @@ const MeterDashboard = () => {
           <Card>
             <CardHeader
               className="pb-3 cursor-pointer"
-              onClick={() => toggleSection("chart")}
-            >
+              onClick={() => toggleSection("chart")}>
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-lg font-semibold">Consumo de Agua</h2>
@@ -266,20 +269,17 @@ const MeterDashboard = () => {
                   value={viewMode}
                   onValueChange={(value) =>
                     setViewMode(value as "graph" | "table")
-                  }
-                >
+                  }>
                   <TabsList className="grid w-full grid-cols-2 mb-4">
                     <TabsTrigger
                       value="graph"
-                      className="flex items-center gap-2"
-                    >
+                      className="flex items-center gap-2">
                       <BarChart3 size={16} />
                       <span className="hidden sm:inline">Gráfico</span>
                     </TabsTrigger>
                     <TabsTrigger
                       value="table"
-                      className="flex items-center gap-2"
-                    >
+                      className="flex items-center gap-2">
                       <Table size={16} />
                       <span className="hidden sm:inline">Tabla</span>
                     </TabsTrigger>
@@ -307,8 +307,7 @@ const MeterDashboard = () => {
           <Card>
             <CardHeader
               className="pb-3 cursor-pointer"
-              onClick={() => toggleSection("status")}
-            >
+              onClick={() => toggleSection("status")}>
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold">
                   Estado del Dispositivo
@@ -348,8 +347,7 @@ const MeterDashboard = () => {
           <Card>
             <CardHeader
               className="pb-3 cursor-pointer"
-              onClick={() => toggleSection("alerts")}
-            >
+              onClick={() => toggleSection("alerts")}>
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold">Alertas</h2>
                 {expandedSections.alerts ? (
@@ -361,7 +359,7 @@ const MeterDashboard = () => {
             </CardHeader>
             {expandedSections.alerts && (
               <CardContent className="pt-0">
-                <AlertComponent readingData={meterData.reading} />
+                <AlertComponent meterId={meterData.id} />
               </CardContent>
             )}
           </Card>
@@ -406,20 +404,17 @@ const MeterDashboard = () => {
                     value={viewMode}
                     onValueChange={(value) =>
                       setViewMode(value as "graph" | "table")
-                    }
-                  >
+                    }>
                     <TabsList className="mb-4">
                       <TabsTrigger
                         value="graph"
-                        className="flex items-center gap-2"
-                      >
+                        className="flex items-center gap-2">
                         <BarChart3 size={16} />
                         Gráfico
                       </TabsTrigger>
                       <TabsTrigger
                         value="table"
-                        className="flex items-center gap-2"
-                      >
+                        className="flex items-center gap-2">
                         <Table size={16} />
                         Tabla
                       </TabsTrigger>
@@ -482,7 +477,7 @@ const MeterDashboard = () => {
                   </h2>
                 </CardHeader>
                 <CardContent>
-                  <AlertComponent readingData={meterData.reading} />
+                  <AlertComponent meterId={meterData.id} />
                 </CardContent>
               </Card>
             </div>

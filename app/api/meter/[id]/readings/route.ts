@@ -26,8 +26,6 @@ export async function GET(
       prisma.reading.count({ where: { meter_id: params.id } }),
     ]);
 
-    console.log(readings, total);
-
     // ✅ normalize statuses → status (single object)
     const normalized = readings.map((r) => ({
       ...r,

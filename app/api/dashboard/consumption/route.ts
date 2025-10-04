@@ -102,15 +102,6 @@ export async function GET(req: Request) {
     const { startDate, endDate, groupBy, fromExplicit, startOut, endOut } =
       resolveRange(searchParams, tz);
 
-    // 🔍 DEBUGGING TEMPORAL
-    console.log("🔍 === CONSUMPTION API DEBUG ===");
-    console.log(
-      `📅 Rango: ${startDate.toISOString()} a ${endDate.toISOString()}`
-    );
-    console.log(`🌍 Timezone: ${tz}`);
-    console.log(`📊 GroupBy: ${groupBy}`);
-    console.log(`🔧 MeterId: ${meterId || "ALL"}`);
-
     const rows: Array<{
       fecha: string;
       consumo_m3: number;
@@ -213,7 +204,6 @@ ORDER BY bucket_local;
       series,
     });
   } catch (e) {
-    console.error("Consumption API error:", e);
     return NextResponse.json(
       { error: "Failed to fetch consumption data" },
       { status: 500 }

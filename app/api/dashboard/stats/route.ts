@@ -161,14 +161,15 @@ export async function GET() {
 
       totalConsumption = Number(consumptionResult[0]?.total_consumo || 0);
     } catch (error) {
-      console.error("[DASHBOARD STATS] Error calculando consumo total:", error);
       totalConsumption = 0;
     }
 
-    // Obtener medidores con problemas
+    // Obtener medidores con problemas (incluyendo alertas de Status)
     let problematicMeters = 0;
+    let totalAlerts = 0;
     try {
-      problematicMeters = await prisma.meter.count({
+      // Medidores con problemas directos
+      const directProblems = await prisma.meter.count({
         where: {
           OR: [
             { status: "FAULTY" },
@@ -176,8 +177,43 @@ export async function GET() {
           ],
         },
       });
+
+      // Medidores con alertas críticas en Status
+      const criticalAlerts = await prisma.$queryRaw`
+        SELECT COUNT(DISTINCT r.meter_id) as count
+        FROM "Reading" r
+        JOIN "Status" s ON s.reading_id = r.id
+        WHERE (
+          s.empty_pipe_alarm = true OR
+          s.reverse_flow_alarm = true OR
+          s.ee_alarm = true OR
+          s.over_range_alarm = true OR
+          s.water_temp_alarm = true OR
+          s.valve_status = 'abnormal' OR
+          (s.battery_status = false OR s.battery_voltage = 'low')
+        )
+        AND r.timestamp >= NOW() - INTERVAL '24 hours'
+      `;
+
+      // Medidores inactivos (sin lecturas en 24h)
+      const inactiveMeters = await prisma.meter.count({
+        where: {
+          readings: {
+            none: {
+              timestamp: {
+                gte: new Date(Date.now() - 24 * 60 * 60 * 1000),
+              },
+            },
+          },
+        },
+      });
+
+      problematicMeters =
+        directProblems + Number(criticalAlerts[0]?.count || 0) + inactiveMeters;
+      totalAlerts = Number(criticalAlerts[0]?.count || 0) + inactiveMeters;
     } catch (error) {
       problematicMeters = 0;
+      totalAlerts = 0;
     }
 
     // Obtener cooperativas activas
@@ -205,10 +241,6 @@ export async function GET() {
       });
       lastReadingTimestamp = lastReading?.timestamp || null;
     } catch (error) {
-      console.error(
-        "[DASHBOARD STATS] Error obteniendo última lectura:",
-        error
-      );
       lastReadingTimestamp = null;
     }
 
@@ -243,7 +275,7 @@ export async function GET() {
       },
       alerts: {
         problematicMeters,
-        totalAlerts: problematicMeters,
+        totalAlerts,
       },
       summary: {
         totalEntities: totalUsers + totalMeters + totalCooperatives,

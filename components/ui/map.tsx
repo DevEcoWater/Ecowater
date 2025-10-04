@@ -40,8 +40,8 @@ const containerStyle = {
 };
 
 const center = {
-  lat: -34.905,
-  lng: -58.038,
+  lat: -34.90813431153549,
+  lng: -58.03651143251905,
 };
 
 function Map() {
@@ -340,11 +340,17 @@ function Map() {
 
   const OPTIONS = useMemo(
     () => ({
-      minZoom: 2,
-      maxZoom: 16,
-      // restriction: bounds
-      //   ? { latLngBounds: bounds, strictBounds: true }
-      //   : undefined,
+      minZoom: 8,
+      maxZoom: 18,
+      restriction: {
+        latLngBounds: {
+          north: -34.9035949 + 0.01,
+          south: -34.9035949 - 0.01,
+          east: -58.0373327 + 0.01,
+          west: -58.0373327 - 0.01,
+        },
+        strictBounds: true,
+      },
       styles:
         mapTheme === "satellite"
           ? hidePoiLabels
@@ -411,7 +417,6 @@ function Map() {
                 : []),
             ],
       mapTypeId: (mapTheme === "satellite" ? "hybrid" : "roadmap") as any,
-      disableDefaultUI: true,
       gestureHandling: "greedy",
     }),
     [bounds, mapTheme, hidePoiLabels]
@@ -481,8 +486,9 @@ function Map() {
         );
         gmap.fitBounds(gBounds);
       } else {
-        const gBounds = new window.google.maps.LatLngBounds(center);
-        gmap.fitBounds(gBounds);
+        // Usar zoom 8 y centro específico (igual que el botón RESET)
+        gmap.setZoom(8);
+        gmap.panTo(center as google.maps.LatLngLiteral);
       }
       setMap(gmap);
 
@@ -515,9 +521,9 @@ function Map() {
       options={OPTIONS}
       mapContainerStyle={containerStyle}
       center={center}
+      zoom={8}
       onLoad={onLoad}
-      onUnmount={onUnmount}
-    >
+      onUnmount={onUnmount}>
       <div className="absolute right-4 top-4 z-[1] w-[280px]">
         <Collapsible defaultOpen>
           <div className="bg-white rounded-md shadow">
@@ -530,8 +536,7 @@ function Map() {
                   <span className="text-sm font-medium">Estilo</span>
                   <Select
                     value={mapTheme}
-                    onValueChange={(v) => setMapTheme(v as any)}
-                  >
+                    onValueChange={(v) => setMapTheme(v as any)}>
                     <SelectTrigger className="w-[150px]">
                       <SelectValue placeholder="Tema del mapa" />
                     </SelectTrigger>
@@ -572,8 +577,7 @@ function Map() {
                     ).map((s) => (
                       <div
                         key={s}
-                        className="flex items-center justify-between"
-                      >
+                        className="flex items-center justify-between">
                         <Chip key={s} status={s} />
 
                         <Checkbox
@@ -588,32 +592,15 @@ function Map() {
                       </div>
                     ))}
                   </div>
-                  <div className="flex gap-2 pt-2">
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => {
-                        if (!map) return;
-                        if (bounds) {
-                          const gBounds = new window.google.maps.LatLngBounds(
-                            { lat: bounds.south, lng: bounds.west },
-                            { lat: bounds.north, lng: bounds.east }
-                          );
-                          map.fitBounds(gBounds);
-                        }
-                      }}
-                    >
-                      <Minimize2 className="w-4 h-4" /> Ajustar
-                    </Button>
+                  <div className="flex justify-center">
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => {
                         if (!map) return;
-                        map.setZoom(12);
+                        map.setZoom(8);
                         map.panTo(center as google.maps.LatLngLiteral);
-                      }}
-                    >
+                      }}>
                       <RefreshCw className="w-4 h-4" /> Reset
                     </Button>
                   </div>
@@ -638,16 +625,14 @@ function Map() {
               icon={{
                 url: createColoredIcon(textColor),
                 scaledSize: new google.maps.Size(30, 45),
-              }}
-            >
+              }}>
               {activeMarker === index && (
                 <InfoWindow
                   position={{
                     lat: item.lat,
                     lng: item.lng,
                   }}
-                  onCloseClick={() => setActiveMarker(null)}
-                >
+                  onCloseClick={() => setActiveMarker(null)}>
                   <div className="p-2 bg-white rounded shadow-lg flex flex-col justify-start items-start gap-4">
                     <div className="flex gap-2 justify-between w-full items-center">
                       <p className="text-balance text-sm text-muted-foreground">
@@ -680,8 +665,7 @@ function Map() {
                     <div>
                       <Link
                         href={`/dashboard/medidores/${item.id}`}
-                        className="text-primary underline"
-                      >
+                        className="text-primary underline">
                         Ver medidor
                       </Link>
                     </div>
@@ -695,8 +679,7 @@ function Map() {
       {activeCluster && (
         <InfoWindow
           position={activeCluster.position}
-          onCloseClick={() => setActiveCluster(null)}
-        >
+          onCloseClick={() => setActiveCluster(null)}>
           <div className="p-2 bg-white rounded shadow-lg max-w-xs">
             <h3 className="text-lg font-bold">Información de la zona</h3>
             <p className="text-sm text-gray-600">
@@ -718,8 +701,7 @@ function Map() {
                       <Chip status={markerData.status} />{" "}
                       <Link
                         href={`/dashboard/medidores/${markerData.id}`}
-                        className="text-primary underline"
-                      >
+                        className="text-primary underline">
                         Ver medidor
                       </Link>
                     </p>

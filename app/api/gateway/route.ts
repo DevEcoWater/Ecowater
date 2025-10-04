@@ -45,8 +45,6 @@ export async function POST(request: Request) {
       timestamps: parseTimestamp(parseData.timestamps),
     };
 
-    console.log(finalAlertStatus, "finalAlertStatus");
-
     const meter = await prisma.meter.upsert({
       where: { dev_eui: devEUI },
       update: {
@@ -152,7 +150,6 @@ export async function POST(request: Request) {
       { status: 200 }
     );
   } catch (error) {
-    console.error("Error saving meter data:", error);
     if (error instanceof Error) {
       return NextResponse.json(
         { message: "Error saving meter data", error: error.message },
