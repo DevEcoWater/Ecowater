@@ -41,12 +41,46 @@ export async function GET(_: Request, { params }: Context) {
         }
       : null;
 
+    // Calcular estado de conectividad basado en la última lectura
+    const now = new Date();
+    const last24Hours = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
+
+    const isValidTimestamp =
+      lastReading && lastReading.timestamp <= oneHourFromNow;
+    const isActive =
+      isValidTimestamp && lastReading && lastReading.timestamp >= last24Hours;
+
+    const connectivityStatus = isActive
+      ? "ONLINE"
+      : lastReading
+      ? "STALE"
+      : "OFFLINE";
+    const hoursSinceLastReading = lastReading
+      ? Math.floor(
+          (now.getTime() - lastReading.timestamp.getTime()) / (1000 * 60 * 60)
+        )
+      : null;
+
     // ✅ Flatten user relation
     const userMeter = meter.userMeters[0] || null;
     const rawResponse = {
       ...meter,
       user: userMeter ? userMeter.user.id : null,
       reading: formattedReading,
+      connectivity: {
+        status: connectivityStatus,
+        lastSeen: lastReading?.timestamp || null,
+        signalQuality: isActive ? "EXCELLENT" : "UNKNOWN",
+      },
+      dataFreshness: {
+        isRecent: isActive,
+        age: hoursSinceLastReading
+          ? `${hoursSinceLastReading}h atrás`
+          : "Desconocido",
+        warning:
+          !isActive && lastReading ? "Medidor sin actividad reciente" : null,
+      },
     };
 
     // remove nested userMeters if you don't want it

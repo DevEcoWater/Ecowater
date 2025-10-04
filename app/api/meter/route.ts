@@ -25,18 +25,67 @@ export async function GET(req: Request) {
               },
             },
           },
-          readings: true,
+          readings: {
+            orderBy: { timestamp: "desc" },
+            take: 1,
+          },
         },
         orderBy: { created_at: "desc" },
       }),
       prisma.meter.count(),
     ]);
 
-    const meters = rawMeters.map(({ userMeters, ...meter }) => {
+    const meters = rawMeters.map(({ userMeters, readings, ...meter }) => {
       const userMeter = userMeters[0];
+      const lastReading = readings[0];
+
+      // Calcular estado de conectividad basado en la última lectura
+      const now = new Date();
+      const last24Hours = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
+
+      const isValidTimestamp =
+        lastReading && lastReading.timestamp <= oneHourFromNow;
+      const isActive =
+        isValidTimestamp && lastReading && lastReading.timestamp >= last24Hours;
+
+      const connectivityStatus = isActive
+        ? "ONLINE"
+        : lastReading
+        ? "STALE"
+        : "OFFLINE";
+      const hoursSinceLastReading = lastReading
+        ? Math.floor(
+            (now.getTime() - lastReading.timestamp.getTime()) / (1000 * 60 * 60)
+          )
+        : null;
+
+      // Mapear estado de conectividad a estado de chip
+      const chipStatus =
+        connectivityStatus === "ONLINE" ? "ACTIVE" : "INACTIVE";
 
       if (!userMeter) {
-        return { ...meter, userMeter: null };
+        return {
+          ...meter,
+          userMeter: null,
+          connectivity: {
+            status: connectivityStatus,
+            lastSeen: lastReading?.timestamp || null,
+            signalQuality: isActive ? "EXCELLENT" : "UNKNOWN",
+          },
+          dataFreshness: {
+            isRecent: isActive,
+            age: hoursSinceLastReading
+              ? `${hoursSinceLastReading}h atrás`
+              : "Desconocido",
+            warning:
+              !isActive && lastReading
+                ? "Medidor sin actividad reciente"
+                : null,
+          },
+          // Usar estado de conectividad en lugar del estado de BD
+          status: chipStatus as MeterStatus,
+        };
       }
 
       const shortData = userMeter.user?.address?.shortData ?? null;
@@ -54,6 +103,21 @@ export async function GET(req: Request) {
           shortData,
           userName,
         },
+        connectivity: {
+          status: connectivityStatus,
+          lastSeen: lastReading?.timestamp || null,
+          signalQuality: isActive ? "EXCELLENT" : "UNKNOWN",
+        },
+        dataFreshness: {
+          isRecent: isActive,
+          age: hoursSinceLastReading
+            ? `${hoursSinceLastReading}h atrás`
+            : "Desconocido",
+          warning:
+            !isActive && lastReading ? "Medidor sin actividad reciente" : null,
+        },
+        // Usar estado de conectividad en lugar del estado de BD
+        status: chipStatus as MeterStatus,
       };
     });
 
@@ -71,11 +135,16 @@ export async function GET(req: Request) {
       );
     }
 
+    // Calcular conteos basados en conectividad real
     const counts = {
-      actives: rawMeters.filter((m) => m.status === "ACTIVE").length,
-      inactives: rawMeters.filter((m) => m.status === "INACTIVE").length,
-      maintenances: rawMeters.filter((m) => m.status === "MAINTENANCE").length,
-      faultys: rawMeters.filter((m) => m.status === "FAULTY").length,
+      actives: meters.filter((m) => m.connectivity?.status === "ONLINE").length,
+      inactives: meters.filter(
+        (m) =>
+          m.connectivity?.status === "STALE" ||
+          m.connectivity?.status === "OFFLINE"
+      ).length,
+      maintenances: 0, // No aplicamos lógica de conectividad a mantenimiento
+      faultys: 0, // No aplicamos lógica de conectividad a fallas
     };
 
     return NextResponse.json({

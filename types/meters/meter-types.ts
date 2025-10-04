@@ -2,11 +2,31 @@ import { Meter, Reading, Status } from "@prisma/client";
 
 export interface MeterDataForTable extends Omit<Meter, ""> {
   userMeter?: TUserMeter;
+  connectivity?: {
+    status: "ONLINE" | "OFFLINE" | "STALE";
+    lastSeen: string | null;
+    signalQuality: "EXCELLENT" | "GOOD" | "POOR" | "UNKNOWN";
+  };
+  dataFreshness?: {
+    isRecent: boolean;
+    age: string;
+    warning: string | null;
+  };
 }
 
 export interface MeterReading extends Meter {
   reading: StatusReading;
   user?: string;
+  connectivity?: {
+    status: "ONLINE" | "OFFLINE" | "STALE";
+    lastSeen: string | null;
+    signalQuality: "EXCELLENT" | "GOOD" | "POOR" | "UNKNOWN";
+  };
+  dataFreshness?: {
+    isRecent: boolean;
+    age: string;
+    warning: string | null;
+  };
 }
 
 export interface StatusReading extends Reading {

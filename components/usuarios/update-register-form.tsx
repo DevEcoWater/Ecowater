@@ -47,7 +47,7 @@ import AddressAutocomplete from "@/components/ui/address-autocomplete";
 import CoordinateMap from "@/components/ui/coordinateMap";
 import { UpdateUserFormValues } from "@/types/users/user-types";
 
-const defaultLocation = { lat: -34.603722, lng: -58.381592 };
+const defaultLocation = { lat: -34.9035949, lng: -58.0373327 };
 
 // Define form schema with Zod
 const formSchema = z.object({

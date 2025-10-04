@@ -159,9 +159,20 @@ Este directorio contiene las APIs del dashboard de EcoWater para el análisis de
 
 ## 🚨 Urgencies API
 
-**Endpoint:** `GET /api/dashboard/urgencies`
+**Endpoint:** `GET /api/urgencies`
 
-**Propósito:** Obtener alertas y urgencias del sistema.
+**Propósito:** Obtener alertas y urgencias del sistema de forma unificada para dashboard y detalle de medidor.
+
+### Parámetros
+
+| Parámetro         | Tipo      | Requerido | Descripción                         | Valores                                     |
+| ----------------- | --------- | --------- | ----------------------------------- | ------------------------------------------- |
+| `meterId`         | `string`  | No        | ID del medidor específico           | UUID o `"all"` (default)                    |
+| `limit`           | `number`  | No        | Límite de resultados                | `100` (default)                             |
+| `severity`        | `string`  | No        | Filtrar por severidad               | `"CRITICAL"`, `"HIGH"`, `"MEDIUM"`, `"LOW"` |
+| `types`           | `string`  | No        | Filtrar por tipos (comma-separated) | `"CRITICAL_METER,EMPTY_PIPE_ALARM"`         |
+| `includeInactive` | `boolean` | No        | Incluir medidores inactivos         | `true`/`false` (default: `false`)           |
+| `context`         | `string`  | No        | Contexto de uso                     | `"dashboard"` (default), `"detail"`         |
 
 ### Respuesta
 
@@ -169,26 +180,37 @@ Este directorio contiene las APIs del dashboard de EcoWater para el análisis de
 {
   "alerts": {
     "critical": [...],
-    "alarms": [...],
+    "high": [...],
+    "medium": [...],
+    "low": [...],
     "inactive": [...]
   },
-  "urgencyMetrics": {
-    "totalAlerts": 0,
+  "meta": {
+    "total": 0,
     "criticalCount": 0,
-    "alarmCount": 0,
+    "highCount": 0,
+    "mediumCount": 0,
+    "lowCount": 0,
     "inactiveCount": 0,
-    "usersAffected": 0,
-    "systemHealth": "GOOD"
+    "meterId": "all",
+    "limit": 100,
+    "context": "dashboard"
   },
-  "usersWithProblems": [...]
+  "systemHealth": "EXCELLENT"
 }
 ```
 
 ### Tipos de Alertas
 
-1. **CRITICAL_METER**: Medidores con estado crítico
-2. **ALARM**: Lecturas con alarmas detectadas
-3. **INACTIVE_METER**: Medidores sin transmisión > 24h
+1. **CRITICAL**: `EMPTY_PIPE_ALARM`, `REVERSE_FLOW_ALARM`, `CRITICAL_METER`
+2. **HIGH**: `OVER_RANGE_ALARM`, `WATER_TEMP_ALARM`, `VALVE_ISSUE` (abnormal)
+3. **MEDIUM**: `BATTERY_LOW`, `EE_ALARM`, `MAINTENANCE_NEEDED`, `VALVE_ISSUE` (closed)
+4. **LOW**: `INACTIVE_METER`
+
+### Contextos de Uso
+
+- **Dashboard** (`context: "dashboard"`): Solo muestra alertas de inactividad
+- **Detalle** (`context: "detail"`): Muestra alertas históricas + inactividad con contexto temporal
 
 ---
 

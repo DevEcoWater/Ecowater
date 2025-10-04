@@ -24,7 +24,7 @@ export function UrgencyTabs({
   ] as const;
 
   return (
-    <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
+    <div className="flex space-x-1  p-1 rounded-lg">
       {tabs.map((tab) => (
         <Button
           key={tab.value}

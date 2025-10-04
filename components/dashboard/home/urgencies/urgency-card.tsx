@@ -1,24 +1,27 @@
 import React from "react";
-import { AlertTriangle, Zap, Gauge, Clock } from "lucide-react";
-import { UrgencyData } from "@/hooks/dashboard/use-urgencies";
-
-type UrgencyItem =
-  | UrgencyData["alerts"]["critical"][0]
-  | UrgencyData["alerts"]["alarms"][0]
-  | UrgencyData["alerts"]["inactive"][0];
-
+import { AlertTriangle, Zap, Gauge, Clock, ArrowRight } from "lucide-react";
+import { Alert } from "@/hooks/urgencies/use-urgencies";
+import { MeterStatusIndicator } from "@/components/ui/meter-status-badge";
+import Link from "next/link";
 interface UrgencyCardProps {
-  urgency: UrgencyItem;
+  urgency: Alert;
 }
 
 export function UrgencyCard({ urgency }: UrgencyCardProps) {
   const getUrgencyStyle = () => {
-    switch (urgency.priority) {
-      case "HIGH":
+    switch (urgency.severity) {
+      case "CRITICAL":
         return {
           bgColor: "bg-red-50",
           borderColor: "border-red-200",
           iconColor: "text-red-500",
+          icon: AlertTriangle,
+        };
+      case "HIGH":
+        return {
+          bgColor: "bg-orange-50",
+          borderColor: "border-orange-200",
+          iconColor: "text-orange-500",
           icon: AlertTriangle,
         };
       case "MEDIUM":
@@ -42,24 +45,31 @@ export function UrgencyCard({ urgency }: UrgencyCardProps) {
     switch (urgency.type) {
       case "CRITICAL_METER":
         return "Medidor Crítico";
-      case "ALARM":
-        return "Alarma Detectada";
+      case "VALVE_ISSUE":
+        return "Problema de Válvula";
+      case "BATTERY_LOW":
+        return "Batería Baja";
+      case "EMPTY_PIPE_ALARM":
+        return "Alarma de Tubería Vacía";
+      case "REVERSE_FLOW_ALARM":
+        return "Alarma de Flujo Reverso";
+      case "OVER_RANGE_ALARM":
+        return "Alarma de Rango Excedido";
+      case "WATER_TEMP_ALARM":
+        return "Alarma de Temperatura";
+      case "EE_ALARM":
+        return "Alarma EE";
+      case "MAINTENANCE_NEEDED":
+        return "Mantenimiento Requerido";
       case "INACTIVE_METER":
         return "Medidor Inactivo";
       default:
-        return "Urgencia";
+        return urgency.message || "Urgencia";
     }
   };
 
   const getUrgencyDescription = () => {
-    if (urgency.type === "CRITICAL_METER") {
-      return `Medidor ${urgency.meter.device_name} con estado crítico`;
-    } else if (urgency.type === "ALARM") {
-      return `Alarma en medidor ${urgency.meter.device_name}`;
-    } else if (urgency.type === "INACTIVE_METER") {
-      return `Medidor ${urgency.meter.device_name} sin transmisión`;
-    }
-    return "Descripción no disponible";
+    return urgency.message || `Medidor ${urgency.meter.device_name}`;
   };
 
   const formatTimestamp = (timestamp: string) => {
@@ -81,37 +91,65 @@ export function UrgencyCard({ urgency }: UrgencyCardProps) {
   const Icon = style.icon;
 
   return (
-    <div
-      className={`p-3 rounded-lg border ${style.bgColor} ${style.borderColor}`}
-    >
-      <div className="flex items-start gap-3">
-        <div className={`p-2 rounded-lg bg-white ${style.iconColor}`}>
-          <Icon className="w-4 h-4" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <h4 className="font-medium text-gray-900 text-sm mb-1">
-            {getUrgencyTitle()}
-          </h4>
-          <p className="text-gray-600 text-xs mb-2">
-            {getUrgencyDescription()}
-          </p>
-          {urgency.user && (
-            <p className="text-gray-500 text-xs mb-2">
-              Usuario: {urgency.user.name}
+    <Link href={`dashboard/medidores/${urgency.meter.id}`}>
+      <div
+        className={`p-3 rounded-lg border ${style.bgColor} ${style.borderColor} hover:shadow-md transition-shadow duration-200 group cursor-pointer`}>
+        <div className="flex items-start gap-3">
+          <div className={`p-2 rounded-lg bg-white ${style.iconColor}`}>
+            <Icon className="w-4 h-4" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between">
+              <h4 className="font-medium text-gray-900 text-sm mb-1">
+                {getUrgencyTitle()}
+              </h4>
+              <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-blue-600 transition-colors duration-200" />
+            </div>
+            <p className="text-gray-600 text-xs mb-2">
+              {getUrgencyDescription()}
             </p>
-          )}
-          <div className="flex items-center gap-2 text-xs text-gray-500">
-            <Clock className="w-3 h-3" />
-            {/* <span>
-              {urgency.type === "INACTIVE_METER"
-                ? urgency.lastActivity
-                : formatTimestamp(
-                    urgency.timestamp || new Date().toISOString()
-                  )}
-            </span> */}
+            <div className="text-gray-500 text-xs mb-2">
+              Medidor: {urgency.meter.device_name}
+              <span className="text-gray-500 text-xs mb-2">
+                {" "}
+                | {urgency.meter.dev_eui}
+              </span>
+            </div>
+            {urgency.user && (
+              <p className="text-gray-500 text-xs mb-2">
+                Usuario: {urgency.user.name}
+              </p>
+            )}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs text-gray-500">
+                <Clock className="w-3 h-3" />
+                <span>
+                  {urgency.reading?.timestamp
+                    ? formatTimestamp(urgency.reading.timestamp)
+                    : urgency.created_at
+                    ? formatTimestamp(urgency.created_at)
+                    : "Sin fecha"}
+                </span>
+              </div>
+
+              {/* Indicador de conectividad */}
+              {urgency.connectivity && (
+                <MeterStatusIndicator
+                  connectivity={urgency.connectivity}
+                  size="sm"
+                />
+              )}
+            </div>
+
+            {/* Indicador de frescura de datos */}
+            {urgency.dataFreshness && !urgency.dataFreshness.isRecent && (
+              <div className="mt-2 p-2 bg-orange-50 border border-orange-200 rounded text-xs text-orange-800">
+                ⚠️ {urgency.dataFreshness.warning}
+              </div>
+            )}
           </div>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }

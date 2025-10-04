@@ -16,7 +16,7 @@ import Chip from "@/components/ui/chip";
 import { chipConfig } from "@/utils/getChipColor";
 import CoordinateMap from "@/components/ui/coordinateMap";
 
-const defaultLocation = { lat: -34.603722, lng: -58.381592 };
+const defaultLocation = { lat: -34.9035949, lng: -58.0373327 };
 
 export default function UserDetailPage() {
   const params = useParams();
@@ -152,15 +152,13 @@ export default function UserDetailPage() {
                           {userData.role ? (
                             <Badge
                               className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 transition-colors px-3 py-1 text-sm font-medium"
-                              variant="outline"
-                            >
+                              variant="outline">
                               {formatUserType(userData.role)}
                             </Badge>
                           ) : (
                             <Badge
                               className="bg-muted text-muted-foreground border-border px-3 py-1 text-sm"
-                              variant="outline"
-                            >
+                              variant="outline">
                               Rol desconocido
                             </Badge>
                           )}
@@ -233,8 +231,7 @@ export default function UserDetailPage() {
                             onClick={() =>
                               handleRedirect(userData && userData.meter.id)
                             }
-                            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
-                          >
+                            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium">
                             Ver Medidor
                           </Button>
                         </div>
