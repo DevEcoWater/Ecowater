@@ -29,16 +29,20 @@ import { UserButton } from "@/components/medidores/detail/UserButton";
 import { Separator } from "@/components/ui/separator";
 import { ConsumptionChart } from "@/components/dashboard/home/consumption-chart/consumption-chart";
 import { useConsumptionFromMeterData } from "@/hooks/dashboard/use-consumption-data";
+import { PeriodSelector } from "@/components/dashboard/home/consumption-chart/period-selector";
 
 const MeterDashboard = () => {
   const { id } = useParams();
 
+  const [selectedPeriod, setSelectedPeriod] = useState<
+    "7d" | "30d" | "90d" | "1y"
+  >("7d");
   const { data: meterData, isLoading: isLoadingMeter } = useMeterQuery(
     id as string
   );
 
   const { data: consumption, isLoading: consumptionLoading } =
-    useConsumptionFromMeterData(id as string);
+    useConsumptionFromMeterData(id as string, selectedPeriod);
 
   const { data: readingsData } = useMeterReadings(id as string);
 
@@ -212,7 +216,8 @@ const MeterDashboard = () => {
           <Card>
             <CardHeader
               className="pb-3 cursor-pointer"
-              onClick={() => toggleSection("metrics")}>
+              onClick={() => toggleSection("metrics")}
+            >
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold">Métricas Principales</h2>
                 {expandedSections.metrics ? (
@@ -231,10 +236,7 @@ const MeterDashboard = () => {
                       title={metric.title}
                       value={metric.value}
                       icon={metric.icon}
-                      status={
-                        meterData.reading.statuses?.meter_status ||
-                        meterData.status
-                      }
+                      status={meterData.status}
                       isLoading={false}
                       meterDetail={false}
                     />
@@ -248,7 +250,8 @@ const MeterDashboard = () => {
           <Card>
             <CardHeader
               className="pb-3 cursor-pointer"
-              onClick={() => toggleSection("chart")}>
+              onClick={() => toggleSection("chart")}
+            >
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-lg font-semibold">Consumo de Agua</h2>
@@ -265,28 +268,42 @@ const MeterDashboard = () => {
             </CardHeader>
             {expandedSections.chart && (
               <CardContent className="pt-0">
+                <div className="mb-4">
+                  <PeriodSelector
+                    currentPeriod={selectedPeriod}
+                    onPeriodChange={setSelectedPeriod}
+                    meterStatus={meterData.status || "Desconocido"}
+                  />
+                </div>
+
                 <Tabs
                   value={viewMode}
                   onValueChange={(value) =>
                     setViewMode(value as "graph" | "table")
-                  }>
+                  }
+                >
                   <TabsList className="grid w-full grid-cols-2 mb-4">
                     <TabsTrigger
                       value="graph"
-                      className="flex items-center gap-2">
+                      className="flex items-center gap-2"
+                    >
                       <BarChart3 size={16} />
                       <span className="hidden sm:inline">Gráfico</span>
                     </TabsTrigger>
                     <TabsTrigger
                       value="table"
-                      className="flex items-center gap-2">
+                      className="flex items-center gap-2"
+                    >
                       <Table size={16} />
                       <span className="hidden sm:inline">Tabla</span>
                     </TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="graph" className="mt-0">
-                    <ConsumptionChart data={consumption} />
+                    <ConsumptionChart
+                      data={consumption}
+                      meterStatus={meterData.status || "Desconocido"}
+                    />
                   </TabsContent>
 
                   <TabsContent value="table" className="mt-0">
@@ -307,7 +324,8 @@ const MeterDashboard = () => {
           <Card>
             <CardHeader
               className="pb-3 cursor-pointer"
-              onClick={() => toggleSection("status")}>
+              onClick={() => toggleSection("status")}
+            >
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold">
                   Estado del Dispositivo
@@ -322,7 +340,7 @@ const MeterDashboard = () => {
             {expandedSections.status && (
               <CardContent className="pt-0">
                 <DeviceCard
-                  status={meterData.reading.statuses?.meter_status}
+                  status={meterData.status}
                   signal={true}
                   valve_status={
                     meterData.reading.statuses?.valve_status as
@@ -347,7 +365,8 @@ const MeterDashboard = () => {
           <Card>
             <CardHeader
               className="pb-3 cursor-pointer"
-              onClick={() => toggleSection("alerts")}>
+              onClick={() => toggleSection("alerts")}
+            >
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold">Alertas</h2>
                 {expandedSections.alerts ? (
@@ -377,10 +396,7 @@ const MeterDashboard = () => {
                     title={metric.title}
                     value={metric.value}
                     icon={metric.icon}
-                    status={
-                      meterData.reading.statuses?.meter_status ||
-                      meterData.status
-                    }
+                    status={meterData.status}
                     isLoading={false}
                     meterDetail={false}
                   />
@@ -404,25 +420,38 @@ const MeterDashboard = () => {
                     value={viewMode}
                     onValueChange={(value) =>
                       setViewMode(value as "graph" | "table")
-                    }>
+                    }
+                  >
                     <TabsList className="mb-4">
                       <TabsTrigger
                         value="graph"
-                        className="flex items-center gap-2">
+                        className="flex items-center gap-2"
+                      >
                         <BarChart3 size={16} />
                         Gráfico
                       </TabsTrigger>
                       <TabsTrigger
                         value="table"
-                        className="flex items-center gap-2">
+                        className="flex items-center gap-2"
+                      >
                         <Table size={16} />
                         Tabla
                       </TabsTrigger>
                     </TabsList>
+                    <div className="mb-4 mx-auto w-[300px]">
+                      <PeriodSelector
+                        currentPeriod={selectedPeriod}
+                        onPeriodChange={setSelectedPeriod}
+                        meterStatus={meterData.status || "Desconocido"}
+                      />
+                    </div>
 
                     <TabsContent value="graph" className="mt-0">
-                      <div className="h-[400px]">
-                        <ConsumptionChart data={consumption} />
+                      <div className="h-full">
+                        <ConsumptionChart
+                          data={consumption}
+                          meterStatus={meterData.status || "Desconocido"}
+                        />
                       </div>
                     </TabsContent>
 
@@ -449,7 +478,7 @@ const MeterDashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <DeviceCard
-                    status={meterData.reading.statuses?.meter_status}
+                    status={meterData.status}
                     signal={true}
                     valve_status={
                       meterData.reading.statuses?.valve_status as

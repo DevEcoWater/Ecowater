@@ -11,7 +11,6 @@ import {
   useReactTable,
   type VisibilityState,
 } from "@tanstack/react-table";
-import { User } from "@prisma/client";
 import { userColumns } from "./columns";
 import { DataTable } from "../ui/data-table";
 import { UserDataForTable } from "@/types/users/user-types";

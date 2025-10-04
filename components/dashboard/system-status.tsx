@@ -18,7 +18,7 @@ export const statusMap: Record<
 > = {
   ACTIVE: { label: "Operativo", style: "ACTIVE" },
   FAULTY: { label: "Defectuoso", style: "FAULTY" },
-  MAINTENANCE: { label: "Mantenimiento requerido", style: "PENDING" },
+  MAINTENANCE: { label: "Mantenimiento req.", style: "PENDING" },
   INACTIVE: { label: "Inactivo", style: "DEFAULT" },
 };
 

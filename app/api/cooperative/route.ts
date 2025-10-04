@@ -9,13 +9,21 @@ export async function GET() {
 }
 
 export async function PUT(req: Request) {
-  const data = await req.json();
-  const existing = await prisma.cooperative.findFirst();
+  try {
+    const data = await req.json();
+    const existing = await prisma.cooperative.findFirst();
 
-  const updated = await prisma.cooperative.update({
-    where: { id: existing.id },
-    data,
-  });
+    const updated = await prisma.cooperative.update({
+      where: { id: existing.id },
+      data,
+    });
 
-  return NextResponse.json(updated);
+    return NextResponse.json(updated);
+  } catch (error) {
+    console.error("[UPDATE COOPERATIVE]", error);
+    return NextResponse.json(
+      { error: "Failed to update cooperative" },
+      { status: 400 }
+    );
+  }
 }

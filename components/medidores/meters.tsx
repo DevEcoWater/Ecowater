@@ -40,14 +40,14 @@ const Meters = () => {
     });
 
   return (
-    <div className="py-10">
+    <section className="w-full h-full py-10">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-col gap-4 md:gap-6 md:flex-col w-full">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between w-full gap-4">
             <div className="flex items-center flex-wrap gap-2">
               <div className="flex w-full md:w-[350px]">
                 <Input
-                  placeholder="Filtrar por código del medidor"
+                  placeholder="Filtrar por código o nombre del cliente"
                   value={inputValue}
                   onChange={(event) => setInputValue(event.target.value)}
                   onKeyDown={(e) => {
@@ -63,7 +63,13 @@ const Meters = () => {
                   <Search className="h-4 w-4" />
                 </Button>
               </div>
-              <Button onClick={resetFilters} variant="outline">
+              <Button
+                onClick={() => {
+                  resetFilters(); // resetea API: page, filterState y searchQuery
+                  setInputValue(""); // resetea input visual
+                }}
+                variant="outline"
+              >
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Limpiar
               </Button>
@@ -148,7 +154,7 @@ const Meters = () => {
           </Pagination>
         </div>
       )}
-    </div>
+    </section>
   );
 };
 

@@ -5,10 +5,16 @@ import { Gauge } from "lucide-react";
 interface MetersCardProps {
   totalMeters: number;
   onlineMeters: number;
+  color: string;
+  backgroundColor: string;
 }
 
-export function MetersCard({ totalMeters, onlineMeters }: MetersCardProps) {
-  const offlineMeters = totalMeters - onlineMeters;
+export function MetersCard({
+  totalMeters,
+  onlineMeters,
+  color,
+  backgroundColor,
+}: MetersCardProps) {
   const onlinePercentage =
     totalMeters > 0 ? Math.round((onlineMeters / totalMeters) * 100) : 0;
 
@@ -20,15 +26,18 @@ export function MetersCard({ totalMeters, onlineMeters }: MetersCardProps) {
             <p className="text-sm font-medium text-gray-600">
               Medidores en línea
             </p>
-            <p className="text-3xl font-bold text-green-600 mt-2">
+            <p style={{ color: color }} className="text-3xl font-bold mt-2">
               {onlineMeters} / {totalMeters}
             </p>
             <p className="text-sm text-gray-500 mt-1">
               {onlinePercentage}% en línea
             </p>
           </div>
-          <div className="p-3 bg-green-100 rounded-lg">
-            <Gauge className="w-8 h-8 text-green-600" />
+          <div
+            style={{ backgroundColor: backgroundColor }}
+            className="p-3 rounded-lg"
+          >
+            <Gauge style={{ color: color }} className="w-8 h-8" />
           </div>
         </div>
       </CardContent>

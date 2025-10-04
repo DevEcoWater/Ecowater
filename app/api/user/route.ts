@@ -7,14 +7,29 @@ import { parseUserStatus } from "@/utils/parseUserStatus";
 import { PaginatedUserResponse } from "@/types/users/user-types";
 
 const prisma = new PrismaClient();
+
 export async function GET(req: Request) {
   try {
     const { page, limit, search, status } = getPaginationParams({
       url: req.url,
     });
 
+    const where: any = {};
+
+    if (search) {
+      where.OR = [
+        { firstName: { contains: search, mode: "insensitive" } },
+        { lastName: { contains: search, mode: "insensitive" } },
+      ];
+    }
+
+    if (status && status !== "total") {
+      where.status = parseUserStatus(status);
+    }
+
     const [rawUsers, total] = await Promise.all([
       prisma.user.findMany({
+        where,
         skip: (page - 1) * limit,
         take: limit,
         include: {
@@ -24,7 +39,7 @@ export async function GET(req: Request) {
         },
         orderBy: { created_at: "desc" },
       }),
-      prisma.user.count(),
+      prisma.user.count({ where }),
     ]);
 
     const usersWithRoles = rawUsers.map(({ userRoles, ...user }) => ({
@@ -32,35 +47,26 @@ export async function GET(req: Request) {
       role: userRoles[0]?.role.role_name ?? "Unknown",
     }));
 
-    let filteredUsers = usersWithRoles;
-
-    if (search) {
-      filteredUsers = filteredUsers.filter((user) =>
-        user.email.toLowerCase().includes(search.toLowerCase())
-      );
-    }
-
-    if (status && status !== "total") {
-      const userStatus = parseUserStatus(status);
-      filteredUsers = filteredUsers.filter(
-        (user) => user.status === userStatus
-      );
-    }
-
+    // counts per status (respecting same search filter if applied)
     const counts = {
-      actives: usersWithRoles.filter((user) => user.status === "ACTIVE").length,
-      inactives: usersWithRoles.filter((user) => user.status === "INACTIVE")
-        .length,
-      pendings: usersWithRoles.filter((user) => user.status === "PENDING")
-        .length,
-      blockeds: usersWithRoles.filter((user) => user.status === "BLOCKED")
-        .length,
+      actives: await prisma.user.count({
+        where: { ...where, status: "ACTIVE" },
+      }),
+      inactives: await prisma.user.count({
+        where: { ...where, status: "INACTIVE" },
+      }),
+      pendings: await prisma.user.count({
+        where: { ...where, status: "PENDING" },
+      }),
+      blockeds: await prisma.user.count({
+        where: { ...where, status: "BLOCKED" },
+      }),
     };
 
     return NextResponse.json<PaginatedUserResponse>({
       data: usersWithRoles,
       pagination: {
-        total: total,
+        total,
         page,
         limit,
         totalPages: Math.ceil(total / limit),

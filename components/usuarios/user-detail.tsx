@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import Chip from "@/components/ui/chip";
 import { chipConfig } from "@/utils/getChipColor";
 import CoordinateMap from "@/components/ui/coordinateMap";
+import { UserInfoSkeleton } from "./user-skeleton";
 
 const defaultLocation = { lat: -34.9035949, lng: -58.0373327 };
 
@@ -46,6 +47,8 @@ export default function UserDetailPage() {
     }
   };
 
+  if (isLoadingUser) return <UserInfoSkeleton />;
+
   return (
     <div className="mx-auto w-full h-full">
       <div className="grid grid-cols-1 gap-6">
@@ -55,13 +58,7 @@ export default function UserDetailPage() {
             <CardTitle>Información del Usuario</CardTitle>
           </CardHeader>
           <CardContent>
-            {isLoadingUser ? (
-              <div className="space-y-4">
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
-              </div>
-            ) : userData ? (
+            {userData ? (
               <div className="space-y-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">

@@ -5,11 +5,15 @@ import { Droplets } from "lucide-react";
 interface ConsumptionCardProps {
   totalConsumption: number;
   period: string;
+  color: string;
+  backgroundColor: string;
 }
 
 export function ConsumptionCard({
   totalConsumption,
   period,
+  color,
+  backgroundColor,
 }: ConsumptionCardProps) {
   return (
     <Card className="p-6 border-0 shadow-sm bg-white">
@@ -19,12 +23,18 @@ export function ConsumptionCard({
             <p className="text-sm font-medium text-gray-600">
               Consumo Total ({period})
             </p>
-            <p className="text-3xl font-bold text-blue-600 mt-2">
+            <p style={{ color: color }} className="text-3xl font-bold mt-2">
               {totalConsumption.toLocaleString()} m³
             </p>
           </div>
-          <div className="p-3 bg-blue-100 rounded-lg">
-            <Droplets className="w-8 h-8 text-blue-600" />
+          <div
+            style={{ backgroundColor: backgroundColor }}
+            className="p-3 rounded-lg"
+          >
+            <Droplets
+              style={{ color: color }}
+              className="w-8 h-8 text-[${color}]"
+            />
           </div>
         </div>
       </CardContent>

@@ -133,7 +133,8 @@ const AlertComponent = ({ meterId }: AlertComponentProps) => {
         return (
           <div
             key={`${alert.type}-${index}`}
-            className={`flex items-start gap-3 p-4 border rounded-lg ${style.bgColor} ${style.borderColor}`}>
+            className={`flex items-start gap-3 p-4 border rounded-lg ${style.bgColor} ${style.borderColor}`}
+          >
             <TriangleAlert size={18} className={`${style.iconColor} mt-0.5`} />
             <div className="flex-1">
               <div className="flex items-start justify-between">

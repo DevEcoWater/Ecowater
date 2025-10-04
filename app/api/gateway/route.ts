@@ -59,6 +59,7 @@ export async function POST(request: Request) {
           : null,
         status: finalAlertStatus.meter_status,
         operational_status: finalAlertStatus.operational_status,
+        updated_at: convertTimestampToArgentinaTime(timestamp),
       },
       create: {
         dev_eui: devEUI,
@@ -73,6 +74,7 @@ export async function POST(request: Request) {
           : null,
         status: finalAlertStatus.meter_status,
         operational_status: finalAlertStatus.operational_status,
+        created_at: convertTimestampToArgentinaTime(timestamp),
       },
     });
 
@@ -111,6 +113,7 @@ export async function POST(request: Request) {
         ee_alarm: finalAlertStatus.ee_alarm,
         meter_status: finalAlertStatus.meter_status,
         operational_status: finalAlertStatus.operational_status,
+        created_at: convertTimestampToArgentinaTime(timestamp),
       },
     });
 
