@@ -32,6 +32,11 @@ export function getPageHeaderFromPath(pathname: string | null) {
       title: "Gestión de Medidores",
       description: "Visualice y edite la información de los medidores",
     },
+    {
+      pattern: /\/cooperativa/,
+      title: "Gestión de Cooperativa",
+      description: "Visualice y edite la información de la cooperativa",
+    },
   ];
 
   for (const route of routes) {

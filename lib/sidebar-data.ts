@@ -58,8 +58,8 @@ export const sidebarData: SidebarData = {
       title: "Otros",
       items: [
         {
-          title: "Configuración",
-          url: "/dashboard/configuracion",
+          title: "Cooperativa",
+          url: "/dashboard/otros/cooperativa",
           icon: Wrench,
         },
       ],

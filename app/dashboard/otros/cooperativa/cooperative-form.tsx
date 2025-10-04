@@ -71,13 +71,13 @@ export function CooperativeForm() {
     try {
       await updateCooperative.mutateAsync(data);
       toast({
-        title: "Success",
-        description: "Cooperative updated successfully",
+        title: "Éxito",
+        description: "La cooperativa ha sido actualizada correctamente",
       });
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to update cooperative",
+        description: "Ha ocurrido un error al actualizar la cooperativa",
         variant: "destructive",
       });
     }
