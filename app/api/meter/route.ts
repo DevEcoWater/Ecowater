@@ -11,18 +11,42 @@ export async function GET(req: Request) {
       url: req.url,
     });
 
+    // build where filters
+    const where: any = {};
+
+    if (search) {
+      where.OR = [
+        { device_name: { contains: search, mode: "insensitive" } },
+        { dev_eui: { contains: search, mode: "insensitive" } },
+        {
+          userMeters: {
+            some: {
+              user: {
+                OR: [
+                  { firstName: { contains: search, mode: "insensitive" } },
+                  { lastName: { contains: search, mode: "insensitive" } },
+                ],
+              },
+            },
+          },
+        },
+      ];
+    }
+
+    if (status && status !== "total") {
+      where.status = status.toUpperCase() as MeterStatus;
+    }
+
+    // query meters + total with filters
     const [rawMeters, total] = await Promise.all([
       prisma.meter.findMany({
+        where,
         skip: (page - 1) * limit,
         take: limit,
         include: {
           userMeters: {
             include: {
-              user: {
-                include: {
-                  address: true,
-                },
-              },
+              user: { include: { address: true } },
             },
           },
           readings: {
@@ -32,7 +56,7 @@ export async function GET(req: Request) {
         },
         orderBy: { created_at: "desc" },
       }),
-      prisma.meter.count(),
+      prisma.meter.count({ where }),
     ]);
 
     const meters = rawMeters.map(({ userMeters, readings, ...meter }) => {
