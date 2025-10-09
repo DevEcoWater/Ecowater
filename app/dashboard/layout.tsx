@@ -27,7 +27,7 @@ export default function DashboardLayout({
 }>) {
   return (
     <AuthGuard requireAuth={true}>
-      <UiSidebarProvider>
+      <UiSidebarProvider defaultOpen={false}>
         <ThemeProvider attribute="class" defaultTheme="light">
           <GoogleMapsProvider>
             <AppSidebar />

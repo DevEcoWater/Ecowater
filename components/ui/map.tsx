@@ -33,6 +33,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { useCooperative } from "@/hooks/cooperative/user-cooperative";
 
 const containerStyle = {
   width: "100%",
@@ -46,7 +47,9 @@ const center = {
 
 function Map() {
   const { data, isLoading, error } = useMeters();
+  const { data: cooperative } = useCooperative();
   const { isLoaded, loadError } = useGoogleMaps();
+  const [showCoopInfo, setShowCoopInfo] = useState(false);
 
   const getChipForMeter = useCallback((status: MeterStatus) => {
     const styleKey = (
@@ -54,6 +57,14 @@ function Map() {
     ) as keyof typeof chipConfig;
     return chipConfig[styleKey] ?? chipConfig.DEFAULT;
   }, []);
+
+  const cooperativePosition = useMemo(() => {
+    if (!cooperative?.lat || !cooperative?.lng) return null;
+    return {
+      lat: cooperative.lat,
+      lng: cooperative.lng,
+    } as google.maps.LatLngLiteral;
+  }, [cooperative]);
 
   // Map themes and custom controls
   type MapTheme = "standard" | "night" | "retro" | "satellite";
@@ -300,7 +311,7 @@ function Map() {
     markers: google.maps.Marker[];
   } | null>(null);
   const markerClusterRef = useRef<MarkerClusterer | null>(null);
-  const [zoomLevel, setZoomLevel] = useState<number>(2);
+  const [zoomLevel, setZoomLevel] = useState<number>(1);
   const [clusterEnabled, setClusterEnabled] = useState<boolean>(true);
 
   const [visibleStatuses, setVisibleStatuses] = useState<
@@ -340,7 +351,7 @@ function Map() {
 
   const OPTIONS = useMemo(
     () => ({
-      minZoom: 8,
+      minZoom: 2,
       maxZoom: 18,
       restriction: {
         latLngBounds: {
@@ -523,7 +534,8 @@ function Map() {
       center={center}
       zoom={8}
       onLoad={onLoad}
-      onUnmount={onUnmount}>
+      onUnmount={onUnmount}
+    >
       <div className="absolute right-4 top-4 z-[1] w-[280px]">
         <Collapsible defaultOpen>
           <div className="bg-white rounded-md shadow">
@@ -536,7 +548,8 @@ function Map() {
                   <span className="text-sm font-medium">Estilo</span>
                   <Select
                     value={mapTheme}
-                    onValueChange={(v) => setMapTheme(v as any)}>
+                    onValueChange={(v) => setMapTheme(v as any)}
+                  >
                     <SelectTrigger className="w-[150px]">
                       <SelectValue placeholder="Tema del mapa" />
                     </SelectTrigger>
@@ -577,7 +590,8 @@ function Map() {
                     ).map((s) => (
                       <div
                         key={s}
-                        className="flex items-center justify-between">
+                        className="flex items-center justify-between"
+                      >
                         <Chip key={s} status={s} />
 
                         <Checkbox
@@ -600,7 +614,8 @@ function Map() {
                         if (!map) return;
                         map.setZoom(8);
                         map.panTo(center as google.maps.LatLngLiteral);
-                      }}>
+                      }}
+                    >
                       <RefreshCw className="w-4 h-4" /> Reset
                     </Button>
                   </div>
@@ -610,6 +625,40 @@ function Map() {
           </div>
         </Collapsible>
       </div>
+
+      {cooperativePosition && (
+        <Marker
+          position={cooperativePosition}
+          icon={{
+            url: "/house.svg",
+            scaledSize: new google.maps.Size(40, 40),
+            anchor: new google.maps.Point(20, 40),
+          }}
+          onClick={() => setShowCoopInfo(true)} // 👈 al hacer click abrís el InfoWindow
+        >
+          {showCoopInfo && (
+            <InfoWindow
+              position={cooperativePosition}
+              onCloseClick={() => setShowCoopInfo(false)}
+            >
+              <div className="p-3 bg-white rounded-lg shadow-md flex flex-col items-center gap-2 min-w-[180px]">
+                <p className="text-base font-semibold">{cooperative.name}</p>
+                <p className="text-sm text-gray-600">Estación central</p>
+
+                <button
+                  onClick={() =>
+                    window.open("https://www.cosego.com.ar/", "_blank")
+                  }
+                  className="mt-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition"
+                >
+                  Visitar sitio
+                </button>
+              </div>
+            </InfoWindow>
+          )}
+        </Marker>
+      )}
+
       {(zoomLevel >= 14 || !clusterEnabled) &&
         filteredMarkers.map((item: (typeof data)[number], index: number) => {
           const status = item.status as MeterStatus;
@@ -625,14 +674,16 @@ function Map() {
               icon={{
                 url: createColoredIcon(textColor),
                 scaledSize: new google.maps.Size(30, 45),
-              }}>
+              }}
+            >
               {activeMarker === index && (
                 <InfoWindow
                   position={{
                     lat: item.lat,
                     lng: item.lng,
                   }}
-                  onCloseClick={() => setActiveMarker(null)}>
+                  onCloseClick={() => setActiveMarker(null)}
+                >
                   <div className="p-2 bg-white rounded shadow-lg flex flex-col justify-start items-start gap-4">
                     <div className="flex gap-2 justify-between w-full items-center">
                       <p className="text-balance text-sm text-muted-foreground">
@@ -665,7 +716,8 @@ function Map() {
                     <div>
                       <Link
                         href={`/dashboard/medidores/${item.id}`}
-                        className="text-primary underline">
+                        className="text-primary underline"
+                      >
                         Ver medidor
                       </Link>
                     </div>
@@ -679,7 +731,8 @@ function Map() {
       {activeCluster && (
         <InfoWindow
           position={activeCluster.position}
-          onCloseClick={() => setActiveCluster(null)}>
+          onCloseClick={() => setActiveCluster(null)}
+        >
           <div className="p-2 bg-white rounded shadow-lg max-w-xs">
             <h3 className="text-lg font-bold">Información de la zona</h3>
             <p className="text-sm text-gray-600">
@@ -701,7 +754,8 @@ function Map() {
                       <Chip status={markerData.status} />{" "}
                       <Link
                         href={`/dashboard/medidores/${markerData.id}`}
-                        className="text-primary underline">
+                        className="text-primary underline"
+                      >
                         Ver medidor
                       </Link>
                     </p>
