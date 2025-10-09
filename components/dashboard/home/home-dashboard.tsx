@@ -17,10 +17,6 @@ export function HomeDashboard() {
     useConsumptionData();
   const { data: urgencies, isLoading: urgenciesLoading } = useUrgencies();
 
-  const { color, backgroundColor } = getStatusColor(
-    stats?.meters?.overallStatus
-  );
-
   if (statsLoading || consumptionLoading || urgenciesLoading) {
     return <DashboardSkeleton />;
   }
@@ -57,20 +53,13 @@ export function HomeDashboard() {
       </div>
 
       {/* Cards de resumen */}
-      <SummaryCards
-        stats={stats}
-        color={color}
-        backgroundColor={backgroundColor}
-      />
+      <SummaryCards stats={stats} />
 
       {/* Gráfico de consumo y urgencias */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Gráfico de consumo (80%) */}
         <div className="lg:col-span-3">
-          <ConsumptionChart
-            data={consumption}
-            meterStatus={stats?.meters?.overallStatus}
-          />
+          <ConsumptionChart data={consumption} />
         </div>
 
         {/* Sección de urgencias (20%) */}

@@ -1,7 +1,7 @@
 import { chipConfig } from "./getChipColor";
 import { MeterStatus, UserStatus } from "@prisma/client";
 
-export type ChipStatus = MeterStatus | UserStatus;
+export type ChipStatus = MeterStatus | UserStatus | "DEFAULT";
 
 export function getStatusColor(status: ChipStatus) {
   const statusToStyleMap: Record<ChipStatus, keyof typeof chipConfig> = {
@@ -11,6 +11,7 @@ export function getStatusColor(status: ChipStatus) {
     FAULTY: "FAULTY",
     MAINTENANCE: "PENDING",
     PENDING: "PENDING",
+    DEFAULT: "DEFAULT",
   };
 
   const styleKey = statusToStyleMap[status] || "DEFAULT";

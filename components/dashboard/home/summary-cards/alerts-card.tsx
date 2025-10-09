@@ -1,23 +1,20 @@
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { TriangleAlert } from "lucide-react";
+import { getStatusColor } from "@/utils/getStatusColor";
 
 interface AlertsCardProps {
   activeAlerts: number;
-  color: string;
-  backgroundColor: string;
 }
 
-export function AlertsCard({
-  activeAlerts,
-  color,
-  backgroundColor,
-}: AlertsCardProps) {
+export function AlertsCard({ activeAlerts }: AlertsCardProps) {
   const getAlertText = (count: number) => {
     if (count === 0) return "Sin alertas";
     if (count < 5) return "Pocas alertas";
     return "Muchas alertas";
   };
+
+  const { color, backgroundColor } = getStatusColor("PENDING");
 
   return (
     <Card className="p-6 border-0 shadow-sm bg-white">

@@ -355,10 +355,10 @@ function Map() {
       maxZoom: 18,
       restriction: {
         latLngBounds: {
-          north: -34.9035949 + 0.01,
-          south: -34.9035949 - 0.01,
-          east: -58.0373327 + 0.01,
-          west: -58.0373327 - 0.01,
+          north: -34.9035949 + 0.02,
+          south: -34.9035949 - 0.02,
+          east: -58.0373327 + 0.02,
+          west: -58.0373327 - 0.02,
         },
         strictBounds: true,
       },
