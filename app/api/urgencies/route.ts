@@ -287,6 +287,18 @@ function processAlertsByContext(meterData: any[], params: UrgencyParams) {
                 meter.userMeters[0].user.address?.shortData || "Sin dirección",
             }
           : null,
+        // Añadimos campos de fecha para que el frontend no muestre "Sin fecha"
+        reading: lastReading
+          ? {
+              id: lastReading.id,
+              timestamp: lastReading.timestamp,
+              alarm_status: lastReading.alarm_status,
+            }
+          : undefined,
+        created_at:
+          (lastReading?.statuses?.[0]?.created_at as any) ||
+          (lastReading?.timestamp as any) ||
+          (meter.created_at as any),
         dataFreshness: {
           isRecent: false,
           age: hoursSinceLastReading
@@ -315,6 +327,7 @@ function processAlertsByContext(meterData: any[], params: UrgencyParams) {
                 meter.userMeters[0].user.address?.shortData || "Sin dirección",
             }
           : null,
+        created_at: meter.created_at as any,
         dataFreshness: {
           isRecent: false,
           age: "Nunca",
