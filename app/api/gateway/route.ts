@@ -29,6 +29,26 @@ export async function POST(request: Request) {
       rxInfo,
     } = body;
 
+    // Log mínimo y seguro para diagnosticar en Vercel
+    try {
+      const loc = rxInfo?.[0]?.location || {};
+      console.log("[GATEWAY] Payload summary", {
+        devEUI,
+        deviceName,
+        applicationID,
+        fPort,
+        fCnt,
+        timestamp,
+        rxCount: Array.isArray(rxInfo) ? rxInfo.length : 0,
+        loc: {
+          latitude: loc?.latitude ?? null,
+          longitude: loc?.longitude ?? null,
+        },
+      });
+    } catch (e) {
+      console.warn("[GATEWAY] Failed to log payload summary", e);
+    }
+
     const parseData = parseMeterData(data);
     const { alarmStatus, spare } = parseData;
     const byte1 = parseInt(alarmStatus, 16);
@@ -45,33 +65,46 @@ export async function POST(request: Request) {
       timestamps: parseTimestamp(parseData.timestamps),
     };
 
+    // No sobrescribir lat/lng con null: solo actualizar si vienen definidos
+    const primaryLat = rxInfo?.[0]?.location?.latitude;
+    const primaryLng = rxInfo?.[0]?.location?.longitude;
+    const latParsed =
+      primaryLat !== undefined && primaryLat !== null
+        ? parseFloat(primaryLat)
+        : undefined;
+    const lngParsed =
+      primaryLng !== undefined && primaryLng !== null
+        ? parseFloat(primaryLng)
+        : undefined;
+
+    const updateData: any = {
+      device_name: deviceName,
+      application_id: applicationID,
+      application_name: applicationName,
+      status: finalAlertStatus.meter_status,
+      operational_status: finalAlertStatus.operational_status,
+      updated_at: convertTimestampToArgentinaTime(timestamp),
+    };
+    if (latParsed !== undefined) updateData.lat = latParsed;
+    if (lngParsed !== undefined) updateData.lng = lngParsed;
+
+    if (latParsed === undefined || lngParsed === undefined) {
+      console.log("[GATEWAY] Skipping lat/lng update to avoid null overwrite", {
+        hasLat: latParsed !== undefined,
+        hasLng: lngParsed !== undefined,
+      });
+    }
+
     const meter = await prisma.meter.upsert({
       where: { dev_eui: devEUI },
-      update: {
-        device_name: deviceName,
-        application_id: applicationID,
-        application_name: applicationName,
-        lat: rxInfo[0]?.location?.latitude
-          ? parseFloat(rxInfo[0].location.latitude)
-          : null,
-        lng: rxInfo[0]?.location?.longitude
-          ? parseFloat(rxInfo[0].location.longitude)
-          : null,
-        status: finalAlertStatus.meter_status,
-        operational_status: finalAlertStatus.operational_status,
-        updated_at: convertTimestampToArgentinaTime(timestamp),
-      },
+      update: updateData,
       create: {
         dev_eui: devEUI,
         device_name: deviceName,
         application_id: applicationID,
         application_name: applicationName,
-        lat: rxInfo[0]?.location?.latitude
-          ? parseFloat(rxInfo[0].location.latitude)
-          : null,
-        lng: rxInfo[0]?.location?.longitude
-          ? parseFloat(rxInfo[0].location.longitude)
-          : null,
+        lat: latParsed ?? null,
+        lng: lngParsed ?? null,
         status: finalAlertStatus.meter_status,
         operational_status: finalAlertStatus.operational_status,
         created_at: convertTimestampToArgentinaTime(timestamp),
