@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/update-meter-status",
+      "schedule": "0 6 * * *"
+    }
+  ]
+}

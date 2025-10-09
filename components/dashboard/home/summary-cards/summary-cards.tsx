@@ -33,7 +33,7 @@ export function SummaryCards({
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       <ConsumptionCard
-        totalConsumption={stats.readings.recent}
+        totalConsumption={stats.consumption.total}
         period="mes"
         color={color}
         backgroundColor={backgroundColor}
@@ -45,7 +45,7 @@ export function SummaryCards({
         backgroundColor={backgroundColor}
       />
       <AlertsCard
-        activeAlerts={totalAlerts}
+        activeAlerts={stats.alerts.totalAlerts}
         color={color}
         backgroundColor={backgroundColor}
       />
