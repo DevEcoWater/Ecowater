@@ -24,7 +24,7 @@ export const meterColumns: ColumnDef<MeterDataForTable>[] = [
     header: "Ultima actualización",
     cell: ({ row }) => {
       const date = row.original.updated_at;
-      return dayjs(date).format("DD/MM/YYYY HH:mm");
+      return dayjs(date).format("DD/MM/YYYY - HH:mm");
     },
   },
   {
@@ -49,6 +49,7 @@ export const meterColumns: ColumnDef<MeterDataForTable>[] = [
     accessorKey: "status",
     header: "Estado del medidor",
     cell: ({ row }) => {
+      console.log(row.original);
       const status = row.original.status;
       return <Chip status={status} />;
     },

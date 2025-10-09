@@ -51,8 +51,6 @@ function Map() {
   const { isLoaded, loadError } = useGoogleMaps();
   const [showCoopInfo, setShowCoopInfo] = useState(false);
 
-  console.log(cooperative, "cooperative data");
-
   const getChipForMeter = useCallback((status: MeterStatus) => {
     const styleKey = (
       status === "MAINTENANCE" ? "PENDING" : status
