@@ -1,20 +1,19 @@
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Droplets } from "lucide-react";
+import { getStatusColor } from "@/utils/getStatusColor";
 
 interface ConsumptionCardProps {
   totalConsumption: number;
   period: string;
-  color: string;
-  backgroundColor: string;
 }
 
 export function ConsumptionCard({
   totalConsumption,
   period,
-  color,
-  backgroundColor,
 }: ConsumptionCardProps) {
+  const { color, backgroundColor } = getStatusColor("DEFAULT");
+
   return (
     <Card className="p-6 border-0 shadow-sm bg-white">
       <CardContent className="p-0">

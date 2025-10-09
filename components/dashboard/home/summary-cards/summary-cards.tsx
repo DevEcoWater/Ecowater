@@ -8,25 +8,14 @@ import { useUrgencies } from "@/hooks/urgencies/use-urgencies";
 
 interface SummaryCardsProps {
   stats: DashboardStats;
-  color: string;
-  backgroundColor: string;
 }
 
-export function SummaryCards({
-  stats,
-  color,
-  backgroundColor,
-}: SummaryCardsProps) {
+export function SummaryCards({ stats }: SummaryCardsProps) {
   const { data: urgencies } = useUrgencies({
     includeInactive: true,
     limit: 100,
   });
 
-  // Calcular alertas y errores según criterios del documento
-  const totalAlerts =
-    (urgencies?.alerts.medium.length || 0) +
-    (urgencies?.alerts.low.length || 0) +
-    (urgencies?.alerts.inactive.length || 0);
   const totalErrors =
     (urgencies?.alerts.critical.length || 0) +
     (urgencies?.alerts.high.length || 0);
@@ -35,25 +24,13 @@ export function SummaryCards({
       <ConsumptionCard
         totalConsumption={stats.consumption.total}
         period="mes"
-        color={color}
-        backgroundColor={backgroundColor}
       />
       <MetersCard
         totalMeters={stats.meters.total}
         onlineMeters={stats.meters.active}
-        color={color}
-        backgroundColor={backgroundColor}
       />
-      <AlertsCard
-        activeAlerts={stats.alerts.totalAlerts}
-        color={color}
-        backgroundColor={backgroundColor}
-      />
-      <ErrorsCard
-        totalErrors={totalErrors}
-        color={color}
-        backgroundColor={backgroundColor}
-      />
+      <AlertsCard activeAlerts={stats.alerts.totalAlerts} />
+      <ErrorsCard totalErrors={totalErrors} />
     </div>
   );
 }

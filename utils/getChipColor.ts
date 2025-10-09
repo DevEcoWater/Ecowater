@@ -7,5 +7,5 @@ export const chipConfig = {
   },
   FAULTY: { backgroundColor: "#FEE2E1", textColor: "#DC3335" },
   BLOCKED: { backgroundColor: "#E6E6FA", textColor: "#5F3DC4" },
-  DEFAULT: { backgroundColor: "#F3F4F6", textColor: "#6B7280" },
+  DEFAULT: { backgroundColor: "#E0F2FE", textColor: "#3b82f6" },
 };

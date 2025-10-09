@@ -1,18 +1,14 @@
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
+import { getStatusColor } from "@/utils/getStatusColor";
 
 interface ErrorsCardProps {
   totalErrors: number;
-  color: string;
-  backgroundColor: string;
 }
 
-export function ErrorsCard({
-  totalErrors,
-  color,
-  backgroundColor,
-}: ErrorsCardProps) {
+export function ErrorsCard({ totalErrors }: ErrorsCardProps) {
+  const { color, backgroundColor } = getStatusColor("FAULTY");
   const getErrorText = (count: number) => {
     if (count === 0) return "Sin errores";
     if (count < 3) return "Pocos errores";

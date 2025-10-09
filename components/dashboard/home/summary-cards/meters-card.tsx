@@ -1,22 +1,18 @@
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Gauge } from "lucide-react";
+import { getStatusColor } from "@/utils/getStatusColor";
 
 interface MetersCardProps {
   totalMeters: number;
   onlineMeters: number;
-  color: string;
-  backgroundColor: string;
 }
 
-export function MetersCard({
-  totalMeters,
-  onlineMeters,
-  color,
-  backgroundColor,
-}: MetersCardProps) {
+export function MetersCard({ totalMeters, onlineMeters }: MetersCardProps) {
   const onlinePercentage =
     totalMeters > 0 ? Math.round((onlineMeters / totalMeters) * 100) : 0;
+
+  const { color, backgroundColor } = getStatusColor("DEFAULT");
 
   return (
     <Card className="p-6 border-0 shadow-sm bg-white">
