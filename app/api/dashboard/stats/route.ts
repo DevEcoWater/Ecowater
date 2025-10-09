@@ -11,7 +11,7 @@ function getOverallMeterStatus(statuses: MeterStatus[]): MeterStatus {
     return MeterStatus.MAINTENANCE;
   if (statuses.every((s) => s === MeterStatus.ACTIVE))
     return MeterStatus.ACTIVE;
-  return MeterStatus.ACTIVE; // fallback
+  return MeterStatus.ACTIVE;
 }
 
 export async function GET() {
@@ -172,56 +172,132 @@ export async function GET() {
       totalConsumption = 0;
     }
 
-    // Obtener medidores con problemas (incluyendo alertas de Status)
-    let problematicMeters = 0;
+    // Obtener conteos de medidores por status
+    let activeMeters = 0;
+    let inactiveMeters = 0;
+    let maintenanceMeters = 0;
+    let faultyMeters = 0;
     let totalAlerts = 0;
+    let metersToDeactivate: any[] = [];
+    let metersToActivate: any[] = [];
+
     try {
-      // Medidores con problemas directos
-      const directProblems = await prisma.meter.count({
-        where: {
-          OR: [
-            { status: "FAULTY" },
-            { operational_status: "NEEDS_MAINTENANCE" },
-          ],
-        },
-      });
+      const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-      // Medidores con alertas críticas en Status
-      const criticalAlerts = await prisma.$queryRaw`
-        SELECT COUNT(DISTINCT r.meter_id) as count
-        FROM "Reading" r
-        JOIN "Status" s ON s.reading_id = r.id
-        WHERE (
-          s.empty_pipe_alarm = true OR
-          s.reverse_flow_alarm = true OR
-          s.ee_alarm = true OR
-          s.over_range_alarm = true OR
-          s.water_temp_alarm = true OR
-          s.valve_status = 'abnormal' OR
-          (s.battery_status = false OR s.battery_voltage = 'low')
-        )
-        AND r.timestamp >= NOW() - INTERVAL '24 hours'
-      `;
+      // 🔄 RETROALIMENTACIÓN INMEDIATA: Actualizar estados mientras calculamos
 
-      // Medidores inactivos (sin lecturas en 24h)
-      const inactiveMeters = await prisma.meter.count({
+      // 1. Identificar medidores que deberían estar INACTIVE
+      metersToDeactivate = await prisma.meter.findMany({
         where: {
+          status: "ACTIVE",
           readings: {
             none: {
               timestamp: {
-                gte: new Date(Date.now() - 24 * 60 * 60 * 1000),
+                gte: last24Hours,
+              },
+            },
+          },
+        },
+        select: { id: true },
+      });
+
+      // 2. Identificar medidores que deberían estar ACTIVE
+      metersToActivate = await prisma.meter.findMany({
+        where: {
+          status: "INACTIVE",
+          readings: {
+            some: {
+              timestamp: {
+                gte: last24Hours,
+              },
+            },
+          },
+        },
+        select: { id: true },
+      });
+
+      // 3. Actualizar estados inmediatamente
+      if (metersToDeactivate.length > 0) {
+        await prisma.meter.updateMany({
+          where: {
+            id: { in: metersToDeactivate.map((m) => m.id) },
+          },
+          data: {
+            status: "INACTIVE",
+            updated_at: new Date(),
+          },
+        });
+        console.log(
+          `[STATS] Actualizados ${metersToDeactivate.length} medidores a INACTIVE`
+        );
+      }
+
+      if (metersToActivate.length > 0) {
+        await prisma.meter.updateMany({
+          where: {
+            id: { in: metersToActivate.map((m) => m.id) },
+          },
+          data: {
+            status: "ACTIVE",
+            updated_at: new Date(),
+          },
+        });
+        console.log(
+          `[STATS] Actualizados ${metersToActivate.length} medidores a ACTIVE`
+        );
+      }
+
+      // 4. Ahora contar con estados actualizados
+      activeMeters = await prisma.meter.count({
+        where: {
+          status: "ACTIVE",
+          readings: {
+            some: {
+              timestamp: {
+                gte: last24Hours,
               },
             },
           },
         },
       });
 
-      problematicMeters =
-        directProblems + Number(criticalAlerts[0]?.count || 0) + inactiveMeters;
-      totalAlerts = Number(criticalAlerts[0]?.count || 0) + inactiveMeters;
+      inactiveMeters = await prisma.meter.count({
+        where: {
+          OR: [
+            { status: "INACTIVE" },
+            {
+              status: "ACTIVE",
+              readings: {
+                none: {
+                  timestamp: {
+                    gte: last24Hours,
+                  },
+                },
+              },
+            },
+          ],
+        },
+      });
+
+      maintenanceMeters = await prisma.meter.count({
+        where: { status: "MAINTENANCE" },
+      });
+
+      faultyMeters = await prisma.meter.count({
+        where: { status: "FAULTY" },
+      });
+
+      // Para el dashboard, solo contamos medidores inactivos como alertas
+      totalAlerts = inactiveMeters;
     } catch (error) {
-      problematicMeters = 0;
+      console.error("Error calculando estadísticas de medidores:", error);
+      activeMeters = 0;
+      inactiveMeters = 0;
+      maintenanceMeters = 0;
+      faultyMeters = 0;
       totalAlerts = 0;
+      metersToDeactivate = [];
+      metersToActivate = [];
     }
 
     // Obtener cooperativas activas
@@ -264,50 +340,40 @@ export async function GET() {
       overallMeterStatus = MeterStatus.ACTIVE;
     }
 
-    // Armado de respuesta
-    const userCounts = {
-      total: totalUsers,
-      active: totalUsers,
-      inactive: 0,
-      pending: 0,
-      blocked: 0,
-    };
-
-    const meterCounts = {
-      total: totalMeters,
-      active: totalMeters - problematicMeters,
-      inactive: 0,
-      maintenance: 0,
-      faulty: problematicMeters,
-      overallStatus: overallMeterStatus, // 👈 agregado
-    };
-
+    // 🎯 RESPUESTA OPTIMIZADA: Solo datos necesarios para dashboard
     const response = {
-      users: userCounts,
-      meters: meterCounts,
-      cooperatives: {
-        total: totalCooperatives,
-        active: activeCooperatives,
-        inactive: totalCooperatives - activeCooperatives,
-      },
-      readings: {
-        total: totalReadings,
-        recent: totalConsumption,
+      // Datos esenciales para cards del dashboard
+      meters: {
+        total: totalMeters,
+        active: activeMeters,
+        inactive: inactiveMeters,
+        maintenance: maintenanceMeters,
+        faulty: faultyMeters,
+        overallStatus: overallMeterStatus,
       },
       alerts: {
-        problematicMeters,
         totalAlerts,
+        problematicMeters: faultyMeters + maintenanceMeters + inactiveMeters,
       },
-      summary: {
-        totalEntities: totalUsers + totalMeters + totalCooperatives,
-        systemHealth:
-          problematicMeters === 0
-            ? "EXCELLENT"
-            : problematicMeters < 5
-            ? "GOOD"
-            : "ATTENTION",
+      consumption: {
+        total: totalConsumption, // m³ del mes actual
+        readings: totalReadings, // total de lecturas del mes
       },
+      systemHealth:
+        faultyMeters === 0 && maintenanceMeters === 0 && inactiveMeters === 0
+          ? "EXCELLENT"
+          : faultyMeters === 0 && maintenanceMeters < 3 && inactiveMeters < 5
+          ? "GOOD"
+          : "ATTENTION",
       lastReadingTimestamp,
+      // Metadatos para debugging
+      meta: {
+        timestamp: new Date().toISOString(),
+        updatedMeters: {
+          deactivated: metersToDeactivate.length,
+          activated: metersToActivate.length,
+        },
+      },
     };
 
     return NextResponse.json(response);

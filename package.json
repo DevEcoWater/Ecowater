@@ -18,7 +18,11 @@
     "prisma:migrate:safe": "npx dotenv -e .env.local -- prisma migrate dev --create-only",
     "prisma:migrate:resolve": "npx dotenv -e .env.local -- prisma migrate resolve --applied",
     "prisma:reset": "npx dotenv -e .env.local -- prisma migrate reset",
-    "dotenv": "npx dotenv -e .env.local --"
+    "dotenv": "npx dotenv -e .env.local --",
+    "cron:update-meters": "curl -X POST http://localhost:3000/api/cron/update-meter-status",
+    "cron:check-status": "curl -X GET http://localhost:3000/api/cron/update-meter-status",
+    "cron:test": "node scripts/test-cron.js",
+    "cron:test:prod": "node scripts/test-cron.js https://tu-app.vercel.app"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

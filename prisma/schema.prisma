@@ -17,6 +17,8 @@ model Cooperative {
   created_at     DateTime          @default(now())
   updated_at     DateTime          @updatedAt
   status         CooperativeStatus @default(ACTIVE)
+  lat            Float?
+  lng            Float?
 }
 
 model User {
@@ -123,8 +125,8 @@ model Reading {
 model Status {
   id                 String            @id @default(uuid())
   reading_id         String
-  valve_status       String // "open" | "closed" | "abnormal" | "unknown"
-  battery_voltage    String // "normal" | "low"
+  valve_status       String
+  battery_voltage    String
   battery_status     Boolean
   empty_pipe_alarm   Boolean
   reverse_flow_alarm Boolean

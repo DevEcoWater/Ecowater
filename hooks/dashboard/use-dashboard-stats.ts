@@ -2,13 +2,6 @@ import { MeterStatus } from "@prisma/client";
 import { useQuery } from "@tanstack/react-query";
 
 export interface DashboardStats {
-  users: {
-    total: number;
-    active: number;
-    inactive: number;
-    pending: number;
-    blocked: number;
-  };
   meters: {
     total: number;
     active: number;
@@ -17,24 +10,23 @@ export interface DashboardStats {
     faulty: number;
     overallStatus: MeterStatus;
   };
-  cooperatives: {
-    total: number;
-    active: number;
-    inactive: number;
-  };
-  readings: {
-    total: number;
-    recent: number;
-  };
   alerts: {
-    problematicMeters: number;
     totalAlerts: number;
+    problematicMeters: number;
   };
-  summary: {
-    totalEntities: number;
-    systemHealth: "EXCELLENT" | "GOOD" | "ATTENTION";
+  consumption: {
+    total: number; // m³ del mes actual
+    readings: number; // total de lecturas del mes
   };
+  systemHealth: "EXCELLENT" | "GOOD" | "ATTENTION";
   lastReadingTimestamp: string | null;
+  meta: {
+    timestamp: string;
+    updatedMeters: {
+      deactivated: number;
+      activated: number;
+    };
+  };
 }
 
 export const useDashboardStats = () => {
