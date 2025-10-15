@@ -64,16 +64,16 @@ export async function POST(request: Request) {
       realTimeTemperature: parseTemperature(parseData.realTimeTemperature),
       timestamps: parseTimestamp(parseData.timestamps),
     };
-
-    // No sobrescribir lat/lng con null: solo actualizar si vienen definidos
+    // No sobrescribir lat/lng con null, undefined o 0
     const primaryLat = rxInfo?.[0]?.location?.latitude;
     const primaryLng = rxInfo?.[0]?.location?.longitude;
+
     const latParsed =
-      primaryLat !== undefined && primaryLat !== null
+      primaryLat !== undefined && primaryLat !== null && primaryLat !== 0
         ? parseFloat(primaryLat)
         : undefined;
     const lngParsed =
-      primaryLng !== undefined && primaryLng !== null
+      primaryLng !== undefined && primaryLng !== null && primaryLng !== 0
         ? parseFloat(primaryLng)
         : undefined;
 
@@ -85,14 +85,19 @@ export async function POST(request: Request) {
       operational_status: finalAlertStatus.operational_status,
       updated_at: convertTimestampToArgentinaTime(timestamp),
     };
+
+    // Solo actualizar si vienen coordenadas válidas
     if (latParsed !== undefined) updateData.lat = latParsed;
     if (lngParsed !== undefined) updateData.lng = lngParsed;
 
     if (latParsed === undefined || lngParsed === undefined) {
-      console.log("[GATEWAY] Skipping lat/lng update to avoid null overwrite", {
-        hasLat: latParsed !== undefined,
-        hasLng: lngParsed !== undefined,
-      });
+      console.log(
+        "[GATEWAY] Skipping lat/lng update to avoid null/0 overwrite",
+        {
+          latValue: primaryLat,
+          lngValue: primaryLng,
+        }
+      );
     }
 
     const meter = await prisma.meter.upsert({
