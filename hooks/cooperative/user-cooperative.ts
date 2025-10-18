@@ -29,15 +29,18 @@ export function useUpdateCooperative() {
   return useMutation({
     mutationFn: async (data: UpdateCooperativeData): Promise<Cooperative> => {
       const response = await fetch("/api/cooperative", {
-        method: "PUT",
+        method: "PATCH", // 👈 cambiado de PUT a PATCH
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
       });
+
       if (!response.ok) {
-        throw new Error("Failed to update cooperative");
+        const error = await response.json();
+        throw new Error(error?.message || "Failed to update cooperative");
       }
+
       return response.json();
     },
     onSuccess: () => {

@@ -355,10 +355,10 @@ function Map() {
       maxZoom: 18,
       restriction: {
         latLngBounds: {
-          north: -34.9035949 + 0.02,
-          south: -34.9035949 - 0.02,
-          east: -58.0373327 + 0.02,
-          west: -58.0373327 - 0.02,
+          north: -34.9035949 + 0.05,
+          south: -34.9035949 - 0.05,
+          east: -58.0373327 + 0.05,
+          west: -58.0373327 - 0.05,
         },
         strictBounds: true,
       },
@@ -684,7 +684,7 @@ function Map() {
                   }}
                   onCloseClick={() => setActiveMarker(null)}
                 >
-                  <div className="p-2 bg-white rounded shadow-lg flex flex-col justify-start items-start gap-4">
+                  <div className="p-2 bg-white rounded shadow-lg flex flex-col justify-start items-center gap-4">
                     <div className="flex gap-2 justify-between w-full items-center">
                       <p className="text-balance text-sm text-muted-foreground">
                         EUI
@@ -716,7 +716,7 @@ function Map() {
                     <div>
                       <Link
                         href={`/dashboard/medidores/${item.id}`}
-                        className="text-primary underline"
+                        className="mt-1 mx-auto bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition inline-block"
                       >
                         Ver medidor
                       </Link>
