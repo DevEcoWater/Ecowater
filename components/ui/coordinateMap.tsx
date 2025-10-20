@@ -50,10 +50,10 @@ function CoordinateMap({
     maxZoom: 17,
     restriction: {
       latLngBounds: {
-        north: -34.9035949 + 0.01,
-        south: -34.9035949 - 0.01,
-        east: -58.0373327 + 0.01,
-        west: -58.0373327 - 0.01,
+        north: initialLocation.lat + 0.03,
+        south: initialLocation.lat - 0.03,
+        east: initialLocation.lng + 0.03,
+        west: initialLocation.lng - 0.03,
       },
       strictBounds: true,
     },
@@ -94,7 +94,8 @@ function CoordinateMap({
         options={options}
         onLoad={onLoad}
         onUnmount={onUnmount}
-        onClick={handleMapClick}>
+        onClick={handleMapClick}
+      >
         <Marker
           position={markerPosition}
           title={title}
