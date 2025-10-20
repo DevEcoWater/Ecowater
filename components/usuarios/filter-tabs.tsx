@@ -9,6 +9,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { TCounts } from "@/types/users/user-types";
+import { useRef, useEffect, useState } from "react";
 
 interface FilterTabsProps {
   onFilterChange?: (value: string) => void;
@@ -27,12 +28,33 @@ export function FilterTabs({
     onFilterChange?.(value);
   };
 
+  // 🔒 Guardar los valores iniciales solo una vez
+  const [staticCounts, setStaticCounts] = useState<TCounts>(counts);
+  const [staticTotal, setStaticTotal] = useState<number>(total);
+  const initialized = useRef(false);
+
+  useEffect(() => {
+    // Solo guardar una vez cuando haya datos reales (no todos 0)
+    const hasRealData =
+      (counts.actives ||
+        counts.inactives ||
+        counts.pendings ||
+        counts.blockeds) &&
+      total > 0;
+
+    if (hasRealData && !initialized.current) {
+      setStaticCounts(counts);
+      setStaticTotal(total);
+      initialized.current = true;
+    }
+  }, [counts, total]);
+
   const valuesToMap = [
-    { value: "total", label: "Total", count: total },
-    { value: "activo", label: "Activos", count: counts.actives },
-    { value: "inactivo", label: "Inactivos", count: counts.inactives },
-    { value: "pendiente", label: "Pendiente", count: counts.pendings },
-    { value: "bloqueado", label: "Bloqueados", count: counts.blockeds },
+    { value: "total", label: "Total", count: staticTotal },
+    { value: "activo", label: "Activos", count: staticCounts.actives },
+    { value: "inactivo", label: "Inactivos", count: staticCounts.inactives },
+    { value: "pendiente", label: "Pendiente", count: staticCounts.pendings },
+    { value: "bloqueado", label: "Bloqueados", count: staticCounts.blockeds },
   ];
 
   return (

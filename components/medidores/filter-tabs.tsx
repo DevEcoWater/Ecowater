@@ -8,8 +8,8 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { TCounts } from "@/types/users/user-types";
 import { MeterStatusCounts } from "@/types/meters/meter-types";
+import { useRef, useEffect, useState } from "react";
 
 interface FilterTabsProps {
   onFilterChange?: (value: string) => void;
@@ -28,16 +28,36 @@ export function FilterTabs({
     onFilterChange?.(value);
   };
 
+  const [staticCounts, setStaticCounts] = useState<MeterStatusCounts>(counts);
+  const [staticTotal, setStaticTotal] = useState<number>(total);
+  const initialized = useRef(false);
+
+  useEffect(() => {
+    // Solo setear una vez cuando haya valores reales (no todos en 0)
+    const hasRealData =
+      (counts.actives ||
+        counts.inactives ||
+        counts.maintenances ||
+        counts.faultys) &&
+      total > 0;
+
+    if (hasRealData && !initialized.current) {
+      setStaticCounts(counts);
+      setStaticTotal(total);
+      initialized.current = true;
+    }
+  }, [counts, total]);
+
   const valuesToMap = [
-    { value: "total", label: "Total", count: total },
-    { value: "activo", label: "Activos", count: counts.actives },
-    { value: "inactivo", label: "Inactivos", count: counts.inactives },
+    { value: "total", label: "Total", count: staticTotal },
+    { value: "ACTIVE", label: "Activos", count: staticCounts.actives },
+    { value: "INACTIVE", label: "Inactivos", count: staticCounts.inactives },
     {
-      value: "mantenimiento",
+      value: "MAINTENANCE",
       label: "Mantenimiento",
-      count: counts.maintenances,
+      count: staticCounts.maintenances,
     },
-    { value: "fallido", label: "Fallidos", count: counts.faultys },
+    { value: "FAULTY", label: "Fallidos", count: staticCounts.faultys },
   ];
 
   return (
