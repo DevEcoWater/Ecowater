@@ -49,7 +49,6 @@ export const meterColumns: ColumnDef<MeterDataForTable>[] = [
     accessorKey: "status",
     header: "Estado del medidor",
     cell: ({ row }) => {
-      console.log(row.original);
       const status = row.original.status;
       return <Chip status={status} />;
     },

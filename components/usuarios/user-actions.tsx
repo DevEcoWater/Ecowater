@@ -115,13 +115,21 @@ export const UserActions = ({ user }: UserActionsProps) => {
             Editar usuario
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem
-            className="cursor-pointer flex items-center gap-2"
-            onSelect={handleViewMeter}
-          >
-            <Gauge className="h-4 w-4" />
-            Medidor asignado
-          </DropdownMenuItem>
+          {user.userMeters && user.userMeters[0]?.meter_id ? (
+            <DropdownMenuItem
+              className="cursor-pointer flex items-center gap-2"
+              onSelect={handleViewMeter}
+            >
+              <Gauge className="h-4 w-4" />
+              Medidor asignado
+            </DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem className="cursor-not-allowed flex items-center gap-2">
+              <Gauge className="h-4 w-4" />
+              Sin medidor asignado
+            </DropdownMenuItem>
+          )}
+
           <DropdownMenuSeparator />
           {role === "admin" ? (
             isUserInactive ? (
