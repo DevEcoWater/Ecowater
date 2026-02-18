@@ -14,10 +14,16 @@ import { toast } from "@/hooks/use-toast";
 import { Loader, Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "../ui/tooltip";
 
 const schema = zod.object({
-  email: zod.string().min(1, { message: "Email is required" }).email(),
-  password: zod.string().min(1, { message: "Password is required" }),
+  email: zod.string().min(1, { message: "El email es requerido" }).email(),
+  password: zod.string().min(1, { message: "La contraseña es requerida" }),
 });
 
 type Values = zod.infer<typeof schema>;
@@ -117,18 +123,32 @@ const LoginForm = () => {
                   placeholder="********"
                   required
                   className={cn(
-                    errors.password ? "border-red-500 pr-10" : "pr-10"
+                    errors.password ? "border-red-500 pr-10" : "pr-10",
                   )}
                 />
               )}
             />
-            <button
-              type="button"
-              onClick={() => setShowPassword((prev) => !prev)}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-            >
-              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-            </button>
+            <TooltipProvider delayDuration={100}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    aria-label={
+                      showPassword ? "Ocultar contraseña" : "Mostrar contraseña"
+                    }
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors duration-200"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>
+                    {showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
           {errors.password && (
             <p className="text-red-500 text-sm">{errors.password.message}</p>
