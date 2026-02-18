@@ -1,6 +1,6 @@
-import { MeterStatus } from "@/utils/getChipColor";
 import { Gauge } from "lucide-react";
 import MeterCard from "./meter-card";
+import { MeterStatus } from "@prisma/client";
 
 interface ISummary {
   meters: any;
@@ -10,6 +10,7 @@ interface ISummary {
 const Summary: React.FC<ISummary> = ({ meters, isLoading }) => {
   const counts =
     !isLoading &&
+    meters &&
     meters.reduce(
       (acc: Record<MeterStatus, number>, meter: any) => {
         acc[meter.status as MeterStatus] =
@@ -22,25 +23,25 @@ const Summary: React.FC<ISummary> = ({ meters, isLoading }) => {
   const summaryData = [
     {
       title: "Total",
-      value: !isLoading && counts.default.toString(),
+      value: !isLoading && meters && counts.default.toString(),
       icon: Gauge,
       status: "default",
     },
     {
       title: "En línea",
-      value: !isLoading && counts.active.toString(),
+      value: !isLoading && meters && counts.active.toString(),
       icon: Gauge,
       status: "active",
     },
     {
       title: "Alerta",
-      value: !isLoading && counts.inactive.toString(),
+      value: !isLoading && meters && counts.inactive.toString(),
       icon: Gauge,
       status: "inactive",
     },
     {
       title: "Error",
-      value: !isLoading && counts.error.toString(),
+      value: !isLoading && meters && counts.error.toString(),
       icon: Gauge,
       status: "error",
     },

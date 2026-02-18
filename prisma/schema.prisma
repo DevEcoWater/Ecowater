@@ -1,0 +1,209 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Cooperative {
+  id             String            @id @default(uuid())
+  name           String
+  location       String?
+  contact_person String?
+  phone_number   String?
+  created_at     DateTime          @default(now())
+  updated_at     DateTime          @updatedAt
+  status         CooperativeStatus @default(ACTIVE)
+  lat            Float?
+  lng            Float?
+}
+
+model User {
+  id         String      @id @default(uuid())
+  email      String      @unique
+  password   String
+  created_at DateTime    @default(now())
+  updated_at DateTime    @updatedAt
+  status     UserStatus  @default(ACTIVE)
+  addressId  String      @unique
+  firstName  String
+  lastName   String
+  address    Address     @relation(fields: [addressId], references: [id], map: "User_adressId_fkey")
+  userMeters UserMeter[]
+  userRoles  UserRole[]
+
+  @@index([email])
+}
+
+model Address {
+  id        String  @id(map: "Adress_pkey") @default(uuid())
+  lat       String
+  lng       String
+  data      String
+  shortData String?
+  user      User?
+}
+
+model Role {
+  id        String     @id @default(uuid())
+  role_name String     @unique
+  userRoles UserRole[]
+}
+
+model UserRole {
+  user_id    String
+  role_id    String
+  created_at DateTime @default(now())
+  role       Role     @relation(fields: [role_id], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@id([user_id, role_id])
+  @@index([user_id])
+  @@index([role_id])
+}
+
+model UserMeter {
+  id          String   @id @default(uuid())
+  user_id     String
+  meter_id    String
+  assigned_at DateTime @default(now())
+  meter       Meter    @relation(fields: [meter_id], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([meter_id])
+}
+
+model Meter {
+  id                 String            @id @default(uuid())
+  dev_eui            String            @unique
+  device_name        String
+  application_id     String?
+  application_name   String?
+  lat                Float?
+  lng                Float?
+  created_at         DateTime          @default(now())
+  updated_at         DateTime          @updatedAt
+  status             MeterStatus       @default(ACTIVE)
+  operational_status OperationalStatus @default(OPERATIONAL)
+  readings           Reading[]
+  userMeters         UserMeter[]
+
+  @@index([dev_eui])
+}
+
+model Reading {
+  id                    String        @id @default(uuid())
+  meter_id              String
+  timestamp             DateTime      @default(now())
+  fCnt                  Int?
+  fPort                 Int?
+  adr                   Boolean       @default(false)
+  cumulative_flow       String?
+  cumulative_daily_flow String?
+  reverse_flow          String?
+  instantaneous_flow    String?
+  real_time_temperature String?
+  alarm_status          String?
+  error_code            String?
+  spare                 String?
+  check_code            String?
+  ending_code           String?
+  status                ReadingStatus @default(VALID)
+  plot                  String?
+  meter                 Meter         @relation(fields: [meter_id], references: [id], onDelete: Cascade)
+  rxInfos               RxInfo[]
+  statuses              Status[]
+
+  @@index([meter_id])
+  @@index([timestamp])
+}
+
+model Status {
+  id                 String            @id @default(uuid())
+  reading_id         String
+  valve_status       String
+  battery_voltage    String
+  battery_status     Boolean
+  empty_pipe_alarm   Boolean
+  reverse_flow_alarm Boolean
+  over_range_alarm   Boolean
+  water_temp_alarm   Boolean
+  ee_alarm           Boolean
+  meter_status       MeterStatus
+  operational_status OperationalStatus
+  created_at         DateTime          @default(now())
+  reading            Reading           @relation(fields: [reading_id], references: [id], onDelete: Cascade)
+
+  @@index([reading_id])
+}
+
+model RxInfo {
+  id           String       @id @default(uuid())
+  reading_id   String
+  gateway_id   String
+  lora_snr     Float?
+  rssi         Int?
+  latitude     Float?
+  longitude    Float?
+  altitude     Float?
+  time         DateTime     @default(now())
+  error_detail String?
+  status       RxInfoStatus @default(RECEIVED)
+  gateway      Gateway      @relation(fields: [gateway_id], references: [id], onDelete: Cascade)
+  reading      Reading      @relation(fields: [reading_id], references: [id], onDelete: Cascade)
+
+  @@index([reading_id])
+  @@index([gateway_id])
+  @@index([time])
+}
+
+model Gateway {
+  id           String   @id @default(uuid())
+  gateway_code String   @unique
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+  rxInfos      RxInfo[]
+}
+
+enum CooperativeStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
+  BLOCKED
+}
+
+enum MeterStatus {
+  ACTIVE
+  INACTIVE
+  MAINTENANCE
+  FAULTY
+}
+
+enum OperationalStatus {
+  OPERATIONAL
+  ERROR
+  NEEDS_MAINTENANCE
+}
+
+enum ReadingStatus {
+  VALID
+  INVALID
+  UNDER_REVIEW
+  ARCHIVED
+}
+
+enum RxInfoStatus {
+  RECEIVED
+  FAILED
+  DELAYED
+  ARCHIVED
+}

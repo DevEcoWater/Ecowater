@@ -1,6 +1,4 @@
 "use client";
-import React from "react";
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,33 +8,48 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { LogOutIcon } from "lucide-react";
+import UserAvatar from "./profile/user-avatar";
+import { useRouter } from "next/navigation";
 
 const Profile = () => {
+  const { data: session } = useSession();
+  const router = useRouter();
+
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger>
-        <Avatar>
-          <AvatarImage src="https://g12ithub.com/shadcn.png" />
-          <AvatarFallback>CN</AvatarFallback>
-        </Avatar>
+    <DropdownMenu modal={false}>
+      <DropdownMenuTrigger asChild>
+        <UserAvatar />
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56 m-2">
         <DropdownMenuLabel>Mi Cuenta</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem>Perfil</DropdownMenuItem>
-          <DropdownMenuItem>Configuración</DropdownMenuItem>
+          <DropdownMenuItem
+            className="cursor-pointer"
+            onClick={() =>
+              router.push(`/dashboard/usuarios/${session?.user.id}`)
+            }
+          >
+            Perfil
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            className="cursor-pointer"
+            onClick={() =>
+              router.push(`/dashboard/usuarios/${session?.user.id}/editar`)
+            }
+          >
+            Configuración
+          </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>GitHub</DropdownMenuItem>
-        <DropdownMenuItem>Soporte</DropdownMenuItem>
-        <DropdownMenuSeparator />
+
         <DropdownMenuItem
           onClick={() => signOut({ callbackUrl: "/auth/login" })}
+          className="flex items-center gap-2 cursor-pointer"
         >
-          <LogOutIcon /> Salir
+          <LogOutIcon className="h-4 w-4" /> Salir
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

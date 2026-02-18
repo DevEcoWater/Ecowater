@@ -1,0 +1,19 @@
+%% EcoWater - Diagrama de Estados (compatible)
+%% Generar SVG: npx @mermaid-js/mermaid-cli -i docs/diagrams/estados.mmd -o docs/diagrams/estados.svg
+
+stateDiagram
+    [*] --> MedidorActivo: Datos IoT recibidos
+
+    MedidorActivo --> MedidorInactivo: Sin datos 24h
+    MedidorInactivo --> MedidorActivo: Datos IoT recibidos
+
+    MedidorActivo --> DashboardAcceso: Usuario accede
+    MedidorInactivo --> DashboardAcceso: Usuario accede
+
+    DashboardAcceso --> RetroalimentacionInmediata: Stats API ejecuta
+    RetroalimentacionInmediata --> BDConsistente: Actualiza estados
+    BDConsistente --> DashboardConsistente: Datos correctos
+
+    MedidorInactivo --> BackupDiario: Cron Job 6 AM
+    BackupDiario --> BDConsistente: Limpia inconsistencias
+

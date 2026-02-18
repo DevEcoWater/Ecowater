@@ -1,0 +1,32 @@
+%% EcoWater - Diagrama de Flujo Temporal
+%% Generar SVG: npx @mermaid-js/mermaid-cli -i docs/diagrams/flujo_temporal.mmd -o docs/diagrams/flujo_temporal.svg
+
+sequenceDiagram
+    participant IoT as 📡 Medidores IoT
+    participant Gateway as 🔌 Gateway API
+    participant DB as 🗄️ Supabase
+    participant Stats as 📈 Stats API
+    participant UI as 🖥️ Dashboard
+    participant Cron as ⏰ Vercel Cron
+
+    Note over IoT,Cron: Sistema Híbrido - Retroalimentación + Backup
+
+    IoT->>Gateway: Datos cada 12 horas
+    Gateway->>DB: Actualiza Meter.status = "ACTIVE"
+    Gateway->>DB: Crea Reading + Status
+
+    Note over UI: Usuario accede al dashboard
+    UI->>Stats: GET /api/dashboard/stats
+
+    Note over Stats: ✅ RETROALIMENTACIÓN INMEDIATA
+    Stats->>DB: Identifica medidores inconsistentes
+    Stats->>DB: Actualiza estados inmediatamente
+    Stats->>UI: Devuelve datos consistentes
+
+    Note over UI: ✅ Dashboard muestra datos correctos inmediatamente
+
+    Note over Cron: Backup diario a las 6:00 AM
+    Cron->>DB: Limpia inconsistencias acumuladas
+
+    Note over IoT,Cron: ✅ Resultado: Consistencia inmediata + Backup automático
+

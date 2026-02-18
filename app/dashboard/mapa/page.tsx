@@ -1,10 +1,8 @@
-import Map from "@/components/ui/map";
 import React from "react";
+import dynamic from "next/dynamic";
 
-export default async function Mapa() {
-  return (
-    <div className="grid lg:grid-cols-1 gap-10">
-      <Map />
-    </div>
-  );
+const Map = dynamic(() => import("@/components/ui/map"), { ssr: false });
+
+export default function Mapa() {
+  return <Map />;
 }

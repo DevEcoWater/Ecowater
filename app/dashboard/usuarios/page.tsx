@@ -1,12 +1,12 @@
-import AnalyticsCard from "@/components/dashboard/analytics-card";
-import Users from "@/components/users/users";
+import { Suspense } from "react";
+import Users from "@/components/usuarios/users";
 
-export default async function Usuarios() {
+export default function UsuariosPage() {
   return (
-    <div className="p-4">
-      <AnalyticsCard create>
+    <div className="w-full">
+      <Suspense>
         <Users />
-      </AnalyticsCard>
+      </Suspense>
     </div>
   );
 }

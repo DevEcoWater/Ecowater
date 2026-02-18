@@ -1,27 +1,40 @@
 import { chipConfig } from "@/utils/getChipColor";
-import React from "react";
-
-type MeterStatus = keyof typeof chipConfig;
+import { parseMeterStatus } from "@/utils/parseMeterStatus";
+import { parseChipStatus } from "@/utils/parseUserStatus";
+import { MeterStatus, UserStatus } from "@prisma/client";
+import type React from "react";
+import { CSSProperties } from "react";
 
 type Props = {
-  status: MeterStatus;
-  text: string;
+  status: MeterStatus | UserStatus | "Desconocido";
   showDot?: boolean;
+  style?: CSSProperties;
 };
 
-const Chip: React.FC<Props> = ({ text, status, showDot = false }) => {
-  const chip = chipConfig[status] ?? chipConfig.default;
+export type ChipStatus = MeterStatus | UserStatus;
 
-  if (!chip) {
-    console.error(`Invalid status: ${status}`);
-    return null;
-  }
+const Chip: React.FC<Props> = ({ status, showDot = false, style }) => {
+  const statusToStyleMap: Record<ChipStatus, keyof typeof chipConfig> = {
+    ACTIVE: "ACTIVE",
+    INACTIVE: "INACTIVE",
+    BLOCKED: "BLOCKED",
+    FAULTY: "FAULTY",
+    MAINTENANCE: "PENDING",
+    PENDING: "PENDING",
+  };
+
+  const styleKey = statusToStyleMap[status as ChipStatus] || "DEFAULT";
+  const chip = chipConfig[styleKey];
 
   return (
     <div
-      style={{ backgroundColor: chip.backgroundColor, color: chip.textColor }}
-      className={`flex gap-2 justify-center items-center rounded-xl py-1 px-2.5 text-sm text-white transition-all ${
-        showDot ? "w-auto" : "w-[100px]"
+      style={{
+        backgroundColor: chip.backgroundColor,
+        color: chip.textColor,
+        ...style,
+      }}
+      className={`flex gap-2 justify-center items-center rounded-xl py-1 px-2.5 text-sm transition-all ${
+        showDot ? "w-auto" : "min-w-[100px] w-fit"
       }`}
     >
       {showDot && (
@@ -30,7 +43,7 @@ const Chip: React.FC<Props> = ({ text, status, showDot = false }) => {
           style={{ backgroundColor: chip.textColor }}
         />
       )}
-      {text}
+      {parseChipStatus(status as ChipStatus).text}
     </div>
   );
 };

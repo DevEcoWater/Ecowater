@@ -1,7 +1,9 @@
-import { chipConfig, MeterStatus } from "@/utils/getChipColor";
-import { Skeleton } from "../ui/skeleton";
-import { LucideIcon } from "lucide-react";
-import { Card, CardContent } from "../ui/card";
+import type React from "react";
+import { chipConfig } from "@/utils/getChipColor";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent } from "@/components/ui/card";
+import type { MeterStatus } from "@prisma/client";
+import type { ChipStatus } from "@/components/ui/chip";
 
 interface MeterCardProps {
   title: string;
@@ -20,34 +22,47 @@ const MeterCard: React.FC<MeterCardProps> = ({
   isLoading,
   meterDetail,
 }) => {
-  const { backgroundColor, textColor } =
-    chipConfig[status] || chipConfig.default;
+  const statusToStyleMap: Record<ChipStatus, keyof typeof chipConfig> = {
+    ACTIVE: "ACTIVE",
+    INACTIVE: "INACTIVE",
+    BLOCKED: "BLOCKED",
+    FAULTY: "FAULTY",
+    MAINTENANCE: "PENDING",
+    PENDING: "PENDING",
+  };
+
+  const styleKey = statusToStyleMap[status as ChipStatus] || "DEFAULT";
+  const chip = chipConfig[styleKey];
+
   return (
-    <Card className="p-6 mx-auto w-full max-w-[250px] m md:max-w-full rounded-xl flex-auto border dark:bg-tertiary bg-white shadow-md">
+    <Card className="p-4 mx-auto w-full rounded-xl flex-auto border bg-white shadow-sm">
       <CardContent
-        className={`flex p-0 items-center gap-5 ${
+        className={`flex p-0 items-center gap-4 ${
           meterDetail ? "flex-row-reverse" : "flex"
-        } justify-between  md:justify-center`}
+        } justify-between`}
       >
-        <div>
+        <div className="flex-1 min-w-0">
           {isLoading ? (
-            <div className="flex flex-col gap-4">
-              <Skeleton className="h-2 w-[100px] bg-gray-300 rounded-full" />
-              <Skeleton className="h-2 w-[100px] bg-gray-300 rounded-full" />
+            <div className="flex flex-col gap-2">
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-5 w-16" />
             </div>
           ) : (
             <>
-              <p className=" text-lg">{title}</p>
-              <h2 className="font-bold text-lg">{value}</h2>
+              <p className="text-sm text-muted-foreground truncate">{title}</p>
+              <h3 className="font-semibold text-lg">{value}</h3>
             </>
           )}
         </div>
-        <div>
+        <div className="flex-shrink-0">
           <Icon
-            style={{ backgroundColor, color: textColor }}
-            className="p-3 rounded-lg "
-            width={50}
-            height={50}
+            style={{
+              backgroundColor: chip.backgroundColor,
+              color: chip.textColor,
+            }}
+            className="p-2 rounded-lg"
+            width={40}
+            height={40}
           />
         </div>
       </CardContent>

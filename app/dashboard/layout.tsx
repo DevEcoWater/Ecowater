@@ -1,72 +1,74 @@
-import type { Metadata } from "next";
-import { Poppins } from "next/font/google";
 import "../globals.css";
 import { ThemeProvider } from "@/providers/theme-provider";
 
 import {
   SidebarInset,
   SidebarProvider as UiSidebarProvider,
-  SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
-
-import { Separator } from "@radix-ui/react-dropdown-menu";
-import { SessionClient } from "./session";
-import { BreadcrumbWithContext } from "@/components/breadcrumb";
-import SidebarProvider from "@/context/sidebarProvider";
-import { Toaster } from "@/components/ui/toaster";
-import { Avatar } from "@/components/ui/avatar";
-import { AvatarFallback, AvatarImage } from "@radix-ui/react-avatar";
+import { cn } from "@/lib/utils";
+import { GoogleMapsProvider } from "@/providers/google-maps-provider";
+import { PageHeaderInitializer } from "@/components/dashboard/page-header/page-header-initializer";
+import { PageHeaderRenderer } from "@/components/dashboard/page-header/PageHeaderRender";
+import { Header } from "@/components/layout/panel/header";
+import { Main } from "@/components/layout/panel/main";
 import Profile from "@/components/profile";
+import { Separator } from "@/components/ui/separator";
+import { PageHeaderProvider } from "@/context/page-header-provider";
+import { AuthGuard } from "@/components/auth/auth-guard";
+import { configureDayjs } from "@/utils/configureDayjs";
 
-const poppins = Poppins({
-  subsets: ["latin"],
-  weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
-  style: ["normal", "italic"],
-});
+configureDayjs();
 
-export const metadata: Metadata = {
-  title: "Eco Water",
-  description: "",
-};
-
-export default function RootLayout({
+export default function DashboardLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es">
-      <head>
-        <link rel="icon" href="./favicon.ico" />
-      </head>
-      <body className={poppins.className}>
-        <SessionClient>
-          <SidebarProvider>
-            <UiSidebarProvider>
-              <ThemeProvider attribute="class" defaultTheme="light">
-                <AppSidebar />
-                <SidebarInset>
-                  <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 justify-between">
-                    <div className="flex items-center">
-                      <SidebarTrigger className="-ml-1" />
-                      <Separator className="mr-2 h-4" />{" "}
-                      <BreadcrumbWithContext />
-                    </div>
+    <AuthGuard requireAuth={true}>
+      <UiSidebarProvider defaultOpen={false}>
+        <ThemeProvider attribute="class" defaultTheme="light">
+          <GoogleMapsProvider>
+            <AppSidebar />
+            <SidebarInset>
+              <div
+                id="content"
+                className={cn(
+                  "w-full",
+                  "peer-data-[state=collapsed]:w-[calc(100%-var(--sidebar-width-icon)-1rem)]",
+                  "peer-data-[state=expanded]:w-[calc(100%-var(--sidebar-width))]",
+                  "transition-[width] duration-200 ease-linear",
+                  "flex h-svh flex-col",
+                  "group-data-[scroll-locked=1]/body:h-full",
+                  "group-data-[scroll-locked=1]/body:has-[main.fixed-main]:h-svh"
+                )}
+              >
+                {/* ===== Header Global con Profile ===== */}
+                <Header fixed>
+                  <div className="flex w-full items-center justify-end">
                     <Profile />
-                  </header>
-                  <main className="flex flex-1 flex-col gap-4 p-4">
-                    <section className="min-h-screen flex-1">
-                      {children}
-                    </section>
-                  </main>
-                </SidebarInset>
-              </ThemeProvider>
-            </UiSidebarProvider>
-          </SidebarProvider>
-        </SessionClient>
-        <Toaster />
-      </body>
-    </html>
+                  </div>
+                </Header>
+
+                {/* ===== Contenido Principal con PageHeader ===== */}
+                <PageHeaderProvider>
+                  <PageHeaderInitializer />
+                  <Main>
+                    <PageHeaderRenderer />
+                    <Separator className="my-4 lg:my-6" />
+                    <div className="flex flex-1 flex-col space-y-2 md:space-y-2 lg:flex-row lg:space-x-12 lg:space-y-0 ">
+                      <div className="flex w-full overflow-y-auto pr-4">
+                        <div className="flex flex-1 flex-col">{children}</div>
+                      </div>
+                    </div>
+                  </Main>
+                </PageHeaderProvider>
+              </div>
+            </SidebarInset>
+          </GoogleMapsProvider>
+        </ThemeProvider>
+      </UiSidebarProvider>
+    </AuthGuard>
   );
 }

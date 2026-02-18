@@ -11,13 +11,19 @@ import { Label } from "@/components/ui/label";
 import { useLogin } from "@/hooks/useLogin";
 import Link from "next/link";
 import { toast } from "@/hooks/use-toast";
-import { Loader } from "lucide-react";
+import { Loader, Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "../ui/tooltip";
 
 const schema = zod.object({
-  email: zod.string().min(1, { message: "Email is required" }).email(),
-  password: zod.string().min(1, { message: "Password is required" }),
+  email: zod.string().min(1, { message: "El email es requerido" }).email(),
+  password: zod.string().min(1, { message: "La contraseña es requerida" }),
 });
 
 type Values = zod.infer<typeof schema>;
@@ -30,6 +36,7 @@ const defaultValues = {
 const LoginForm = () => {
   const { mutate: login } = useLogin();
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const router = useRouter();
 
@@ -102,28 +109,47 @@ const LoginForm = () => {
         <div className="grid gap-2">
           <div className="flex items-center">
             <Label htmlFor="password">Contraseña</Label>
-            <a
-              href="#"
-              className="ml-auto text-sm underline-offset-4 hover:underline"
-            >
-              Olvidó su contraseña?
-            </a>
           </div>
-          <Controller
-            control={control}
-            name="password"
-            rules={{ required: "Este campo es obligatorio" }}
-            render={({ field }) => (
-              <Input
-                {...field}
-                id="password"
-                type="password"
-                placeholder="********"
-                required
-                className={errors.password ? "border-red-500" : ""}
-              />
-            )}
-          />
+          <div className="relative">
+            <Controller
+              control={control}
+              name="password"
+              rules={{ required: "Este campo es obligatorio" }}
+              render={({ field }) => (
+                <Input
+                  {...field}
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="********"
+                  required
+                  className={cn(
+                    errors.password ? "border-red-500 pr-10" : "pr-10",
+                  )}
+                />
+              )}
+            />
+            <TooltipProvider delayDuration={100}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    aria-label={
+                      showPassword ? "Ocultar contraseña" : "Mostrar contraseña"
+                    }
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors duration-200"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>
+                    {showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
           {errors.password && (
             <p className="text-red-500 text-sm">{errors.password.message}</p>
           )}
@@ -134,26 +160,6 @@ const LoginForm = () => {
         >
           {loading ? <Loader className="animate-spin" size={20} /> : "Ingresar"}
         </Button>
-        <div className="relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t after:border-border">
-          <span className="relative z-10 bg-background px-2 text-muted-foreground">
-            O continue con
-          </span>
-        </div>
-        <Button variant="outline" className="w-full">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-            <path
-              d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"
-              fill="currentColor"
-            />
-          </svg>
-          Ingresar con Google
-        </Button>
-      </div>
-      <div className="text-center text-sm flex justify-center gap-2">
-        <p>No tenes una cuenta todavia?</p>
-        <Link href="/auth/register" className="underline underline-offset-4">
-          Registrarse
-        </Link>
       </div>
     </form>
   );

@@ -1,9 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { SessionProvider, useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { Loader } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -11,12 +10,14 @@ interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { status } = useSession();
+const ProtectedRoutesWIthSession: React.FC<ProtectedRouteProps> = ({
+  children,
+}) => {
   const router = useRouter();
+  const { status } = useSession();
   const { toast } = useToast();
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (status === "unauthenticated") {
       toast({
         title: "Sesión expirada",
@@ -24,6 +25,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
         variant: "destructive",
       });
       router.push("/auth/login");
+    }
+
+    if (status === "authenticated") {
+      router.push("/dashboard");
     }
   }, [status, router]);
 
@@ -38,20 +43,4 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   return <>{children}</>;
 };
 
-interface SessionClientProps {
-  children: React.ReactNode;
-}
-
-const SessionClient: React.FC<SessionClientProps> = ({ children }) => {
-  const [queryClient] = useState(() => new QueryClient());
-
-  return (
-    <QueryClientProvider client={queryClient}>
-      <SessionProvider>
-        <ProtectedRoute>{children}</ProtectedRoute>
-      </SessionProvider>
-    </QueryClientProvider>
-  );
-};
-
-export { SessionClient, ProtectedRoute };
+export { ProtectedRoutesWIthSession };

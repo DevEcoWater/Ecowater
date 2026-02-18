@@ -1,10 +1,13 @@
-import { Layout } from "@/components/authenticate/layout";
 import LoginForm from "@/components/authenticate/login-form";
+import { Layout } from "../../../components/layout/auth/layout";
+import { AuthGuard } from "@/components/auth/auth-guard";
 
-export default function Page(): React.JSX.Element {
+export default function Login(): React.JSX.Element {
   return (
-    <Layout>
-      <LoginForm />
-    </Layout>
+    <AuthGuard requireAuth={false} redirectTo="/dashboard">
+      <Layout>
+        <LoginForm />
+      </Layout>
+    </AuthGuard>
   );
 }

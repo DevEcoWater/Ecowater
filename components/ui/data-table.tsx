@@ -1,19 +1,8 @@
 "use client";
 
-import { Button } from "./button";
-import { Input } from "@/components/ui/input";
 import React from "react";
-
-import {
-  ColumnDef,
-  flexRender,
-  getCoreRowModel,
-  getPaginationRowModel,
-  useReactTable,
-  ColumnFiltersState,
-  getFilteredRowModel,
-} from "@tanstack/react-table";
-
+import { Skeleton } from "@/components/ui/skeleton";
+import { ColumnDef, flexRender } from "@tanstack/react-table";
 import {
   Table,
   TableBody,
@@ -22,34 +11,27 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { X } from "lucide-react";
+import type { Table as ReactTable } from "@tanstack/react-table";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  table: ReactTable<TData>;
+  isLoading: boolean;
+  error: any;
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
+  table,
+  isLoading,
+  error,
 }: DataTableProps<TData, TValue>) {
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
-  );
-  const table = useReactTable({
-    data: data ?? [], // Fallback to empty array while data is loading
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    onColumnFiltersChange: setColumnFilters,
-    getFilteredRowModel: getFilteredRowModel(),
-    state: {
-      columnFilters,
-    },
-  });
-
   return (
     <>
-      <div className="rounded-md border bg-white">
+      <div className="w-full">
         <Table>
           <TableHeader>
             {table &&
@@ -68,8 +50,19 @@ export function DataTable<TData, TValue>({
                 </TableRow>
               ))}
           </TableHeader>
+
           <TableBody>
-            {data && data.length > 0 ? (
+            {isLoading ? (
+              Array.from({ length: 5 }).map((_, index) => (
+                <TableRow key={index}>
+                  {columns.map((_, colIndex) => (
+                    <TableCell key={colIndex}>
+                      <Skeleton className="h-8 w-full bg-gray-300" />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : data && data.length > 0 ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
@@ -87,35 +80,31 @@ export function DataTable<TData, TValue>({
               ))
             ) : (
               <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
-                  {data ? "No results." : "Loading..."}
+                <TableCell colSpan={columns.length}>
+                  <div className="flex items-center justify-center p-6 w-full">
+                    <div className="flex flex-col items-center gap-2 text-muted-foreground w-full">
+                      <X className="h-8 w-8" />
+                      <p>No se encontraron resultados</p>
+                    </div>
+                  </div>
+                </TableCell>
+              </TableRow>
+            )}
+
+            {error && (
+              <TableRow>
+                <TableCell colSpan={columns.length}>
+                  <div className="flex items-center justify-center p-6 w-full">
+                    <div className="flex flex-col items-center gap-2 text-muted-foreground w-full">
+                      <X className="h-8 w-8" />
+                      <p>Ha ocurrido un error</p>
+                    </div>
+                  </div>
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
-      </div>
-      {/* Pagination controls */}
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
-        >
-          Previous
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
-        >
-          Next
-        </Button>
       </div>
     </>
   );
