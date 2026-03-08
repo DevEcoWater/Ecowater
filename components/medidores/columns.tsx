@@ -5,6 +5,13 @@ import Chip from "../ui/chip";
 import { MeterActions } from "./meter-actions";
 import { MeterDataForTable } from "@/types/meters/meter-types";
 import dayjs from "dayjs";
+import { MeterStatus, OperationalStatus } from "@prisma/client";
+
+const OP_TO_METER_STATUS: Record<OperationalStatus, MeterStatus> = {
+  OPERATIONAL: "ACTIVE",
+  ERROR: "FAULTY",
+  NEEDS_MAINTENANCE: "MAINTENANCE",
+};
 
 export const meterColumns: ColumnDef<MeterDataForTable>[] = [
   {
@@ -47,10 +54,20 @@ export const meterColumns: ColumnDef<MeterDataForTable>[] = [
 
   {
     accessorKey: "status",
-    header: "Estado del medidor",
+    header: "Conectividad",
     cell: ({ row }) => {
       const status = row.original.status;
       return <Chip status={status} />;
+    },
+  },
+
+  {
+    accessorKey: "operational_status",
+    header: "Estado operacional",
+    cell: ({ row }) => {
+      const op = row.original.operational_status as OperationalStatus;
+      const meterStatus = OP_TO_METER_STATUS[op] ?? "ACTIVE";
+      return <Chip status={meterStatus} />;
     },
   },
 

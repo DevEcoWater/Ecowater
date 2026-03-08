@@ -47,21 +47,7 @@ export type StatusData = {
 export function mapStatusToAlerts(status: StatusData): Alert[] {
   const alerts: Alert[] = [];
 
-  // 1. CRITICAL: Medidor con estado crítico
-  if (
-    status.meter_status === "FAULTY" ||
-    status.operational_status === "ERROR"
-  ) {
-    alerts.push({
-      type: "CRITICAL_METER",
-      severity: "CRITICAL",
-      message: `Medidor en estado crítico: ${status.meter_status}`,
-      field: "meter_status",
-      value: status.meter_status,
-    });
-  }
-
-  // 2. HIGH: Problemas de válvula
+  // 1. HIGH: Problemas de válvula
   if (status.valve_status === "abnormal") {
     alerts.push({
       type: "VALVE_ISSUE",
@@ -141,20 +127,6 @@ export function mapStatusToAlerts(status: StatusData): Alert[] {
       message: "Alarma de EE",
       field: "ee_alarm",
       value: status.ee_alarm,
-    });
-  }
-
-  // 7. MEDIUM: Necesita mantenimiento
-  if (
-    status.meter_status === "MAINTENANCE" ||
-    status.operational_status === "NEEDS_MAINTENANCE"
-  ) {
-    alerts.push({
-      type: "MAINTENANCE_NEEDED",
-      severity: "MEDIUM",
-      message: "Medidor necesita mantenimiento",
-      field: "operational_status",
-      value: status.operational_status,
     });
   }
 
