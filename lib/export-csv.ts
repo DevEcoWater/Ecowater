@@ -56,5 +56,6 @@ export async function downloadReadingsCsv(
   }));
 
   const csv = toCsvString(rows);
-  downloadCsv(csv, filename ?? `lecturas-${meterId}-${period}.csv`);
+  const suffix = "period" in params ? params.period : `${params.startDate}_${params.endDate}`;
+  downloadCsv(csv, filename ?? `lecturas-${meterId}-${suffix}.csv`);
 }
