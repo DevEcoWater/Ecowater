@@ -101,6 +101,8 @@ export function ConsumptionChart({ data, meterStatus }: ConsumptionChartProps) {
         return "últimos 30 días";
       case "90d":
         return "últimos 3 meses";
+      case "6m":
+        return "últimos 6 meses";
       case "1y":
         return "último año";
       default:
@@ -116,7 +118,7 @@ export function ConsumptionChart({ data, meterStatus }: ConsumptionChartProps) {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-[23rem]">
+        <div className="h-[21rem]">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={formatChartData(data.series)}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />

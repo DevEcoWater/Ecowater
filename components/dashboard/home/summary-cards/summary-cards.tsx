@@ -8,9 +8,12 @@ import { useUrgencies } from "@/hooks/urgencies/use-urgencies";
 
 interface SummaryCardsProps {
   stats: DashboardStats;
+  consumptionTotal: number;
+  previousTotal?: number;
+  period: string;
 }
 
-export function SummaryCards({ stats }: SummaryCardsProps) {
+export function SummaryCards({ stats, consumptionTotal, previousTotal, period }: SummaryCardsProps) {
   const { data: urgencies } = useUrgencies({
     includeInactive: true,
     limit: 100,
@@ -22,8 +25,9 @@ export function SummaryCards({ stats }: SummaryCardsProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       <ConsumptionCard
-        totalConsumption={stats.consumption.total}
-        period="mes"
+        totalConsumption={consumptionTotal}
+        previousTotal={previousTotal}
+        period={period}
       />
       <MetersCard
         totalMeters={stats.meters.total}

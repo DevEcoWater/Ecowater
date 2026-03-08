@@ -3,18 +3,59 @@ import { PrismaClient, MeterStatus } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-// Función para calcular el estado global de medidores
 function getOverallMeterStatus(statuses: MeterStatus[]): MeterStatus {
   if (statuses.includes(MeterStatus.FAULTY)) return MeterStatus.FAULTY;
   if (statuses.includes(MeterStatus.INACTIVE)) return MeterStatus.INACTIVE;
-  if (statuses.includes(MeterStatus.MAINTENANCE))
-    return MeterStatus.MAINTENANCE;
-  if (statuses.every((s) => s === MeterStatus.ACTIVE))
-    return MeterStatus.ACTIVE;
+  if (statuses.includes(MeterStatus.MAINTENANCE)) return MeterStatus.MAINTENANCE;
+  if (statuses.every((s) => s === MeterStatus.ACTIVE)) return MeterStatus.ACTIVE;
   return MeterStatus.ACTIVE;
 }
 
+function fmtDateTZ(d: Date, tz: string) {
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: tz,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
+}
+
+function getTZOffsetMs(d: Date, tz: string): number {
+  const fmt = (timeZone: string) =>
+    new Intl.DateTimeFormat("en-CA", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    }).format(d);
+  return new Date(fmt(tz)).getTime() - new Date(fmt("UTC")).getTime();
+}
+
+function toMidnightTZ(ymd: string, tz: string): Date {
+  const estimate = new Date(ymd + "T00:00:00Z");
+  const offsetMs = getTZOffsetMs(estimate, tz);
+  return new Date(estimate.getTime() - offsetMs);
+}
+
+function getMonthRangeTZ(tz: string): { startMid: Date; endMidExcl: Date } {
+  const todayYMD = fmtDateTZ(new Date(), tz);
+  const startOfMonthYMD = todayYMD.substring(0, 7) + "-01";
+  const nextMonth = new Date(startOfMonthYMD + "T00:00:00Z");
+  nextMonth.setUTCMonth(nextMonth.getUTCMonth() + 1);
+  const endOfMonthYMD = nextMonth.toISOString().substring(0, 10);
+  return {
+    startMid: toMidnightTZ(startOfMonthYMD, tz),
+    endMidExcl: toMidnightTZ(endOfMonthYMD, tz),
+  };
+}
+
 export async function GET() {
+  const tz = "America/Argentina/Buenos_Aires";
+
   try {
     try {
       await prisma.$connect();
@@ -25,7 +66,6 @@ export async function GET() {
       );
     }
 
-    // Obtener conteos totales uno por uno para identificar cuál falla
     let totalUsers = 0;
     let totalMeters = 0;
     let totalCooperatives = 0;
@@ -50,24 +90,7 @@ export async function GET() {
     }
 
     try {
-      // Contar lecturas del mes actual
-      const tz = "America/Argentina/Buenos_Aires";
-      const now = new Date();
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-
-      const toMidnight = (d: Date) => {
-        const ymd = new Intl.DateTimeFormat("sv-SE", {
-          timeZone: tz,
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-        }).format(d);
-        return new Date(ymd + "T00:00:00Z");
-      };
-
-      const startMid = toMidnight(startOfMonth);
-      const endMidExcl = toMidnight(endOfMonth);
+      const { startMid, endMidExcl } = getMonthRangeTZ(tz);
 
       totalReadings = await prisma.reading.count({
         where: {
@@ -81,28 +104,9 @@ export async function GET() {
       totalReadings = 0;
     }
 
-    // Obtener consumo total del mes actual
     let totalConsumption = 0;
     try {
-      const tz = "America/Argentina/Buenos_Aires";
-      const now = new Date();
-      // Mes actual completo: del 1 al último día del mes
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-
-      // Convertir a medianoche en timezone local
-      const toMidnight = (d: Date) => {
-        const ymd = new Intl.DateTimeFormat("sv-SE", {
-          timeZone: tz,
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-        }).format(d);
-        return new Date(ymd + "T00:00:00Z");
-      };
-
-      const startMid = toMidnight(startOfMonth);
-      const endMidExcl = toMidnight(endOfMonth);
+      const { startMid, endMidExcl } = getMonthRangeTZ(tz);
 
       const consumptionResult = await prisma.$queryRawUnsafe(
         `
@@ -136,7 +140,7 @@ export async function GET() {
             db.bucket_local,
             MAX(n.cf) AS cierre_dia,
             LAG(MAX(n.cf)) OVER (
-              PARTITION BY n.meter_id 
+              PARTITION BY n.meter_id
               ORDER BY db.bucket_local
             ) AS cierre_dia_anterior
           FROM norm n
@@ -147,11 +151,11 @@ export async function GET() {
           SELECT
             meter_id,
             bucket_local,
-            CASE 
+            CASE
               WHEN cierre_dia_anterior IS NULL THEN
-                (SELECT GREATEST(MAX(cf) - MIN(cf), 0) 
-                 FROM norm n2 
-                 WHERE n2.meter_id = daily_closures.meter_id 
+                (SELECT GREATEST(MAX(cf) - MIN(cf), 0)
+                 FROM norm n2
+                 WHERE n2.meter_id = daily_closures.meter_id
                  AND date_trunc('day', n2.local_ts) = daily_closures.bucket_local)
               ELSE
                 GREATEST(cierre_dia - cierre_dia_anterior, 0)
@@ -161,7 +165,7 @@ export async function GET() {
         SELECT
           CAST(ROUND(SUM(consumo_diario)::numeric, 2) AS double precision) AS total_consumo
         FROM consumo_por_medidor;
-      `,
+        `,
         startMid,
         endMidExcl,
         tz
@@ -172,7 +176,6 @@ export async function GET() {
       totalConsumption = 0;
     }
 
-    // Obtener conteos de medidores por status
     let activeMeters = 0;
     let inactiveMeters = 0;
     let maintenanceMeters = 0;
@@ -184,79 +187,51 @@ export async function GET() {
     try {
       const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-      // 🔄 RETROALIMENTACIÓN INMEDIATA: Actualizar estados mientras calculamos
-
-      // 1. Identificar medidores que deberían estar INACTIVE
       metersToDeactivate = await prisma.meter.findMany({
         where: {
           status: "ACTIVE",
           readings: {
             none: {
-              timestamp: {
-                gte: last24Hours,
-              },
+              timestamp: { gte: last24Hours },
             },
           },
         },
         select: { id: true },
       });
 
-      // 2. Identificar medidores que deberían estar ACTIVE
       metersToActivate = await prisma.meter.findMany({
         where: {
           status: "INACTIVE",
           readings: {
             some: {
-              timestamp: {
-                gte: last24Hours,
-              },
+              timestamp: { gte: last24Hours },
             },
           },
         },
         select: { id: true },
       });
 
-      // 3. Actualizar estados inmediatamente
       if (metersToDeactivate.length > 0) {
         await prisma.meter.updateMany({
-          where: {
-            id: { in: metersToDeactivate.map((m) => m.id) },
-          },
-          data: {
-            status: "INACTIVE",
-            updated_at: new Date(),
-          },
+          where: { id: { in: metersToDeactivate.map((m) => m.id) } },
+          data: { status: "INACTIVE", updated_at: new Date() },
         });
-        console.log(
-          `[STATS] Actualizados ${metersToDeactivate.length} medidores a INACTIVE`
-        );
+        console.log(`[STATS] Actualizados ${metersToDeactivate.length} medidores a INACTIVE`);
       }
 
       if (metersToActivate.length > 0) {
         await prisma.meter.updateMany({
-          where: {
-            id: { in: metersToActivate.map((m) => m.id) },
-          },
-          data: {
-            status: "ACTIVE",
-            updated_at: new Date(),
-          },
+          where: { id: { in: metersToActivate.map((m) => m.id) } },
+          data: { status: "ACTIVE", updated_at: new Date() },
         });
-        console.log(
-          `[STATS] Actualizados ${metersToActivate.length} medidores a ACTIVE`
-        );
+        console.log(`[STATS] Actualizados ${metersToActivate.length} medidores a ACTIVE`);
       }
 
-      // 4. Ahora contar con estados actualizados
       activeMeters = await prisma.meter.count({
         where: {
           status: "ACTIVE",
           readings: {
-            some: {
-              timestamp: {
-                gte: last24Hours,
-              },
-            },
+            some: { timestamp: { gte: last24Hours } },
           },
         },
       });
@@ -267,13 +242,7 @@ export async function GET() {
             { status: "INACTIVE" },
             {
               status: "ACTIVE",
-              readings: {
-                none: {
-                  timestamp: {
-                    gte: last24Hours,
-                  },
-                },
-              },
+              readings: { none: { timestamp: { gte: last24Hours } } },
             },
           ],
         },
@@ -287,7 +256,6 @@ export async function GET() {
         where: { status: "FAULTY" },
       });
 
-      // Para el dashboard, solo contamos medidores inactivos como alertas
       totalAlerts = inactiveMeters;
     } catch (error) {
       console.error("Error calculando estadísticas de medidores:", error);
@@ -300,49 +268,37 @@ export async function GET() {
       metersToActivate = [];
     }
 
-    // Obtener cooperativas activas
     let activeCooperatives = 0;
     try {
       activeCooperatives = await prisma.cooperative.count({
-        where: {
-          status: "ACTIVE",
-        },
+        where: { status: "ACTIVE" },
       });
     } catch {
       activeCooperatives = 0;
     }
 
-    // Última lectura
     let lastReadingTimestamp = null;
     try {
       const lastReading = await prisma.reading.findFirst({
-        orderBy: {
-          timestamp: "desc",
-        },
-        select: {
-          timestamp: true,
-        },
+        orderBy: { timestamp: "desc" },
+        select: { timestamp: true },
       });
       lastReadingTimestamp = lastReading?.timestamp || null;
-    } catch (error) {
+    } catch {
       lastReadingTimestamp = null;
     }
 
-    // Estados de medidores → overallStatus
     let overallMeterStatus: MeterStatus = MeterStatus.ACTIVE;
     try {
       const meters = await prisma.meter.findMany({
         select: { status: true },
       });
-
       overallMeterStatus = getOverallMeterStatus(meters.map((m) => m.status));
     } catch {
       overallMeterStatus = MeterStatus.ACTIVE;
     }
 
-    // 🎯 RESPUESTA OPTIMIZADA: Solo datos necesarios para dashboard
     const response = {
-      // Datos esenciales para cards del dashboard
       meters: {
         total: totalMeters,
         active: activeMeters,
@@ -356,8 +312,8 @@ export async function GET() {
         problematicMeters: faultyMeters + maintenanceMeters + inactiveMeters,
       },
       consumption: {
-        total: totalConsumption, // m³ del mes actual
-        readings: totalReadings, // total de lecturas del mes
+        total: totalConsumption,
+        readings: totalReadings,
       },
       systemHealth:
         faultyMeters === 0 && maintenanceMeters === 0 && inactiveMeters === 0
@@ -366,7 +322,6 @@ export async function GET() {
           ? "GOOD"
           : "ATTENTION",
       lastReadingTimestamp,
-      // Metadatos para debugging
       meta: {
         timestamp: new Date().toISOString(),
         updatedMeters: {

@@ -3,19 +3,53 @@
 import React, { useState } from "react";
 import { SummaryCards } from "./summary-cards/summary-cards";
 import { ConsumptionChart } from "./consumption-chart/consumption-chart";
+import { DateRangeSelector } from "./date-range-selector";
 import { useDashboardStats } from "@/hooks/dashboard/use-dashboard-stats";
-import { useConsumptionData } from "@/hooks/dashboard/use-consumption-data";
+import {
+  useConsumptionData,
+  DashboardPeriod,
+  ConsumptionQueryParams,
+} from "@/hooks/dashboard/use-consumption-data";
 import { useUrgencies } from "@/hooks/dashboard/use-urgencies";
+import { useMeterDistribution } from "@/hooks/dashboard/use-meter-distribution";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle, Clock } from "lucide-react";
 import { UrgenciesSection } from "./urgencies/urgencies-section";
-import { getStatusColor } from "@/utils/getStatusColor";
+import { MeterDistributionChart } from "./meter-distribution-chart/meter-distribution-chart";
+import dayjs from "dayjs";
+
+const PERIOD_LABELS: Record<DashboardPeriod, string> = {
+  "7d": "1 semana",
+  "30d": "1 mes",
+  "90d": "3 meses",
+  "6m": "6 meses",
+  "1y": "1 año",
+};
 
 export function HomeDashboard() {
+  const [selectedPeriod, setSelectedPeriod] = useState<DashboardPeriod>("30d");
+  const [customRange, setCustomRange] = useState<{
+    startDate: string;
+    endDate: string;
+  } | null>(null);
+
+  const consumptionParams: ConsumptionQueryParams = customRange
+    ? { startDate: customRange.startDate, endDate: customRange.endDate }
+    : { period: selectedPeriod };
+
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
   const { data: consumption, isLoading: consumptionLoading } =
-    useConsumptionData();
+    useConsumptionData(consumptionParams);
   const { data: urgencies, isLoading: urgenciesLoading } = useUrgencies();
+  const { data: meterDistribution } = useMeterDistribution(consumptionParams);
+
+  const consumptionTotal =
+    consumption?.series.reduce((sum, item) => sum + item.consumo_m3, 0) ?? 0;
+  const previousTotal = consumption?.previousTotal;
+
+  const periodLabel = customRange
+    ? `${dayjs(customRange.startDate).format("DD/MM/YY")} - ${dayjs(customRange.endDate).format("DD/MM/YY")}`
+    : PERIOD_LABELS[selectedPeriod];
 
   if (statsLoading || consumptionLoading || urgenciesLoading) {
     return <DashboardSkeleton />;
@@ -39,7 +73,7 @@ export function HomeDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Header con última actualización */}
+      {/* Header: última actualización */}
       <div className="flex items-center justify-end">
         <div className="flex items-center gap-2 text-sm text-gray-600">
           <Clock className="w-4 h-4" />
@@ -53,20 +87,43 @@ export function HomeDashboard() {
       </div>
 
       {/* Cards de resumen */}
-      <SummaryCards stats={stats} />
+      <SummaryCards
+        stats={stats}
+        consumptionTotal={consumptionTotal}
+        previousTotal={previousTotal}
+        period={periodLabel}
+      />
+
+      {/* Selector de período y rango personalizado */}
+      <DateRangeSelector
+        selectedPeriod={selectedPeriod}
+        customRange={customRange}
+        onPeriodSelect={(period) => {
+          setSelectedPeriod(period);
+          setCustomRange(null);
+        }}
+        onRangeApply={(startDate, endDate) =>
+          setCustomRange({ startDate, endDate })
+        }
+        onRangeClear={() => setCustomRange(null)}
+      />
 
       {/* Gráfico de consumo y urgencias */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Gráfico de consumo (80%) */}
         <div className="lg:col-span-3">
           <ConsumptionChart data={consumption} />
         </div>
-
-        {/* Sección de urgencias (20%) */}
         <div className="lg:col-span-1">
           <UrgenciesSection urgencies={urgencies} />
         </div>
       </div>
+
+      {/* Distribución por medidor + Tendencia */}
+      <MeterDistributionChart
+        meters={meterDistribution?.meters ?? []}
+        period={periodLabel}
+      />
+
     </div>
   );
 }

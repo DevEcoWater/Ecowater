@@ -13,6 +13,7 @@ import {
   ChevronDown,
   BarChart3,
   Table,
+  Download,
 } from "lucide-react";
 import MeterCard from "@/components/dashboard/meter-card";
 import { Main } from "@/components/layout/panel/main";
@@ -28,25 +29,74 @@ import { DashboardSkeleton } from "@/components/medidores/detail/MeterDetailSkel
 import { UserButton } from "@/components/medidores/detail/UserButton";
 import { Separator } from "@/components/ui/separator";
 import { ConsumptionChart } from "@/components/dashboard/home/consumption-chart/consumption-chart";
-import { useConsumptionFromMeterData } from "@/hooks/dashboard/use-consumption-data";
-import { PeriodSelector } from "@/components/dashboard/home/consumption-chart/period-selector";
+import {
+  useConsumptionFromMeterData,
+  type DashboardPeriod,
+  type ConsumptionQueryParams,
+} from "@/hooks/dashboard/use-consumption-data";
+import { DateRangeSelector } from "@/components/dashboard/home/date-range-selector";
+import { Button } from "@/components/ui/button";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+  PaginationEllipsis,
+} from "@/components/ui/pagination";
+import { downloadReadingsCsv } from "@/lib/export-csv";
 
 const MeterDashboard = () => {
   const { id } = useParams();
 
-  const [selectedPeriod, setSelectedPeriod] = useState<
-    "7d" | "30d" | "90d" | "1y"
-  >("7d");
+  const [selectedPeriod, setSelectedPeriod] = useState<DashboardPeriod>("30d");
+  const [customRange, setCustomRange] = useState<{ startDate: string; endDate: string } | null>(null);
+
+  const consumptionParams: ConsumptionQueryParams = customRange
+    ? { startDate: customRange.startDate, endDate: customRange.endDate }
+    : { period: selectedPeriod };
+
   const { data: meterData, isLoading: isLoadingMeter } = useMeterQuery(
     id as string
   );
 
   const { data: consumption, isLoading: consumptionLoading } =
-    useConsumptionFromMeterData(id as string, selectedPeriod);
+    useConsumptionFromMeterData(id as string, consumptionParams);
 
-  const { data: readingsData } = useMeterReadings(id as string);
+  const {
+    data: readingsData,
+    isLoading: readingsLoading,
+    page,
+    setPage,
+    totalPages,
+    total,
+  } = useMeterReadings(
+    id as string,
+    customRange ? undefined : selectedPeriod,
+    customRange?.startDate,
+    customRange?.endDate
+  );
 
   const [viewMode, setViewMode] = useState<"graph" | "table">("graph");
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  async function handleDownloadCsv() {
+    setIsDownloading(true);
+    const meterId = id as string;
+    const suffix = customRange
+      ? `${customRange.startDate}_${customRange.endDate}`
+      : selectedPeriod;
+    try {
+      await downloadReadingsCsv(
+        meterId,
+        customRange ?? { period: selectedPeriod },
+        `lecturas-${meterId.slice(-8)}-${suffix}.csv`
+      );
+    } finally {
+      setIsDownloading(false);
+    }
+  }
   const [expandedSections, setExpandedSections] = useState({
     metrics: true,
     chart: true,
@@ -269,10 +319,12 @@ const MeterDashboard = () => {
             {expandedSections.chart && (
               <CardContent className="pt-0">
                 <div className="mb-4">
-                  <PeriodSelector
-                    currentPeriod={selectedPeriod}
-                    onPeriodChange={setSelectedPeriod}
-                    meterStatus={meterData.status || "Desconocido"}
+                  <DateRangeSelector
+                    selectedPeriod={selectedPeriod}
+                    customRange={customRange}
+                    onPeriodSelect={(p) => { setSelectedPeriod(p); setCustomRange(null); }}
+                    onRangeApply={(start, end) => setCustomRange({ startDate: start, endDate: end })}
+                    onRangeClear={() => setCustomRange(null)}
                   />
                 </div>
 
@@ -307,13 +359,31 @@ const MeterDashboard = () => {
                   </TabsContent>
 
                   <TabsContent value="table" className="mt-0">
+                    <div className="flex justify-end mb-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleDownloadCsv}
+                        disabled={isDownloading}
+                        className="gap-1.5 text-xs"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        {isDownloading ? "Descargando..." : "Exportar CSV"}
+                      </Button>
+                    </div>
                     <div className="overflow-x-auto">
                       <ReadingTable
                         data={readingsData}
-                        isLoading={false}
+                        isLoading={readingsLoading}
                         error={null}
                       />
                     </div>
+                    <TablePagination
+                      page={page}
+                      setPage={setPage}
+                      totalPages={totalPages}
+                      total={total}
+                    />
                   </TabsContent>
                 </Tabs>
               </CardContent>
@@ -438,11 +508,13 @@ const MeterDashboard = () => {
                         Tabla
                       </TabsTrigger>
                     </TabsList>
-                    <div className="mb-4 mx-auto w-[300px]">
-                      <PeriodSelector
-                        currentPeriod={selectedPeriod}
-                        onPeriodChange={setSelectedPeriod}
-                        meterStatus={meterData.status || "Desconocido"}
+                    <div className="mb-4">
+                      <DateRangeSelector
+                        selectedPeriod={selectedPeriod}
+                        customRange={customRange}
+                        onPeriodSelect={(p) => { setSelectedPeriod(p); setCustomRange(null); }}
+                        onRangeApply={(start, end) => setCustomRange({ startDate: start, endDate: end })}
+                        onRangeClear={() => setCustomRange(null)}
                       />
                     </div>
 
@@ -456,10 +528,28 @@ const MeterDashboard = () => {
                     </TabsContent>
 
                     <TabsContent value="table" className="mt-0">
+                      <div className="flex justify-end mb-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={handleDownloadCsv}
+                          disabled={isDownloading}
+                          className="gap-1.5 text-xs"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          {isDownloading ? "Descargando..." : "Exportar CSV"}
+                        </Button>
+                      </div>
                       <ReadingTable
                         data={readingsData}
-                        isLoading={false}
+                        isLoading={readingsLoading}
                         error={null}
+                      />
+                      <TablePagination
+                        page={page}
+                        setPage={setPage}
+                        totalPages={totalPages}
+                        total={total}
                       />
                     </TabsContent>
                   </Tabs>
@@ -518,3 +608,67 @@ const MeterDashboard = () => {
 };
 
 export default MeterDashboard;
+
+function getPaginationRange(page: number, totalPages: number): (number | "…")[] {
+  if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
+  if (page <= 4) return [1, 2, 3, 4, 5, "…", totalPages];
+  if (page >= totalPages - 3) return [1, "…", totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+  return [1, "…", page - 1, page, page + 1, "…", totalPages];
+}
+
+function TablePagination({
+  page,
+  setPage,
+  totalPages,
+  total,
+}: {
+  page: number;
+  setPage: (p: number) => void;
+  totalPages: number;
+  total: number;
+}) {
+  if (totalPages <= 1) return null;
+  const range = getPaginationRange(page, totalPages);
+  return (
+    <div className="flex flex-col items-center gap-1 mt-4">
+      <Pagination>
+        <PaginationContent>
+          <PaginationItem>
+            <PaginationPrevious
+              href="#"
+              onClick={(e) => { e.preventDefault(); if (page > 1) setPage(page - 1); }}
+              aria-disabled={page === 1}
+              className={page === 1 ? "pointer-events-none opacity-50" : ""}
+            />
+          </PaginationItem>
+          {range.map((item, i) =>
+            item === "…" ? (
+              <PaginationItem key={`ellipsis-${i}`}>
+                <PaginationEllipsis />
+              </PaginationItem>
+            ) : (
+              <PaginationItem key={item}>
+                <PaginationLink
+                  href="#"
+                  isActive={item === page}
+                  onClick={(e) => { e.preventDefault(); setPage(item as number); }}
+                >
+                  {item}
+                </PaginationLink>
+              </PaginationItem>
+            )
+          )}
+          <PaginationItem>
+            <PaginationNext
+              href="#"
+              onClick={(e) => { e.preventDefault(); if (page < totalPages) setPage(page + 1); }}
+              aria-disabled={page === totalPages}
+              className={page === totalPages ? "pointer-events-none opacity-50" : ""}
+            />
+          </PaginationItem>
+        </PaginationContent>
+      </Pagination>
+      <p className="text-xs text-muted-foreground">{total} registros en total</p>
+    </div>
+  );
+}
