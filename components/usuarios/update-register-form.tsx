@@ -195,7 +195,7 @@ export default function UpdateUserForm() {
         <form onKeyDown={handleKeyDown} onSubmit={form.handleSubmit(onSubmit)}>
           <div className="grid grid-cols-1 gap-6">
             {/* Personal Information Card */}
-            <Card className="lg:col-span-2">
+            <Card id="tour-edit-personal" className="lg:col-span-2">
               <CardHeader>
                 <CardTitle>Información Personal</CardTitle>
                 <CardDescription>
@@ -306,7 +306,7 @@ export default function UpdateUserForm() {
           <Separator className="my-8" />
 
           {/* Location Card */}
-          <Card>
+          <Card id="tour-edit-location">
             <CardHeader>
               <CardTitle>Ubicación</CardTitle>
               <CardDescription>

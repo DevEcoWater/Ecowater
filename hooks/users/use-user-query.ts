@@ -134,6 +134,37 @@ export const useDeleteUserMutation = () => {
   });
 };
 
+// Assign a meter to a user
+export const useAssignUserMeterMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    any,
+    Error,
+    { userId: string; meterId: string; force?: boolean }
+  >({
+    mutationFn: async ({ userId, meterId, force = false }) => {
+      const response = await fetch("/api/user/meter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId, meter_id: meterId, force }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Error al asignar el medidor.");
+      }
+
+      return response.json();
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["user", variables.userId] });
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      queryClient.invalidateQueries({ queryKey: ["meters"] });
+    },
+  });
+};
+
 // Reactivate a user
 export const useReactivateUserMutation = () => {
   const queryClient = useQueryClient();

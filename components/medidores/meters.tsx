@@ -44,7 +44,7 @@ const Meters = () => {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-col gap-4 md:gap-6 md:flex-col w-full">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between w-full gap-4">
-            <div className="flex items-center flex-wrap gap-2">
+            <div id="tour-meters-search" className="flex items-center flex-wrap gap-2">
               <div className="flex w-full md:w-[350px]">
                 <Input
                   placeholder="Filtrar por código o nombre del cliente"
@@ -77,7 +77,7 @@ const Meters = () => {
           </div>
 
           {/* Second row: Filter Tabs */}
-          <div className="flex items-center justify-center w-full mb-4">
+          <div id="tour-meters-filter-tabs" className="flex items-center justify-center w-full mb-4">
             <FilterTabs
               onFilterChange={(value) => {
                 if (filterState !== value) {
@@ -91,7 +91,7 @@ const Meters = () => {
           </div>
         </div>
       </div>
-      <div>
+      <div id="tour-meters-table">
         <MeterTableComponent
           data={data || []}
           isLoading={isLoading}

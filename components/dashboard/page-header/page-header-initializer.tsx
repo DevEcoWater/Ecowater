@@ -10,8 +10,8 @@ export function PageHeaderInitializer() {
   const { setPageHeader } = usePageHeader();
 
   useEffect(() => {
-    const { title, description } = getPageHeaderFromPath(pathname);
-    setPageHeader(title, description);
+    const { title, description, tourName } = getPageHeaderFromPath(pathname);
+    setPageHeader(title, description, tourName);
   }, [pathname, setPageHeader]);
 
   return null;

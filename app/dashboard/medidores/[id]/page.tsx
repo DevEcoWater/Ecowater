@@ -213,7 +213,7 @@ const MeterDashboard = () => {
         </div>
 
         {/* Desktop */}
-        <div className="hidden md:block bg-background border bg-white shadow-sm rounded-xl">
+        <div id="tour-meter-header" className="hidden md:block bg-background border bg-white shadow-sm rounded-xl">
           <div className="p-6">
             <div className="flex items-center justify-between gap-4">
               {/* Left side */}
@@ -237,7 +237,14 @@ const MeterDashboard = () => {
               </div>
 
               {/* Right side */}
-              <div className="flex flex-col items-end">
+              <div className="flex flex-row items-center gap-4">
+                <div className="flex items-center gap-1">
+                  <Clock size={12} className="text-muted-foreground" />
+                  <p className="text-xs text-muted-foreground">
+                    Última actualización:{" "}
+                    {dayjs(meterData.updated_at).format("DD/MM/YYYY HH:mm")}
+                  </p>
+                </div>
                 <Chip
                   showDot
                   status={
@@ -250,9 +257,8 @@ const MeterDashboard = () => {
                       : "Desconocido"
                   }
                 />
-
                 {meterData.dataFreshness?.warning && (
-                  <p className="text-xs text-orange-600 mt-1">
+                  <p className="text-xs text-orange-600">
                     ⚠️ {meterData.dataFreshness.warning}
                   </p>
                 )}
@@ -459,7 +465,7 @@ const MeterDashboard = () => {
             {/* Main Content Area - Left Side */}
             <div className="col-span-8 space-y-6">
               {/* Metrics Cards */}
-              <div className="grid grid-cols-4 gap-4">
+              <div id="tour-meter-metrics" className="grid grid-cols-4 gap-4">
                 {metrics.map((metric, index) => (
                   <MeterCard
                     key={index}
@@ -474,7 +480,7 @@ const MeterDashboard = () => {
               </div>
 
               {/* Chart/Table Section */}
-              <Card>
+              <Card id="tour-meter-chart">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div>
@@ -560,7 +566,7 @@ const MeterDashboard = () => {
             {/* Sidebar - Right Side */}
             <div className="col-span-4 space-y-6">
               {/* Device Status */}
-              <Card>
+              <Card id="tour-meter-status">
                 <CardHeader>
                   <h2 className="text-lg font-semibold">
                     Estado del Dispositivo
@@ -589,7 +595,7 @@ const MeterDashboard = () => {
               </Card>
 
               {/* Alerts */}
-              <Card>
+              <Card id="tour-meter-alerts">
                 <CardHeader>
                   <h2 className="text-lg font-semibold">
                     Urgencias detectadas
