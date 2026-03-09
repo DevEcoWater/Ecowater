@@ -2,20 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { GoogleMap, Marker } from "@react-google-maps/api";
-import { X, Mail, User, Calendar, Home, Activity, Shield } from "lucide-react";
+import { X, Mail, User, Calendar, Home, Activity, Shield, Plus, RefreshCw } from "lucide-react";
 
 import { useUserQuery } from "@/hooks/users/use-user-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 
 import { formatUserType } from "@/utils/formatUserType";
 import { Button } from "@/components/ui/button";
 import Chip from "@/components/ui/chip";
-import { chipConfig } from "@/utils/getChipColor";
 import CoordinateMap from "@/components/ui/coordinateMap";
 import { UserInfoSkeleton } from "./user-skeleton";
+import { AssignMeterModal } from "@/components/modals/assign-meter-modal";
 
 const defaultLocation = { lat: -34.9035949, lng: -58.0373327 };
 
@@ -27,6 +25,7 @@ export default function UserDetailPage() {
   const { data: userData, isLoading: isLoadingUser } = useUserQuery(userId);
 
   const [mapCenter, setMapCenter] = useState(defaultLocation);
+  const [isAssignMeterOpen, setIsAssignMeterOpen] = useState(false);
 
   useEffect(() => {
     if (userData?.address.data) {
@@ -51,9 +50,18 @@ export default function UserDetailPage() {
 
   return (
     <div className="mx-auto w-full h-full">
+      {userData && (
+        <AssignMeterModal
+          userId={userId}
+          userName={`${userData.firstName} ${userData.lastName}`}
+          currentMeterId={userData.meter?.id}
+          isOpen={isAssignMeterOpen}
+          onClose={() => setIsAssignMeterOpen(false)}
+        />
+      )}
       <div className="grid grid-cols-1 gap-6">
         {/* User Information Section */}
-        <Card className="lg:col-span-2">
+        <Card id="tour-user-info" className="lg:col-span-2">
           <CardHeader>
             <CardTitle>Información del Usuario</CardTitle>
           </CardHeader>
@@ -131,7 +139,7 @@ export default function UserDetailPage() {
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Roles y Permisos Card */}
-                  <Card className="border shadow-sm">
+                  <Card id="tour-user-roles" className="border shadow-sm">
                     <CardHeader className="pb-4">
                       <div className="flex items-center gap-2">
                         <Shield className="h-5 w-5 text-primary" />
@@ -197,13 +205,23 @@ export default function UserDetailPage() {
 
                   {/* Información del Medidor Card */}
                   {userData.meter ? (
-                    <Card className="border shadow-sm ">
+                    <Card id="tour-user-meter" className="border shadow-sm">
                       <CardHeader className="pb-4">
-                        <div className="flex items-center gap-2">
-                          <Activity className="h-5 w-5 text-primary" />
-                          <CardTitle className="text-lg font-semibold">
-                            Información del Medidor
-                          </CardTitle>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Activity className="h-5 w-5 text-primary" />
+                            <CardTitle className="text-lg font-semibold">
+                              Información del Medidor
+                            </CardTitle>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setIsAssignMeterOpen(true)}
+                            className="gap-1 text-xs">
+                            <RefreshCw className="h-3 w-3" />
+                            Cambiar
+                          </Button>
                         </div>
                       </CardHeader>
                       <CardContent className="space-y-6">
@@ -252,6 +270,13 @@ export default function UserDetailPage() {
                             Este usuario no tiene un medidor configurado
                           </p>
                         </div>
+                        <Button
+                          variant="outline"
+                          className="mt-6 gap-2"
+                          onClick={() => setIsAssignMeterOpen(true)}>
+                          <Plus className="h-4 w-4" />
+                          Asignar medidor
+                        </Button>
                       </CardContent>
                     </Card>
                   )}

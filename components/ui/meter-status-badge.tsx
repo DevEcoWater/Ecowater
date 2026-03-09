@@ -11,6 +11,7 @@ interface MeterStatusBadgeProps {
   operationalStatus?: string;
   showDetails?: boolean;
   size?: "sm" | "md" | "lg";
+  className?: string;
 }
 
 export function MeterStatusBadge({
@@ -19,6 +20,7 @@ export function MeterStatusBadge({
   operationalStatus,
   showDetails = false,
   size = "md",
+  className,
 }: MeterStatusBadgeProps) {
   const getStatusConfig = () => {
     switch (connectivity.status) {
@@ -109,7 +111,7 @@ export function MeterStatusBadge({
 
   return (
     <div
-      className={`inline-flex items-center gap-2 rounded-lg border ${config.bgColor} ${config.borderColor} ${sizeClasses.container}`}>
+      className={`inline-flex items-center gap-2 rounded-lg border ${config.bgColor} ${config.borderColor} ${sizeClasses.container}${className ? ` ${className}` : ""}`}>
       <Icon className={`${config.icon} ${config.color}`} />
       <div className="flex flex-col">
         <span className={`font-medium ${config.color} ${sizeClasses.text}`}>

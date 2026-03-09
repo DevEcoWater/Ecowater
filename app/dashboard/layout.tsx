@@ -17,6 +17,7 @@ import { Separator } from "@/components/ui/separator";
 import { PageHeaderProvider } from "@/context/page-header-provider";
 import { AuthGuard } from "@/components/auth/auth-guard";
 import { configureDayjs } from "@/utils/configureDayjs";
+import { TourProvider } from "@/components/layout/panel/tour-provider";
 
 configureDayjs();
 
@@ -27,6 +28,7 @@ export default function DashboardLayout({
 }>) {
   return (
     <AuthGuard requireAuth={true}>
+      <TourProvider>
       <UiSidebarProvider defaultOpen={false}>
         <ThemeProvider attribute="class" defaultTheme="light">
           <GoogleMapsProvider>
@@ -69,6 +71,7 @@ export default function DashboardLayout({
           </GoogleMapsProvider>
         </ThemeProvider>
       </UiSidebarProvider>
+      </TourProvider>
     </AuthGuard>
   );
 }

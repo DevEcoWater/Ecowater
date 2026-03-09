@@ -1,18 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Meter, User } from "@prisma/client";
 import { TCounts } from "@/types/users/user-types";
-import { useMetersQuery } from "./use-meter-query";
-import { MeterStatusCounts } from "@/types/meters/meter-types";
+import { useUsersQuery } from "./use-user-query";
+import { User } from "@prisma/client";
 
-export interface UseMetersOptions {
-  initialFilter?: string;
-  initialPage?: number;
-  initialLimit?: number;
-}
-export interface UseMetersReturn {
-  data: Meter[] | null;
+export interface UseUsersReturn {
+  data: User[] | null;
   isLoading: boolean;
   error: Error | null;
   searchQuery: string;
@@ -22,27 +16,17 @@ export interface UseMetersReturn {
   resetFilters: () => void;
   page: number;
   setPage: (page: number) => void;
-  limit: number;
-  setLimit: (limit: number) => void;
   totalPages: number;
   total: number;
-  counts: MeterStatusCounts;
+  counts: TCounts;
 }
 
-export const useMeters = (options?: UseMetersOptions): UseMetersReturn => {
+export const useUsers = (): UseUsersReturn => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterState, setFilterState] = useState(
-    options?.initialFilter || "total"
-  );
+  const [filterState, setFilterState] = useState("total");
+  const [page, setPage] = useState(1);
 
-  const [page, setPage] = useState(options?.initialPage || 1);
-  const [limit, setLimit] = useState(options?.initialLimit || 10);
-
-  const {
-    data: queryData,
-    isLoading,
-    error,
-  } = useMetersQuery(page, limit, searchQuery, filterState);
+  const { data: queryData, isLoading, error } = useUsersQuery(page, 10, searchQuery, filterState);
 
   const resetFilters = () => {
     setFilterState("total");
@@ -71,10 +55,8 @@ export const useMeters = (options?: UseMetersOptions): UseMetersReturn => {
     resetFilters,
     page,
     setPage,
-    limit,
-    setLimit,
     totalPages: queryData?.pagination.totalPages || 1,
     total: queryData?.pagination.total || 0,
-    counts: queryData?.counts,
+    counts: queryData?.counts ?? { actives: 0, inactives: 0, pendings: 0, blockeds: 0 },
   };
 };

@@ -122,6 +122,7 @@ const AlertComponent = ({ meterId }: AlertComponentProps) => {
               operationalStatus={allAlerts[0].meter?.operational_status}
               showDetails={true}
               size="md"
+              className="w-full"
             />
           </div>
         </div>

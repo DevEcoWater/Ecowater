@@ -49,7 +49,7 @@ const Users = () => {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-col gap-4 md:gap-6 md:flex-col w-full">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between w-full gap-4">
-            <div className="flex items-center flex-wrap gap-2">
+            <div id="tour-users-search" className="flex items-center flex-wrap gap-2">
               <div className="flex w-full md:w-[350px]">
                 <Input
                   placeholder="Filtrar por nombre o apellido"
@@ -74,14 +74,14 @@ const Users = () => {
               </Button>
             </div>
 
-            <Button onClick={handleRedirect} className="w-full md:w-[150px]">
+            <Button id="tour-users-create" onClick={handleRedirect} className="w-full md:w-[150px]">
               Crear usuario
               <CirclePlus className="ml-2 h-4 w-4" />
             </Button>
           </div>
 
           {/* Second row: Filter Tabs */}
-          <div className="flex items-center justify-center w-full mb-4">
+          <div id="tour-users-filter-tabs" className="flex items-center justify-center w-full mb-4">
             <FilterTabs
               onFilterChange={(value) => {
                 if (filterState !== value) {
@@ -95,7 +95,7 @@ const Users = () => {
           </div>
         </div>
       </div>
-      <div>
+      <div id="tour-users-table">
         <UserTable data={data || []} isLoading={isLoading} error={error} />
       </div>
 

@@ -12,10 +12,12 @@ import {
 } from "@/hooks/dashboard/use-consumption-data";
 import { useUrgencies } from "@/hooks/dashboard/use-urgencies";
 import { useMeterDistribution } from "@/hooks/dashboard/use-meter-distribution";
+import { useAlarmTrends } from "@/hooks/dashboard/use-alarm-trends";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle, Clock } from "lucide-react";
 import { UrgenciesSection } from "./urgencies/urgencies-section";
 import { MeterDistributionChart } from "./meter-distribution-chart/meter-distribution-chart";
+import { AlarmTrendsChart } from "./alarm-trends-chart/alarm-trends-chart";
 import dayjs from "dayjs";
 
 const PERIOD_LABELS: Record<DashboardPeriod, string> = {
@@ -42,6 +44,7 @@ export function HomeDashboard() {
     useConsumptionData(consumptionParams);
   const { data: urgencies, isLoading: urgenciesLoading } = useUrgencies();
   const { data: meterDistribution } = useMeterDistribution(consumptionParams);
+  const { data: alarmTrends } = useAlarmTrends(consumptionParams);
 
   const consumptionTotal =
     consumption?.series.reduce((sum, item) => sum + item.consumo_m3, 0) ?? 0;
@@ -87,43 +90,53 @@ export function HomeDashboard() {
       </div>
 
       {/* Cards de resumen */}
-      <SummaryCards
-        stats={stats}
-        consumptionTotal={consumptionTotal}
-        previousTotal={previousTotal}
-        period={periodLabel}
-      />
+      <div id="tour-summary-cards">
+        <SummaryCards
+          stats={stats}
+          consumptionTotal={consumptionTotal}
+          previousTotal={previousTotal}
+          period={periodLabel}
+        />
+      </div>
 
       {/* Selector de período y rango personalizado */}
-      <DateRangeSelector
-        selectedPeriod={selectedPeriod}
-        customRange={customRange}
-        onPeriodSelect={(period) => {
-          setSelectedPeriod(period);
-          setCustomRange(null);
-        }}
-        onRangeApply={(startDate, endDate) =>
-          setCustomRange({ startDate, endDate })
-        }
-        onRangeClear={() => setCustomRange(null)}
-      />
+      <div id="tour-date-range-selector">
+        <DateRangeSelector
+          selectedPeriod={selectedPeriod}
+          customRange={customRange}
+          onPeriodSelect={(period) => {
+            setSelectedPeriod(period);
+            setCustomRange(null);
+          }}
+          onRangeApply={(startDate, endDate) =>
+            setCustomRange({ startDate, endDate })
+          }
+          onRangeClear={() => setCustomRange(null)}
+        />
+      </div>
 
       {/* Gráfico de consumo y urgencias */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <div className="lg:col-span-3">
+        <div className="lg:col-span-3" id="tour-consumption-chart">
           <ConsumptionChart data={consumption} />
         </div>
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-1" id="tour-urgencies-section">
           <UrgenciesSection urgencies={urgencies} />
         </div>
       </div>
 
-      {/* Distribución por medidor + Tendencia */}
-      <MeterDistributionChart
-        meters={meterDistribution?.meters ?? []}
-        period={periodLabel}
-      />
+      {/* Tendencia de alarmas */}
+      <div id="tour-alarm-trends">
+        <AlarmTrendsChart data={alarmTrends} period={periodLabel} />
+      </div>
 
+      {/* Distribución por medidor */}
+      <div id="tour-meter-distribution-chart">
+        <MeterDistributionChart
+          meters={meterDistribution?.meters ?? []}
+          period={periodLabel}
+        />
+      </div>
     </div>
   );
 }
@@ -149,6 +162,8 @@ function DashboardSkeleton() {
           <Skeleton className="h-96 w-full" />
         </div>
       </div>
+
+      <Skeleton className="h-64 w-full" />
     </div>
   );
 }
