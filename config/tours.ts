@@ -6,7 +6,7 @@ export const tours: Tour[] = [
     steps: [
       {
         icon: "👋",
-        title: "¡Bienvenido al Dashboard!",
+        title: "¡Bienvenidos a EcoWater!",
         content:
           "Te guiamos por las principales secciones del panel de control. Podés saltar el tour en cualquier momento.",
         side: "bottom",
@@ -46,6 +46,15 @@ export const tours: Tour[] = [
           "Alertas en tiempo real: alarmas de los medidores (flujo reverso, tubería vacía, batería baja) y medidores sin actividad reciente.",
         selector: "#tour-urgencies-section",
         side: "left",
+        showSkip: true,
+      },
+      {
+        icon: "🔔",
+        title: "Tendencia de Alarmas",
+        content:
+          "Visualizá la evolución de alarmas registradas por los medidores: flujo inverso, tubería vacía, batería baja, temperatura y fuera de rango. Útil para anticipar mantenimientos y detectar anomalías.",
+        selector: "#tour-alarm-trends",
+        side: "top",
         showSkip: true,
       },
       {
