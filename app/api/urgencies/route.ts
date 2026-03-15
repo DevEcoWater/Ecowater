@@ -7,6 +7,8 @@ import {
   StatusData,
 } from "@/utils/alertMapper";
 
+export const dynamic = "force-dynamic";
+
 const prisma = new PrismaClient();
 
 type UrgencyParams = {
