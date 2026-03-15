@@ -2,6 +2,8 @@
 import { PrismaClient } from "@prisma/client";
 import { NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 function addDays(d: Date, n: number) {
   const x = new Date(d);
   x.setUTCDate(x.getUTCDate() + n);

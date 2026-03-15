@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { PrismaClient, MeterStatus } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 const prisma = new PrismaClient();
 
 function getOverallMeterStatus(statuses: MeterStatus[]): MeterStatus {
