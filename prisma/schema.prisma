@@ -169,6 +169,15 @@ model Gateway {
   rxInfos      RxInfo[]
 }
 
+model Zone {
+  id         String   @id @default(uuid())
+  name       String
+  color      String   @default("#3B82F6")
+  polygon    Json
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
 enum CooperativeStatus {
   ACTIVE
   INACTIVE

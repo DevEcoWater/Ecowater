@@ -29,6 +29,30 @@ export function downloadCsv(content: string, filename: string): void {
   URL.revokeObjectURL(url);
 }
 
+export function downloadZoneCsv(
+  zoneName: string,
+  meters: Array<{
+    dev_eui: string;
+    device_name: string;
+    userName: string | null;
+    shortData: string | null;
+    cumulative_flow: string | null;
+    status: string;
+  }>
+): void {
+  const rows: CsvRow[] = meters.map((m) => ({
+    "DEV EUI": m.dev_eui,
+    "Nombre del dispositivo": m.device_name,
+    "Usuario": m.userName ?? "",
+    "Dirección": m.shortData ?? "",
+    "Flujo Acumulado (m³)": m.cumulative_flow ?? "",
+    "Estado": m.status,
+  }));
+  const csv = toCsvString(rows);
+  const date = new Date().toISOString().slice(0, 10);
+  downloadCsv(csv, `zona-${zoneName.toLowerCase().replace(/\s+/g, "-")}-${date}.csv`);
+}
+
 export async function downloadReadingsCsv(
   meterId: string,
   params: { period: string } | { startDate: string; endDate: string },

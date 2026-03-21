@@ -46,6 +46,12 @@ import {
   PaginationEllipsis,
 } from "@/components/ui/pagination";
 import { downloadReadingsCsv } from "@/lib/export-csv";
+import { downloadInvoiceCsv } from "@/lib/export-invoice";
+import { useFeaturePacks } from "@/hooks/cooperative/use-feature-packs";
+import { ValveCommandsCard } from "@/components/medidores/detail/valve-commands-card";
+import { useMeterZoneQuery } from "@/hooks/zones/use-zones";
+import Link from "next/link";
+import { Layers } from "lucide-react";
 
 const MeterDashboard = () => {
   const { id } = useParams();
@@ -57,9 +63,11 @@ const MeterDashboard = () => {
     ? { startDate: customRange.startDate, endDate: customRange.endDate }
     : { period: selectedPeriod };
 
+  const { data: packs } = useFeaturePacks();
   const { data: meterData, isLoading: isLoadingMeter } = useMeterQuery(
     id as string
   );
+  const { data: meterZone } = useMeterZoneQuery(id as string);
 
   const { data: consumption, isLoading: consumptionLoading } =
     useConsumptionFromMeterData(id as string, consumptionParams);
@@ -80,6 +88,21 @@ const MeterDashboard = () => {
 
   const [viewMode, setViewMode] = useState<"graph" | "table">("graph");
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
+
+  async function handleDownloadInvoice() {
+    setIsDownloadingInvoice(true);
+    try {
+      await downloadInvoiceCsv({
+        meterId: id as string,
+        devEui: meterData.dev_eui ?? meterData.id.slice(-8),
+        cumulativeFlow: meterData.reading?.cumulative_flow,
+        userId: meterData.user ?? null,
+      });
+    } finally {
+      setIsDownloadingInvoice(false);
+    }
+  }
 
   async function handleDownloadCsv() {
     setIsDownloading(true);
@@ -175,20 +198,30 @@ const MeterDashboard = () => {
                 </div>
 
                 {/* Right side */}
-                <div className="flex flex-col items-end">
+                <div className="flex flex-col items-end gap-1">
                   <Chip
                     showDot
                     status={
                       meterData.reading.statuses?.meter_status || "Desconocido"
                     }
                   />
-                  <div className="flex items-center justify-end gap-1 mt-1">
+                  <div className="flex items-center justify-end gap-1">
                     <Clock size={12} className="text-muted-foreground" />
                     <p className="text-xs text-muted-foreground truncate">
                       Última actualización:{" "}
                       {dayjs(meterData.updated_at).format("DD/MM/YYYY HH:mm")}
                     </p>
                   </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleDownloadInvoice}
+                    disabled={isDownloadingInvoice}
+                    className="gap-1.5 text-xs h-7"
+                  >
+                    <Download className="w-3 h-3" />
+                    {isDownloadingInvoice ? "Generando..." : "Descargar Factura"}
+                  </Button>
                 </div>
               </div>
             </CardContent>
@@ -213,57 +246,78 @@ const MeterDashboard = () => {
         </div>
 
         {/* Desktop */}
-        <div id="tour-meter-header" className="hidden md:block bg-background border bg-white shadow-sm rounded-xl">
-          <div className="p-6">
-            <div className="flex items-center justify-between gap-4">
-              {/* Left side */}
-              <div className="flex gap-4 items-center">
-                <div className="text-left">
-                  <p className="text-lg font-medium">
-                    Medidor {meterData.id.slice(-8)}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    DEV_EUI: {meterData.dev_eui}
-                  </p>
-                </div>
-                {meterData.user && (
-                  <>
-                    <Separator orientation="vertical" className="h-10" />
-                    <div>
-                      <UserButton userId={meterData.user} />
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {/* Right side */}
-              <div className="flex flex-row items-center gap-4">
-                <div className="flex items-center gap-1">
-                  <Clock size={12} className="text-muted-foreground" />
-                  <p className="text-xs text-muted-foreground">
-                    Última actualización:{" "}
-                    {dayjs(meterData.updated_at).format("DD/MM/YYYY HH:mm")}
-                  </p>
-                </div>
-                <Chip
-                  showDot
-                  status={
-                    meterData.connectivity?.status === "ONLINE"
-                      ? "ACTIVE"
-                      : meterData.connectivity?.status === "STALE"
-                      ? "INACTIVE"
-                      : meterData.connectivity?.status === "OFFLINE"
-                      ? "INACTIVE"
-                      : "Desconocido"
-                  }
-                />
-                {meterData.dataFreshness?.warning && (
-                  <p className="text-xs text-orange-600">
-                    ⚠️ {meterData.dataFreshness.warning}
-                  </p>
-                )}
-              </div>
+        <div id="tour-meter-header" className="hidden md:flex items-center justify-between gap-4 bg-white border shadow-sm rounded-xl px-6 py-4">
+          {/* Left: identity */}
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="min-w-0">
+              <p className="text-base font-semibold leading-tight">
+                Medidor {meterData.id.slice(-8)}
+              </p>
+              <p className="text-xs text-muted-foreground font-mono mt-0.5">
+                {meterData.dev_eui}
+              </p>
             </div>
+
+            {meterData.user && (
+              <>
+                <Separator orientation="vertical" className="h-8" />
+                <UserButton userId={meterData.user} />
+              </>
+            )}
+
+            {meterZone && (
+              <>
+                <Separator orientation="vertical" className="h-8" />
+                <Link
+                  href={`/dashboard/zonas/${meterZone.id}`}
+                  className="flex items-center gap-1.5 text-xs font-medium hover:underline"
+                >
+                  <span
+                    className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: meterZone.color }}
+                  />
+                  <Layers className="w-3.5 h-3.5 text-muted-foreground" />
+                  {meterZone.name}
+                </Link>
+              </>
+            )}
+          </div>
+
+          {/* Right: status + actions */}
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Clock size={12} />
+              <span>{dayjs(meterData.updated_at).format("DD/MM/YYYY HH:mm")}</span>
+            </div>
+
+            <Separator orientation="vertical" className="h-5" />
+
+            <Chip
+              showDot
+              status={
+                meterData.connectivity?.status === "ONLINE"
+                  ? "ACTIVE"
+                  : meterData.connectivity?.status === "STALE"
+                  ? "INACTIVE"
+                  : meterData.connectivity?.status === "OFFLINE"
+                  ? "INACTIVE"
+                  : "Desconocido"
+              }
+            />
+
+
+            <Separator orientation="vertical" className="h-5" />
+
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleDownloadInvoice}
+              disabled={isDownloadingInvoice}
+              className="gap-1.5"
+            >
+              <Download className="w-4 h-4" />
+              {isDownloadingInvoice ? "Generando..." : "Descargar Factura"}
+            </Button>
           </div>
         </div>
 
@@ -605,6 +659,11 @@ const MeterDashboard = () => {
                   <AlertComponent meterId={meterData.id} />
                 </CardContent>
               </Card>
+
+              {/* Valve commands — visible only if pack is enabled */}
+              {packs?.valve_control && (
+                <ValveCommandsCard meterId={meterData.id} />
+              )}
             </div>
           </div>
         </div>

@@ -53,6 +53,16 @@ export function getPageHeaderFromPath(pathname: string | null) {
       title: "Gestión de Cooperativa",
       description: "Visualice y edite la información de la cooperativa",
     },
+    {
+      pattern: /\/zonas\/[^/]+$/,
+      title: "Detalle de Zona",
+      description: "Medidores dentro de esta área geográfica",
+    },
+    {
+      pattern: /\/zonas$/,
+      title: "Zonas",
+      description: "Áreas geográficas definidas sobre el mapa",
+    },
   ];
 
   for (const route of routes) {

@@ -6,7 +6,7 @@ import React, {
   useMemo,
   useRef,
 } from "react";
-import { GoogleMap, Marker, InfoWindow } from "@react-google-maps/api";
+import { GoogleMap, Marker, InfoWindow, DrawingManager, Polygon } from "@react-google-maps/api";
 import { Skeleton } from "./skeleton";
 import { chipConfig } from "@/utils/getChipColor";
 import Chip from "./chip";
@@ -27,13 +27,26 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Minimize2, Layers, ChevronDown } from "lucide-react";
+import { RefreshCw, Layers, ChevronDown, PenLine, X } from "lucide-react";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { useCooperative } from "@/hooks/cooperative/user-cooperative";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useZonesQuery, useCreateZoneMutation } from "@/hooks/zones/use-zones";
+import { Zone, ZonePolygonPoint } from "@/types/zones/zone-types";
+import { useRouter } from "next/navigation";
+import { useToast } from "@/hooks/use-toast";
 
 const containerStyle = {
   width: "100%",
@@ -50,6 +63,18 @@ function Map() {
   const { data: cooperative } = useCooperative();
   const { isLoaded, loadError } = useGoogleMaps();
   const [showCoopInfo, setShowCoopInfo] = useState(false);
+  const router = useRouter();
+  const { toast } = useToast();
+
+  // Zones
+  const { data: zones = [] } = useZonesQuery();
+  const createZone = useCreateZoneMutation();
+  const [drawingMode, setDrawingMode] = useState(false);
+  const [pendingPolygon, setPendingPolygon] = useState<google.maps.Polygon | null>(null);
+  const [pendingCoords, setPendingCoords] = useState<ZonePolygonPoint[]>([]);
+  const [zoneDialogOpen, setZoneDialogOpen] = useState(false);
+  const [newZoneName, setNewZoneName] = useState("");
+  const [newZoneColor, setNewZoneColor] = useState("#3B82F6");
 
   const getChipForMeter = useCallback((status: MeterStatus) => {
     const styleKey = (
@@ -523,11 +548,54 @@ function Map() {
     setActiveCluster(null);
   };
 
+  const handlePolygonComplete = useCallback(
+    (polygon: google.maps.Polygon) => {
+      const coords: ZonePolygonPoint[] = polygon
+        .getPath()
+        .getArray()
+        .map((latlng) => ({ lat: latlng.lat(), lng: latlng.lng() }));
+      setPendingPolygon(polygon);
+      setPendingCoords(coords);
+      setZoneDialogOpen(true);
+      setDrawingMode(false);
+    },
+    []
+  );
+
+  const handleSaveZone = useCallback(async () => {
+    if (!newZoneName.trim()) return;
+    try {
+      await createZone.mutateAsync({
+        name: newZoneName.trim(),
+        color: newZoneColor,
+        polygon: pendingCoords,
+      });
+      pendingPolygon?.setMap(null);
+      setPendingPolygon(null);
+      setPendingCoords([]);
+      setNewZoneName("");
+      setNewZoneColor("#3B82F6");
+      setZoneDialogOpen(false);
+      toast({ title: "Zona creada correctamente" });
+    } catch {
+      toast({ title: "Error al crear zona", variant: "destructive" });
+    }
+  }, [newZoneName, newZoneColor, pendingCoords, pendingPolygon, createZone, toast]);
+
+  const handleCancelZone = useCallback(() => {
+    pendingPolygon?.setMap(null);
+    setPendingPolygon(null);
+    setPendingCoords([]);
+    setNewZoneName("");
+    setNewZoneColor("#3B82F6");
+    setZoneDialogOpen(false);
+  }, [pendingPolygon]);
+
   if (isLoading) return <Skeleton className="h-[617px] w-full bg-gray-300" />;
   if (error) return <p>Error: {error?.message}</p>;
   if (loadError) return <p>Error cargando el mapa: {loadError.message}</p>;
 
-  return isLoaded ? (
+  const mapContent = isLoaded ? (
     <GoogleMap
       options={OPTIONS}
       mapContainerStyle={containerStyle}
@@ -606,7 +674,7 @@ function Map() {
                       </div>
                     ))}
                   </div>
-                  <div className="flex justify-center">
+                  <div className="flex justify-center gap-2">
                     <Button
                       size="sm"
                       variant="outline"
@@ -617,6 +685,18 @@ function Map() {
                       }}
                     >
                       <RefreshCw className="w-4 h-4" /> Reset
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={drawingMode ? "default" : "outline"}
+                      onClick={() => setDrawingMode((v) => !v)}
+                      title="Dibujar zona"
+                    >
+                      {drawingMode ? (
+                        <><X className="w-4 h-4" /> Cancelar</>
+                      ) : (
+                        <><PenLine className="w-4 h-4" /> Zona</>
+                      )}
                     </Button>
                   </div>
                 </div>
@@ -766,9 +846,91 @@ function Map() {
           </div>
         </InfoWindow>
       )}
+
+      {/* Zone polygons */}
+      {zones.map((zone: Zone) => (
+        <Polygon
+          key={zone.id}
+          paths={zone.polygon}
+          options={{
+            fillColor: zone.color,
+            fillOpacity: 0.2,
+            strokeColor: zone.color,
+            strokeWeight: 2,
+            clickable: true,
+            zIndex: 1,
+          }}
+          onClick={() => router.push(`/dashboard/zonas/${zone.id}`)}
+        />
+      ))}
+
+      {/* DrawingManager */}
+      {drawingMode && (
+        <DrawingManager
+          drawingMode={window.google?.maps?.drawing?.OverlayType?.POLYGON}
+          options={{
+            drawingControl: false,
+            polygonOptions: {
+              fillColor: newZoneColor,
+              fillOpacity: 0.25,
+              strokeColor: newZoneColor,
+              strokeWeight: 2,
+              editable: false,
+            },
+          }}
+          onPolygonComplete={handlePolygonComplete}
+        />
+      )}
     </GoogleMap>
   ) : (
     <Skeleton className="h-[617px] w-full bg-gray-300" />
+  );
+
+  return (
+    <>
+      {mapContent}
+      <Dialog open={zoneDialogOpen} onOpenChange={(open) => { if (!open) handleCancelZone(); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nueva zona</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1">
+              <Label htmlFor="zone-name">Nombre</Label>
+              <Input
+                id="zone-name"
+                value={newZoneName}
+                onChange={(e) => setNewZoneName(e.target.value)}
+                placeholder="Ej: Zona Norte"
+                autoFocus
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="zone-color">Color</Label>
+              <div className="flex items-center gap-3">
+                <input
+                  id="zone-color"
+                  type="color"
+                  value={newZoneColor}
+                  onChange={(e) => setNewZoneColor(e.target.value)}
+                  className="w-10 h-10 rounded cursor-pointer border"
+                />
+                <span className="text-sm text-muted-foreground">{newZoneColor}</span>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCancelZone}>Cancelar</Button>
+            <Button
+              onClick={handleSaveZone}
+              disabled={!newZoneName.trim() || createZone.isPending}
+            >
+              {createZone.isPending ? "Guardando..." : "Guardar zona"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 

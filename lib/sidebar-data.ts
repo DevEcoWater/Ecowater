@@ -7,6 +7,7 @@ import {
   Settings,
   Wrench,
   Users,
+  Layers,
 } from "lucide-react";
 import { AudioWaveform, Command, GalleryVerticalEnd } from "lucide-react";
 
@@ -46,6 +47,11 @@ export const sidebarData: SidebarData = {
           title: "Mapa",
           url: "/dashboard/mapa",
           icon: MapIcon,
+        },
+        {
+          title: "Zonas",
+          url: "/dashboard/zonas",
+          icon: Layers,
         },
         {
           title: "Usuarios",
