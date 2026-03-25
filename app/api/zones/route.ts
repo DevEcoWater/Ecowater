@@ -17,7 +17,7 @@ export async function GET() {
     ]);
 
     const zonesWithCount = zones.map((zone) => {
-      const polygon = zone.polygon as PolygonPoint[];
+      const polygon = zone.polygon as unknown as PolygonPoint[];
       const meter_count = meters.filter((m) =>
         pointInPolygon(m.lat!, m.lng!, polygon)
       ).length;

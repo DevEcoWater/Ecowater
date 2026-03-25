@@ -4,8 +4,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useZoneQuery, useZoneMetersQuery, useUpdateZoneMutation, useDeleteZoneMutation } from "@/hooks/zones/use-zones";
 import { ZoneMeter } from "@/types/zones/zone-types";
-import { downloadZoneCsv } from "@/lib/export-csv";
 import { Button } from "@/components/ui/button";
+import { ZoneDownloadSection } from "@/components/zonas/zone-download-section";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -28,11 +28,14 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Download, Pencil, Trash2, Check, X } from "lucide-react";
+import { Pencil, Trash2, Check, X, Cpu, Wrench, HardHat } from "lucide-react";
 import Chip from "@/components/ui/chip";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { usePageHeader } from "@/context/page-header-context";
+import ZoneAssignment from "@/components/operarios/zone-assignment";
+import { useOperariosQuery } from "@/hooks/operarios/use-operarios";
+import { Badge } from "@/components/ui/badge";
 
 interface ZoneDetailProps {
   id: string;
@@ -44,6 +47,11 @@ export function ZoneDetail({ id }: ZoneDetailProps) {
   const { setPageHeader } = usePageHeader();
   const { data: zone, isLoading: zoneLoading } = useZoneQuery(id);
   const { data: meters, isLoading: metersLoading } = useZoneMetersQuery(id);
+  const { data: operariosData } = useOperariosQuery(1, "");
+  // Filter operators assigned to this zone
+  const assignedOperarios = operariosData?.data.filter((op) =>
+    op.assignedZones.some((z) => z.id === id)
+  ) ?? [];
   const updateZone = useUpdateZoneMutation();
   const deleteZone = useDeleteZoneMutation();
 
@@ -86,10 +94,6 @@ export function ZoneDetail({ id }: ZoneDetailProps) {
     }
   };
 
-  const handleDownloadCsv = () => {
-    if (!zone || !meters) return;
-    downloadZoneCsv(zone.name, meters);
-  };
 
   if (zoneLoading) {
     return (
@@ -156,16 +160,6 @@ export function ZoneDetail({ id }: ZoneDetailProps) {
         )}
 
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleDownloadCsv}
-            disabled={!meters || meters.length === 0}
-          >
-            <Download className="w-4 h-4 mr-2" />
-            Descargar CSV
-          </Button>
-
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="destructive" size="sm">
@@ -220,11 +214,11 @@ export function ZoneDetail({ id }: ZoneDetailProps) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>DEV EUI</TableHead>
+                <TableHead>Tipo</TableHead>
                 <TableHead>Dispositivo</TableHead>
                 <TableHead>Usuario</TableHead>
                 <TableHead>Dirección</TableHead>
-                <TableHead>Flujo Acumulado (m³)</TableHead>
+                <TableHead>Última Lectura (m³)</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead />
               </TableRow>
@@ -232,11 +226,25 @@ export function ZoneDetail({ id }: ZoneDetailProps) {
             <TableBody>
               {meters.map((m: ZoneMeter) => (
                 <TableRow key={m.id}>
-                  <TableCell className="font-mono text-xs">{m.dev_eui}</TableCell>
+                  <TableCell>
+                    {m.meter_type === "MECHANICAL" ? (
+                      <span className="inline-flex items-center gap-1 text-xs bg-amber-100 text-amber-700 rounded-full px-2 py-0.5">
+                        <Wrench className="w-3 h-3" />
+                        Mecánico
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-xs bg-blue-100 text-blue-700 rounded-full px-2 py-0.5">
+                        <Cpu className="w-3 h-3" />
+                        Inteligente
+                      </span>
+                    )}
+                  </TableCell>
                   <TableCell>{m.device_name}</TableCell>
                   <TableCell>{m.userName ?? "—"}</TableCell>
-                  <TableCell className="max-w-[200px] truncate">{m.shortData ?? "—"}</TableCell>
-                  <TableCell>{m.cumulative_flow ?? "—"}</TableCell>
+                  <TableCell className="max-w-[200px] truncate">
+                    {m.meter_type === "MECHANICAL" ? m.street_address ?? "—" : m.shortData ?? "—"}
+                  </TableCell>
+                  <TableCell>{m.last_reading_value ?? m.cumulative_flow ?? "—"}</TableCell>
                   <TableCell>
                     <Chip status={m.status as any} />
                   </TableCell>
@@ -250,6 +258,33 @@ export function ZoneDetail({ id }: ZoneDetailProps) {
             </TableBody>
           </Table>
         )}
+      </div>
+
+      {/* Download history section */}
+      <ZoneDownloadSection zoneId={id} zoneName={zone.name} meters={meters} />
+
+      {/* Operators section */}
+      <div>
+        <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+          <HardHat className="h-4 w-4" />
+          Operarios asignados
+        </h2>
+        <div className="flex flex-wrap gap-2 mb-3">
+          {assignedOperarios.length === 0 && (
+            <p className="text-sm text-muted-foreground">Sin operarios asignados.</p>
+          )}
+          {assignedOperarios.map((op) => (
+            <Badge key={op.id} variant="outline" className="flex items-center gap-1.5">
+              <HardHat className="h-3 w-3" />
+              <Link href={`/dashboard/operarios/${op.id}`} className="hover:underline">
+                {op.firstName} {op.lastName}
+              </Link>
+            </Badge>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground mb-2">
+          Para asignar operarios a esta zona, ve al detalle de cada operario.
+        </p>
       </div>
     </div>
   );

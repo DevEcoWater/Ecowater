@@ -187,78 +187,185 @@ export async function GET(req: Request) {
     const { startDate, endDate, groupBy, fromExplicit, startOut, endOut } =
       resolveRange(searchParams, tz);
 
-    const rows: Array<{
+    // Determine if the requested meter is mechanical
+    let isMechanicalMeter = false;
+    if (meterId) {
+      const meter = await prisma.meter.findUnique({
+        where: { id: meterId },
+        select: { meter_type: true },
+      });
+      isMechanicalMeter = meter?.meter_type === "MECHANICAL";
+    }
+
+    let rows: Array<{
       fecha: string;
       consumo_m3: number;
       medidores_activos: number;
-    }> = await prisma.$queryRawUnsafe(
-      `
-      WITH base AS (
+    }>;
+
+    if (isMechanicalMeter) {
+      // Single mechanical meter: use pre-calculated consumption field
+      rows = await prisma.$queryRawUnsafe(
+        `
         SELECT
-          meter_id,
-          timezone($4, (timestamp AT TIME ZONE $4)) AS local_ts,
-          cumulative_flow::text AS cf_raw,
-          timestamp
+          CASE
+            WHEN $1 = 'month'
+              THEN TO_CHAR(date_trunc($1, timezone($4, timestamp AT TIME ZONE $4)), 'YYYY-MM')
+            ELSE TO_CHAR(date_trunc($1, timezone($4, timestamp AT TIME ZONE $4)), 'YYYY-MM-DD')
+          END AS fecha,
+          CAST(ROUND(COALESCE(SUM(GREATEST(consumption::numeric, 0)), 0)::numeric, 2) AS double precision) AS consumo_m3,
+          COUNT(DISTINCT meter_id)::int AS medidores_activos
         FROM "Reading"
         WHERE timezone($4, (timestamp AT TIME ZONE $4)) >= $2
           AND timezone($4, (timestamp AT TIME ZONE $4)) < $3
-          AND cumulative_flow IS NOT NULL
-          AND cumulative_flow <> ''
-          AND ($5::text IS NULL OR meter_id = $5)
-      ),
-      norm AS (
+          AND meter_id = $5
+          AND consumption IS NOT NULL
+        GROUP BY fecha,
+          date_trunc($1, timezone($4, timestamp AT TIME ZONE $4))
+        ORDER BY date_trunc($1, timezone($4, timestamp AT TIME ZONE $4));
+        `,
+        groupBy,   // $1
+        startDate, // $2
+        endDate,   // $3
+        tz,        // $4
+        meterId    // $5
+      );
+    } else if (!meterId) {
+      // All meters: UNION smart (cumulative_flow diff) + mechanical (consumption field)
+      rows = await prisma.$queryRawUnsafe(
+        `
+        WITH smart_base AS (
+          SELECT r.meter_id,
+            timezone($4, (r.timestamp AT TIME ZONE $4)) AS local_ts,
+            r.cumulative_flow::text AS cf_raw
+          FROM "Reading" r
+          JOIN "Meter" m ON r.meter_id = m.id
+          WHERE timezone($4, (r.timestamp AT TIME ZONE $4)) >= $2
+            AND timezone($4, (r.timestamp AT TIME ZONE $4)) < $3
+            AND r.cumulative_flow IS NOT NULL AND r.cumulative_flow <> ''
+            AND m.meter_type = 'SMART'
+        ),
+        norm AS (
+          SELECT meter_id, local_ts,
+            CAST(regexp_replace(cf_raw, '[^0-9\\.,-]', '', 'g') AS numeric) AS cf
+          FROM smart_base
+        ),
+        buckets AS (SELECT DISTINCT date_trunc($1, local_ts) AS bucket_local FROM norm),
+        closures AS (
+          SELECT n.meter_id, b.bucket_local, MAX(n.cf) AS cierre,
+            LAG(MAX(n.cf)) OVER (PARTITION BY n.meter_id ORDER BY b.bucket_local) AS cierre_prev
+          FROM norm n JOIN buckets b ON date_trunc($1, n.local_ts) = b.bucket_local
+          GROUP BY n.meter_id, b.bucket_local
+        ),
+        consumo_smart AS (
+          SELECT meter_id, bucket_local,
+            CASE WHEN cierre_prev IS NULL THEN
+              (SELECT GREATEST(MAX(cf)-MIN(cf),0) FROM norm n2
+               WHERE n2.meter_id=closures.meter_id AND date_trunc($1,n2.local_ts)=closures.bucket_local)
+            ELSE GREATEST(cierre-cierre_prev,0) END AS consumo_diario
+          FROM closures
+        ),
+        consumo_mech AS (
+          SELECT r.meter_id,
+            date_trunc($1, timezone($4, r.timestamp AT TIME ZONE $4)) AS bucket_local,
+            GREATEST(r.consumption::numeric, 0) AS consumo_diario
+          FROM "Reading" r
+          JOIN "Meter" m ON r.meter_id = m.id
+          WHERE timezone($4, (r.timestamp AT TIME ZONE $4)) >= $2
+            AND timezone($4, (r.timestamp AT TIME ZONE $4)) < $3
+            AND r.consumption IS NOT NULL
+            AND m.meter_type = 'MECHANICAL'
+        ),
+        all_consumo AS (
+          SELECT meter_id, bucket_local, consumo_diario FROM consumo_smart
+          UNION ALL
+          SELECT meter_id, bucket_local, consumo_diario FROM consumo_mech
+        )
         SELECT
-          meter_id,
-          local_ts,
-          CAST(regexp_replace(cf_raw, '[^0-9\\.,-]', '', 'g') AS numeric) AS cf,
-          timestamp
-        FROM base
-      ),
-      buckets AS (
-        SELECT DISTINCT date_trunc($1, local_ts) AS bucket_local
-        FROM norm
-      ),
-      closures AS (
+          CASE WHEN $1='month' THEN TO_CHAR(bucket_local,'YYYY-MM')
+               ELSE TO_CHAR(bucket_local,'YYYY-MM-DD') END AS fecha,
+          CAST(ROUND(SUM(consumo_diario)::numeric,2) AS double precision) AS consumo_m3,
+          COUNT(DISTINCT meter_id)::int AS medidores_activos
+        FROM all_consumo
+        GROUP BY fecha, bucket_local
+        ORDER BY bucket_local;
+        `,
+        groupBy,   // $1
+        startDate, // $2
+        endDate,   // $3
+        tz         // $4
+      );
+    } else {
+      // Specific smart meter: cumulative_flow diff algorithm
+      rows = await prisma.$queryRawUnsafe(
+        `
+        WITH base AS (
+          SELECT
+            meter_id,
+            timezone($4, (timestamp AT TIME ZONE $4)) AS local_ts,
+            cumulative_flow::text AS cf_raw,
+            timestamp
+          FROM "Reading"
+          WHERE timezone($4, (timestamp AT TIME ZONE $4)) >= $2
+            AND timezone($4, (timestamp AT TIME ZONE $4)) < $3
+            AND cumulative_flow IS NOT NULL
+            AND cumulative_flow <> ''
+            AND meter_id = $5
+        ),
+        norm AS (
+          SELECT
+            meter_id,
+            local_ts,
+            CAST(regexp_replace(cf_raw, '[^0-9\\.,-]', '', 'g') AS numeric) AS cf,
+            timestamp
+          FROM base
+        ),
+        buckets AS (
+          SELECT DISTINCT date_trunc($1, local_ts) AS bucket_local
+          FROM norm
+        ),
+        closures AS (
+          SELECT
+            n.meter_id,
+            b.bucket_local,
+            MAX(n.cf) AS cierre,
+            LAG(MAX(n.cf)) OVER (PARTITION BY n.meter_id ORDER BY b.bucket_local) AS cierre_prev
+          FROM norm n
+          JOIN buckets b ON date_trunc($1, n.local_ts) = b.bucket_local
+          GROUP BY n.meter_id, b.bucket_local
+        ),
+        consumo_medidor AS (
+          SELECT
+            meter_id,
+            bucket_local,
+            CASE
+              WHEN cierre_prev IS NULL THEN
+                (SELECT GREATEST(MAX(cf) - MIN(cf), 0)
+                 FROM norm n2
+                 WHERE n2.meter_id = closures.meter_id
+                   AND date_trunc($1, n2.local_ts) = closures.bucket_local)
+              ELSE GREATEST(cierre - cierre_prev, 0)
+            END AS consumo_diario
+          FROM closures
+        )
         SELECT
-          n.meter_id,
-          b.bucket_local,
-          MAX(n.cf) AS cierre,
-          LAG(MAX(n.cf)) OVER (PARTITION BY n.meter_id ORDER BY b.bucket_local) AS cierre_prev
-        FROM norm n
-        JOIN buckets b ON date_trunc($1, n.local_ts) = b.bucket_local
-        GROUP BY n.meter_id, b.bucket_local
-      ),
-      consumo_medidor AS (
-        SELECT
-          meter_id,
-          bucket_local,
-          CASE 
-            WHEN cierre_prev IS NULL THEN
-              (SELECT GREATEST(MAX(cf) - MIN(cf), 0)
-               FROM norm n2
-               WHERE n2.meter_id = closures.meter_id
-                 AND date_trunc($1, n2.local_ts) = closures.bucket_local)
-            ELSE GREATEST(cierre - cierre_prev, 0)
-          END AS consumo_diario
-        FROM closures
-      )
-      SELECT
-        CASE
-          WHEN $1 = 'month' THEN TO_CHAR(bucket_local, 'YYYY-MM')
-          ELSE TO_CHAR(bucket_local, 'YYYY-MM-DD')
-        END AS fecha,
-        CAST(ROUND(SUM(consumo_diario)::numeric, 2) AS double precision) AS consumo_m3,
-        COUNT(DISTINCT meter_id)::int AS medidores_activos
-      FROM consumo_medidor
-      GROUP BY fecha, bucket_local
-      ORDER BY bucket_local;
-      `,
-      groupBy,       // $1
-      startDate,     // $2
-      endDate,       // $3
-      tz,            // $4
-      meterId ?? null // $5
-    );
+          CASE
+            WHEN $1 = 'month' THEN TO_CHAR(bucket_local, 'YYYY-MM')
+            ELSE TO_CHAR(bucket_local, 'YYYY-MM-DD')
+          END AS fecha,
+          CAST(ROUND(SUM(consumo_diario)::numeric, 2) AS double precision) AS consumo_m3,
+          COUNT(DISTINCT meter_id)::int AS medidores_activos
+        FROM consumo_medidor
+        GROUP BY fecha, bucket_local
+        ORDER BY bucket_local;
+        `,
+        groupBy,  // $1
+        startDate, // $2
+        endDate,   // $3
+        tz,        // $4
+        meterId    // $5
+      );
+    }
 
     const series = rows.map((r) => ({
       fecha: r.fecha,
@@ -273,15 +380,68 @@ export async function GET(req: Request) {
       const prevEnd = startDate;
       const prevStart = new Date(startDate.getTime() - durationMs);
 
-      const prevRows: Array<{ total_consumo: number }> =
-        await prisma.$queryRawUnsafe(
-          PREVIOUS_TOTAL_SQL,
-          "day",          // $1
-          prevStart,      // $2
-          prevEnd,        // $3
-          tz,             // $4
-          meterId ?? null // $5
+      let prevRows: Array<{ total_consumo: number }>;
+      if (isMechanicalMeter) {
+        prevRows = await prisma.$queryRawUnsafe(
+          `SELECT CAST(ROUND(COALESCE(SUM(GREATEST(consumption::numeric, 0)), 0)::numeric, 2) AS double precision) AS total_consumo
+           FROM "Reading"
+           WHERE timezone($3, (timestamp AT TIME ZONE $3)) >= $1
+             AND timezone($3, (timestamp AT TIME ZONE $3)) < $2
+             AND meter_id = $4
+             AND consumption IS NOT NULL`,
+          prevStart,  // $1
+          prevEnd,    // $2
+          tz,         // $3
+          meterId     // $4
         );
+      } else if (!meterId) {
+        prevRows = await prisma.$queryRawUnsafe(
+          `
+          WITH smart_base AS (
+            SELECT r.meter_id, timezone($3,(r.timestamp AT TIME ZONE $3)) AS local_ts, r.cumulative_flow::text AS cf_raw
+            FROM "Reading" r JOIN "Meter" m ON r.meter_id = m.id
+            WHERE timezone($3,(r.timestamp AT TIME ZONE $3)) >= $1
+              AND timezone($3,(r.timestamp AT TIME ZONE $3)) < $2
+              AND r.cumulative_flow IS NOT NULL AND r.cumulative_flow <> ''
+              AND m.meter_type = 'SMART'
+          ),
+          norm AS (SELECT meter_id, local_ts, CAST(regexp_replace(cf_raw,'[^0-9\\.,-]','','g') AS numeric) AS cf FROM smart_base),
+          buckets AS (SELECT DISTINCT date_trunc('day', local_ts) AS bucket_local FROM norm),
+          closures AS (
+            SELECT n.meter_id, b.bucket_local, MAX(n.cf) AS cierre,
+              LAG(MAX(n.cf)) OVER (PARTITION BY n.meter_id ORDER BY b.bucket_local) AS cierre_prev
+            FROM norm n JOIN buckets b ON date_trunc('day',n.local_ts)=b.bucket_local
+            GROUP BY n.meter_id, b.bucket_local
+          ),
+          consumo_smart AS (
+            SELECT CASE WHEN cierre_prev IS NULL THEN
+              (SELECT GREATEST(MAX(cf)-MIN(cf),0) FROM norm n2 WHERE n2.meter_id=closures.meter_id AND date_trunc('day',n2.local_ts)=closures.bucket_local)
+            ELSE GREATEST(cierre-cierre_prev,0) END AS consumo_diario FROM closures
+          ),
+          consumo_mech AS (
+            SELECT GREATEST(r.consumption::numeric,0) AS consumo_diario
+            FROM "Reading" r JOIN "Meter" m ON r.meter_id = m.id
+            WHERE timezone($3,(r.timestamp AT TIME ZONE $3)) >= $1
+              AND timezone($3,(r.timestamp AT TIME ZONE $3)) < $2
+              AND r.consumption IS NOT NULL AND m.meter_type = 'MECHANICAL'
+          )
+          SELECT CAST(ROUND(SUM(consumo_diario)::numeric,2) AS double precision) AS total_consumo
+          FROM (SELECT consumo_diario FROM consumo_smart UNION ALL SELECT consumo_diario FROM consumo_mech) combined;
+          `,
+          prevStart, // $1
+          prevEnd,   // $2
+          tz         // $3
+        );
+      } else {
+        prevRows = await prisma.$queryRawUnsafe(
+          PREVIOUS_TOTAL_SQL,
+          "day",    // $1
+          prevStart, // $2
+          prevEnd,   // $3
+          tz,        // $4
+          meterId    // $5
+        );
+      }
       previousTotal = Number(prevRows[0]?.total_consumo ?? 0);
     }
 

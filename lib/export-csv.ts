@@ -1,3 +1,5 @@
+import { formatDateTimeAR } from "@/lib/utils";
+
 type CsvRow = Record<string, string | number | null | undefined>;
 
 function escapeCsvValue(value: string | number | null | undefined): string {
@@ -32,21 +34,21 @@ export function downloadCsv(content: string, filename: string): void {
 export function downloadZoneCsv(
   zoneName: string,
   meters: Array<{
-    dev_eui: string;
-    device_name: string;
+    id: string;
+    dev_eui: string | null;
     userName: string | null;
     shortData: string | null;
     cumulative_flow: string | null;
-    status: string;
+    last_reading_value: string | null;
+    last_reading_observations: string | null;
   }>
 ): void {
   const rows: CsvRow[] = meters.map((m) => ({
-    "DEV EUI": m.dev_eui,
-    "Nombre del dispositivo": m.device_name,
-    "Usuario": m.userName ?? "",
-    "Dirección": m.shortData ?? "",
-    "Flujo Acumulado (m³)": m.cumulative_flow ?? "",
-    "Estado": m.status,
+    "ID / DEV EUI": m.dev_eui ?? m.id,
+    "Apellido y Nombre": m.userName ?? "",
+    "Domicilio": m.shortData ?? "",
+    "Consumo (m³)": m.last_reading_value ?? m.cumulative_flow ?? "",
+    "Observaciones": m.last_reading_observations ?? "",
   }));
   const csv = toCsvString(rows);
   const date = new Date().toISOString().slice(0, 10);
@@ -56,7 +58,13 @@ export function downloadZoneCsv(
 export async function downloadReadingsCsv(
   meterId: string,
   params: { period: string } | { startDate: string; endDate: string },
-  filename?: string
+  filename?: string,
+  meterInfo?: {
+    devEui: string | null;
+    userName: string | null;
+    domicilio: string | null;
+    meterType: string;
+  }
 ): Promise<void> {
   const filterQuery =
     "period" in params
@@ -67,16 +75,16 @@ export async function downloadReadingsCsv(
   if (!response.ok) throw new Error("Error al obtener las lecturas");
 
   const { data } = await response.json();
+  const isMechanical = meterInfo?.meterType === "MECHANICAL";
 
   const rows: CsvRow[] = (data as any[]).map((r) => ({
-    "Fecha y Hora": new Date(r.timestamp).toLocaleString("es-ES", { timeZone: "UTC" }),
-    "Flujo Acumulado (m³)": r.cumulative_flow ?? "",
-    "Flujo Instantáneo (m³)": r.instantaneous_flow ?? "",
-    "Flujo Reverso (m³)": r.reverse_flow ?? "",
-    "Temperatura (°C)": r.real_time_temperature ?? "",
-    "Estado": r.statuses?.meter_status ?? "",
-    "Válvula": r.statuses?.valve_status ?? "",
-    "Batería": r.statuses?.battery_voltage ?? "",
+    "ID / DEV EUI": meterInfo?.devEui ?? meterId,
+    "Apellido y Nombre": meterInfo?.userName ?? "",
+    "Domicilio": meterInfo?.domicilio ?? "",
+    "Consumo (m³)": isMechanical
+      ? (r.consumption ?? "")
+      : (r.cumulative_flow ?? r.instantaneous_flow ?? ""),
+    "Observaciones": r.observations ?? "",
   }));
 
   const csv = toCsvString(rows);

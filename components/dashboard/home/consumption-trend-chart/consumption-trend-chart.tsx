@@ -22,7 +22,7 @@ interface ConsumptionTrendChartProps {
   period: string;
 }
 
-export function ConsumptionTrendChart({ data, period }: ConsumptionTrendChartProps) {
+export const ConsumptionTrendChart = React.memo(function ConsumptionTrendChart({ data, period }: ConsumptionTrendChartProps) {
   const chartData = data.series.map((item) => ({
     label:
       data.groupBy === "month"
@@ -101,6 +101,7 @@ export function ConsumptionTrendChart({ data, period }: ConsumptionTrendChartPro
                 fill="url(#consumoGradient)"
                 dot={chartData.length <= 15 ? { r: 3, fill: "#3b82f6", strokeWidth: 0 } : false}
                 activeDot={{ r: 5, fill: "#3b82f6" }}
+                isAnimationActive={false}
               />
             </AreaChart>
           </ResponsiveContainer>
@@ -111,4 +112,4 @@ export function ConsumptionTrendChart({ data, period }: ConsumptionTrendChartPro
       </CardContent>
     </Card>
   );
-}
+});

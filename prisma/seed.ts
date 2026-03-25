@@ -28,6 +28,22 @@ async function main() {
     },
   });
 
+  await prisma.role.upsert({
+    where: { role_name: "operario" },
+    update: {},
+    create: {
+      role_name: "operario",
+    },
+  });
+
+  await prisma.role.upsert({
+    where: { role_name: "lector" },
+    update: {},
+    create: {
+      role_name: "lector",
+    },
+  });
+
   // Opción 1: Usar create directamente si sabes que la base de datos está vacía
   try {
     await prisma.cooperative.create({

@@ -17,7 +17,10 @@ export async function GET(
       return NextResponse.json({ error: "Zona no encontrada" }, { status: 404 });
     }
 
-    const polygon = zone.polygon as PolygonPoint[];
+    const polygon = zone.polygon as unknown as PolygonPoint[];
+
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
 
     const meters = await prisma.meter.findMany({
       where: {
@@ -43,11 +46,15 @@ export async function GET(
       .map((m) => {
         const user = m.userMeters[0]?.user ?? null;
         const lastReading = m.readings[0] ?? null;
+        const read_today =
+          lastReading != null && lastReading.timestamp >= todayStart;
 
         return {
           id: m.id,
           dev_eui: m.dev_eui,
           device_name: m.device_name,
+          meter_type: m.meter_type,
+          street_address: m.street_address ?? null,
           lat: m.lat,
           lng: m.lng,
           status: m.status,
@@ -56,6 +63,10 @@ export async function GET(
             : null,
           shortData: user?.address?.shortData ?? user?.address?.data ?? null,
           cumulative_flow: lastReading?.cumulative_flow ?? null,
+          last_reading_value: lastReading?.instantaneous_flow ?? null,
+          last_reading_date: lastReading?.timestamp ?? null,
+          last_reading_observations: lastReading?.observations ?? null,
+          read_today,
         };
       });
 

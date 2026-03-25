@@ -256,6 +256,157 @@ export const tours: Tour[] = [
     ],
   },
   {
+    tour: "portal-home",
+    steps: [
+      {
+        icon: "👷",
+        title: "¡Bienvenido al Portal!",
+        content:
+          "Este es tu espacio de trabajo. Desde acá accedés a tus zonas asignadas y registrás las lecturas del día.",
+        side: "bottom",
+        showSkip: true,
+      },
+      {
+        icon: "📊",
+        title: "Resumen del día",
+        content:
+          "Las tarjetas muestran cuántas zonas activas tenés asignadas y el total de medidores que debés leer en la jornada.",
+        selector: "#tour-portal-stats",
+        side: "bottom",
+        showSkip: true,
+      },
+      {
+        icon: "🗺️",
+        title: "Tus zonas",
+        content:
+          "Cada tarjeta es una zona. Tocá una para ver la lista de medidores a leer y empezar la ruta.",
+        selector: "#tour-portal-zones",
+        side: "top",
+        showSkip: true,
+      },
+    ],
+  },
+  {
+    tour: "operarios-list",
+    steps: [
+      {
+        icon: "👷",
+        title: "¡Bienvenido a Operarios!",
+        content:
+          "Desde acá gestionás a los operarios de campo: quiénes son, qué zonas tienen asignadas y cuántas lecturas realizaron.",
+        side: "bottom",
+        showSkip: true,
+      },
+      {
+        icon: "📊",
+        title: "Resumen del equipo",
+        content:
+          "Las tarjetas muestran el total de operarios, cuántos están activos y la cantidad de zonas cubiertas en total.",
+        selector: "#tour-operarios-stats",
+        side: "bottom",
+        showSkip: true,
+      },
+      {
+        icon: "🔍",
+        title: "Búsqueda",
+        content:
+          "Buscá operarios por nombre o email para encontrarlos rápidamente.",
+        selector: "#tour-operarios-search",
+        side: "bottom",
+        showSkip: true,
+      },
+      {
+        icon: "➕",
+        title: "Nuevo operario",
+        content:
+          "Registrá un nuevo operario de campo asignándole nombre, email y contraseña de acceso.",
+        selector: "#tour-operarios-create",
+        side: "bottom",
+        showSkip: true,
+      },
+      {
+        icon: "📋",
+        title: "Lista de operarios",
+        content:
+          "Cada fila muestra el nombre, email, estado y cantidad de zonas asignadas. Hacé clic para ver el detalle completo.",
+        selector: "#tour-operarios-table",
+        side: "top",
+        showSkip: true,
+      },
+    ],
+  },
+  {
+    tour: "operario-detail",
+    steps: [
+      {
+        icon: "👷",
+        title: "Detalle del operario",
+        content:
+          "Esta vista muestra el perfil completo del operario: actividad, zonas asignadas e historial de lecturas.",
+        side: "bottom",
+        showSkip: true,
+      },
+      {
+        icon: "📈",
+        title: "Estadísticas",
+        content:
+          "Total de lecturas realizadas, lecturas de la semana actual y cantidad de zonas asignadas.",
+        selector: "#tour-operario-stats",
+        side: "bottom",
+        showSkip: true,
+      },
+      {
+        icon: "🗺️",
+        title: "Zonas asignadas",
+        content:
+          "Las zonas donde este operario realiza las rondas de lectura. Podés agregar o quitar zonas desde acá.",
+        selector: "#tour-operario-zones",
+        side: "top",
+        showSkip: true,
+      },
+      {
+        icon: "📋",
+        title: "Historial de lecturas",
+        content:
+          "Las últimas 30 lecturas registradas por el operario: medidor, valor, consumo calculado y observaciones.",
+        selector: "#tour-operario-readings",
+        side: "top",
+        showSkip: true,
+      },
+    ],
+  },
+  {
+    tour: "zone-detail",
+    steps: [
+      {
+        icon: "🗺️",
+        title: "Detalle de zona",
+        content:
+          "Esta vista muestra los medidores dentro del área geográfica y los operarios asignados a la zona.",
+        side: "bottom",
+        showSkip: true,
+      },
+      {
+        icon: "📡",
+        title: "Medidores de la zona",
+        content:
+          "Lista de medidores mecánicos e inteligentes dentro del polígono de esta zona.",
+        selector: "#tour-zone-meters",
+        side: "bottom",
+        showSkip: true,
+      },
+      {
+        icon: "👷",
+        title: "Operarios asignados",
+        content:
+          "Los operarios de campo responsables de realizar las lecturas en esta zona.",
+        selector: "#tour-zone-operators",
+        side: "top",
+        showSkip: true,
+      },
+    ],
+  },
+  {
     tour: "user-edit",
     steps: [
       {

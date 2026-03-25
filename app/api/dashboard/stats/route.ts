@@ -114,15 +114,17 @@ export async function GET() {
         `
         WITH base AS (
           SELECT
-            meter_id,
-            timezone($3, (timestamp AT TIME ZONE $3)) AS local_ts,
-            cumulative_flow::text AS cf_raw,
-            timestamp
-          FROM "Reading"
-          WHERE timezone($3, (timestamp AT TIME ZONE $3)) >= $1
-            AND timezone($3, (timestamp AT TIME ZONE $3)) < $2
-            AND cumulative_flow IS NOT NULL
-            AND cumulative_flow <> ''
+            r.meter_id,
+            timezone($3, (r.timestamp AT TIME ZONE $3)) AS local_ts,
+            r.cumulative_flow::text AS cf_raw,
+            r.timestamp
+          FROM "Reading" r
+          JOIN "Meter" m ON r.meter_id = m.id
+          WHERE timezone($3, (r.timestamp AT TIME ZONE $3)) >= $1
+            AND timezone($3, (r.timestamp AT TIME ZONE $3)) < $2
+            AND r.cumulative_flow IS NOT NULL
+            AND r.cumulative_flow <> ''
+            AND m.meter_type = 'SMART'
         ),
         norm AS (
           SELECT
@@ -163,10 +165,23 @@ export async function GET() {
                 GREATEST(cierre_dia - cierre_dia_anterior, 0)
             END AS consumo_diario
           FROM daily_closures
+        ),
+        consumo_mech AS (
+          SELECT r.meter_id, GREATEST(r.consumption::numeric, 0) AS consumo_diario
+          FROM "Reading" r
+          JOIN "Meter" m ON r.meter_id = m.id
+          WHERE timezone($3, (r.timestamp AT TIME ZONE $3)) >= $1
+            AND timezone($3, (r.timestamp AT TIME ZONE $3)) < $2
+            AND r.consumption IS NOT NULL
+            AND m.meter_type = 'MECHANICAL'
         )
         SELECT
           CAST(ROUND(SUM(consumo_diario)::numeric, 2) AS double precision) AS total_consumo
-        FROM consumo_por_medidor;
+        FROM (
+          SELECT consumo_diario FROM consumo_por_medidor
+          UNION ALL
+          SELECT consumo_diario FROM consumo_mech
+        ) combined;
         `,
         startMid,
         endMidExcl,
@@ -290,12 +305,81 @@ export async function GET() {
       lastReadingTimestamp = null;
     }
 
+    // Signal quality — promedio RSSI/SNR últimas 24h
+    let signalQuality: { avgRssi: number; avgSnr: number; quality: "EXCELLENT" | "GOOD" | "POOR" } = {
+      avgRssi: 0,
+      avgSnr: 0,
+      quality: "POOR",
+    };
+    try {
+      const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const signalResult = await prisma.rxInfo.aggregate({
+        where: {
+          time: { gte: last24h },
+          rssi: { not: null },
+          lora_snr: { not: null },
+        },
+        _avg: { rssi: true, lora_snr: true },
+      });
+      const avgRssi = Math.round(signalResult._avg.rssi ?? 0);
+      const avgSnr = Number((signalResult._avg.lora_snr ?? 0).toFixed(1));
+      const quality =
+        avgRssi > -85 && avgSnr > 5
+          ? "EXCELLENT"
+          : avgRssi > -100 && avgSnr > 0
+          ? "GOOD"
+          : "POOR";
+      signalQuality = { avgRssi, avgSnr, quality };
+    } catch {
+      // mantener valores default
+    }
+
+    // Uptime % — medidores activos / total (ya calculado)
+    const uptimePercentage = totalMeters > 0 ? Math.round((activeMeters / totalMeters) * 100) : 0;
+
+    // Temperatura promedio del agua — última lectura por medidor activo
+    let avgTemperature: number | null = null;
+    try {
+      const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const tempReadings = await prisma.reading.findMany({
+        where: {
+          timestamp: { gte: last24h },
+          real_time_temperature: { not: null },
+          meter: { status: "ACTIVE" },
+        },
+        select: { real_time_temperature: true },
+        take: 200,
+      });
+      const temps: number[] = [];
+      for (const r of tempReadings) {
+        if (!r.real_time_temperature) continue;
+        try {
+          const raw = r.real_time_temperature.trim();
+          if (raw.length === 6) {
+            const val = parseFloat(raw.slice(2, 4) + "." + raw.slice(0, 2));
+            if (!isNaN(val) && val > 0 && val < 50) temps.push(val);
+          }
+        } catch {
+          // ignorar lecturas inválidas
+        }
+      }
+      if (temps.length > 0) {
+        avgTemperature = parseFloat((temps.reduce((a, b) => a + b, 0) / temps.length).toFixed(1));
+      }
+    } catch {
+      avgTemperature = null;
+    }
+
     let overallMeterStatus: MeterStatus = MeterStatus.ACTIVE;
+    let smartMeters = 0;
+    let mechanicalMeters = 0;
     try {
       const meters = await prisma.meter.findMany({
-        select: { status: true },
+        select: { status: true, meter_type: true },
       });
       overallMeterStatus = getOverallMeterStatus(meters.map((m) => m.status));
+      smartMeters = meters.filter((m) => m.meter_type === "SMART").length;
+      mechanicalMeters = meters.filter((m) => m.meter_type === "MECHANICAL").length;
     } catch {
       overallMeterStatus = MeterStatus.ACTIVE;
     }
@@ -308,6 +392,9 @@ export async function GET() {
         maintenance: maintenanceMeters,
         faulty: faultyMeters,
         overallStatus: overallMeterStatus,
+        uptimePercentage,
+        smart: smartMeters,
+        mechanical: mechanicalMeters,
       },
       alerts: {
         totalAlerts,
@@ -317,6 +404,8 @@ export async function GET() {
         total: totalConsumption,
         readings: totalReadings,
       },
+      signal: signalQuality,
+      temperature: { avg: avgTemperature },
       systemHealth:
         faultyMeters === 0 && maintenanceMeters === 0 && inactiveMeters === 0
           ? "EXCELLENT"

@@ -2,6 +2,74 @@
 import { PrismaClient } from "@prisma/client";
 import { NextResponse } from "next/server";
 
+export async function POST(
+  req: Request,
+  { params }: { params: { id: string } }
+) {
+  const prisma = new PrismaClient();
+  try {
+    const body = await req.json();
+    const { instantaneous_flow, observations, photo_url, submitted_by } = body;
+
+    if (!instantaneous_flow) {
+      return NextResponse.json(
+        { error: "instantaneous_flow es requerido" },
+        { status: 400 }
+      );
+    }
+
+    const meter = await prisma.meter.findUnique({ where: { id: params.id } });
+    if (!meter) {
+      return NextResponse.json(
+        { error: "Medidor no encontrado" },
+        { status: 404 }
+      );
+    }
+    if (meter.meter_type !== "MECHANICAL") {
+      return NextResponse.json(
+        { error: "Solo se pueden registrar lecturas manuales para medidores mecánicos" },
+        { status: 400 }
+      );
+    }
+
+    // Fetch most recent prior reading to calculate consumption
+    const previousReading = await prisma.reading.findFirst({
+      where: { meter_id: params.id },
+      orderBy: { timestamp: "desc" },
+    });
+
+    const newValue = parseFloat(instantaneous_flow);
+    const prevValue = previousReading?.instantaneous_flow
+      ? parseFloat(previousReading.instantaneous_flow)
+      : 0;
+    const consumption = isNaN(newValue) ? null : Math.max(0, newValue - prevValue);
+
+    const reading = await prisma.reading.create({
+      data: {
+        meter_id: params.id,
+        instantaneous_flow: String(instantaneous_flow),
+        cumulative_flow: String(instantaneous_flow),
+        consumption,
+        observations: observations ?? null,
+        photo_url: photo_url ?? null,
+        submitted_by: submitted_by ?? null,
+        status: "VALID",
+      },
+    });
+
+    return NextResponse.json(
+      { ...reading, previous_value: previousReading?.instantaneous_flow ?? null },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error("[POST MANUAL READING]", error);
+    return NextResponse.json(
+      { error: "Failed to save reading" },
+      { status: 500 }
+    );
+  }
+}
+
 export const dynamic = "force-dynamic";
 
 function addDays(d: Date, n: number) {
@@ -60,7 +128,10 @@ export async function GET(
       prisma.reading.findMany({
         where,
         orderBy: { timestamp: "desc" },
-        include: { statuses: true },
+        include: {
+          statuses: true,
+          submittedBy: { select: { firstName: true, lastName: true } },
+        },
         skip,
         take: limit,
       }),

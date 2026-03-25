@@ -3,6 +3,7 @@ import { AlertTriangle, Zap, Gauge, Clock, ArrowRight } from "lucide-react";
 import { Alert } from "@/hooks/urgencies/use-urgencies";
 import { MeterStatusIndicator } from "@/components/ui/meter-status-badge";
 import Link from "next/link";
+import { formatDateTimeShortAR } from "@/lib/utils";
 interface UrgencyCardProps {
   urgency: Alert;
 }
@@ -75,13 +76,7 @@ export function UrgencyCard({ urgency }: UrgencyCardProps) {
   const formatTimestamp = (timestamp: string) => {
     try {
       const date = new Date(timestamp);
-      return date.toLocaleString("es-ES", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
+      return formatDateTimeShortAR(date);
     } catch {
       return "Desconocido";
     }

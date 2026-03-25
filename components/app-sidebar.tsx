@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useRef } from "react";
 import {
   Sidebar,
   SidebarContent,
@@ -11,47 +11,43 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 import { NavGroup } from "./sidebar/nav-group";
-import { sidebarData } from "@/lib/sidebar-data";
+import { getSidebarData } from "@/lib/sidebar-data";
 import { useCooperative } from "@/hooks/cooperative/user-cooperative";
 import { Skeleton } from "./ui/skeleton";
 import Cosego from "./cooperative/cosego.svg";
-import { useSidebar } from "@/components/ui/sidebar"; // ✅ hook from your SidebarProvider
-import { motion } from "framer-motion";
+import { useSidebar } from "@/components/ui/sidebar";
+import { useSession } from "next-auth/react";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { data: cooperative } = useCooperative();
   const { open, setOpen } = useSidebar();
+  const { data: session } = useSession();
+  const hoverTimeout = useRef<NodeJS.Timeout | null>(null);
 
-  let hoverTimeout: NodeJS.Timeout | null = null;
+  const role = session?.user?.role;
+  const sidebarData = getSidebarData(role);
 
   const handleMouseEnter = () => {
-    if (hoverTimeout) clearTimeout(hoverTimeout);
-    hoverTimeout = setTimeout(() => setOpen(true), 120);
+    if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
+    hoverTimeout.current = setTimeout(() => setOpen(true), 120);
   };
 
   const handleMouseLeave = () => {
-    if (hoverTimeout) clearTimeout(hoverTimeout);
-    hoverTimeout = setTimeout(() => setOpen(false), 200);
+    if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
+    hoverTimeout.current = setTimeout(() => setOpen(false), 200);
   };
 
-  useEffect(() => {
-    return () => {
-      if (hoverTimeout) clearTimeout(hoverTimeout);
-    };
-  }, []);
-
   return (
-    <motion.div
+    <div
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      transition={{ duration: 0.2, ease: "easeInOut" }}
       className="relative z-40 h-svh"
     >
       <Sidebar
         collapsible="icon"
         variant="floating"
         {...props}
-        className="h-full duration-200 ease-in-out"
+        className="h-full"
       >
         {/* ===== Header ===== */}
         <SidebarHeader>
@@ -79,6 +75,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           ))}
         </SidebarContent>
       </Sidebar>
-    </motion.div>
+    </div>
   );
 }

@@ -23,7 +23,7 @@ export async function GET(
     const zones = await prisma.zone.findMany();
 
     const match = zones.find((zone) =>
-      pointInPolygon(meter.lat!, meter.lng!, zone.polygon as PolygonPoint[])
+      pointInPolygon(meter.lat!, meter.lng!, zone.polygon as unknown as PolygonPoint[])
     );
 
     return NextResponse.json(match ?? null);

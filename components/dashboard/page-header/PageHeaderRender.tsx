@@ -13,7 +13,7 @@ export function PageHeaderRenderer() {
       title={title}
       description={description}
       tourName={tourName}
-      showBackButton={pathname === "/dashboard"}
+      showBackButton={pathname === "/dashboard" || pathname === "/portal"}
     />
   );
 }

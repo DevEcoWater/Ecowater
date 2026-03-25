@@ -18,6 +18,7 @@ import { PageHeaderProvider } from "@/context/page-header-provider";
 import { AuthGuard } from "@/components/auth/auth-guard";
 import { configureDayjs } from "@/utils/configureDayjs";
 import { TourProvider } from "@/components/layout/panel/tour-provider";
+import { PageTransition } from "@/components/layout/panel/page-transition";
 
 configureDayjs();
 
@@ -38,9 +39,6 @@ export default function DashboardLayout({
                 id="content"
                 className={cn(
                   "w-full",
-                  "peer-data-[state=collapsed]:w-[calc(100%-var(--sidebar-width-icon)-1rem)]",
-                  "peer-data-[state=expanded]:w-[calc(100%-var(--sidebar-width))]",
-                  "transition-[width] duration-200 ease-linear",
                   "flex h-svh flex-col",
                   "group-data-[scroll-locked=1]/body:h-full",
                   "group-data-[scroll-locked=1]/body:has-[main.fixed-main]:h-svh"
@@ -61,7 +59,7 @@ export default function DashboardLayout({
                     <Separator className="my-4 lg:my-6" />
                     <div className="flex flex-1 flex-col space-y-2 md:space-y-2 lg:flex-row lg:space-x-12 lg:space-y-0 ">
                       <div className="flex w-full overflow-y-auto pr-4">
-                        <div className="flex flex-1 flex-col">{children}</div>
+                        <PageTransition>{children}</PageTransition>
                       </div>
                     </div>
                   </Main>

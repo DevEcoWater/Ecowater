@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Layers, ChevronDown, PenLine, X } from "lucide-react";
+import { RefreshCw, Layers, ChevronDown, PenLine, X, ExternalLink, MapPin, Check } from "lucide-react";
 import {
   Collapsible,
   CollapsibleContent,
@@ -43,14 +43,14 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useZonesQuery, useCreateZoneMutation } from "@/hooks/zones/use-zones";
+import { useZonesQuery, useCreateZoneMutation, useUpdateZoneMutation } from "@/hooks/zones/use-zones";
 import { Zone, ZonePolygonPoint } from "@/types/zones/zone-types";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 
 const containerStyle = {
   width: "100%",
-  height: "90vh",
+  height: "calc(100svh - 220px)", // 64px fixed header + ~101px page-header/separator/padding
 };
 
 const center = {
@@ -69,12 +69,23 @@ function Map() {
   // Zones
   const { data: zones = [] } = useZonesQuery();
   const createZone = useCreateZoneMutation();
+  const updateZone = useUpdateZoneMutation();
+  const editingPolygonRef = useRef<google.maps.Polygon | null>(null);
+  const [editingZone, setEditingZone] = useState<Zone | null>(null);
   const [drawingMode, setDrawingMode] = useState(false);
   const [pendingPolygon, setPendingPolygon] = useState<google.maps.Polygon | null>(null);
   const [pendingCoords, setPendingCoords] = useState<ZonePolygonPoint[]>([]);
   const [zoneDialogOpen, setZoneDialogOpen] = useState(false);
   const [newZoneName, setNewZoneName] = useState("");
   const [newZoneColor, setNewZoneColor] = useState("#3B82F6");
+  const [hoveredZoneId, setHoveredZoneId] = useState<string | null>(null);
+  const [activeZone, setActiveZone] = useState<Zone | null>(null);
+
+  const computeCentroid = useCallback((polygon: ZonePolygonPoint[]) => {
+    const lat = polygon.reduce((s, p) => s + p.lat, 0) / polygon.length;
+    const lng = polygon.reduce((s, p) => s + p.lng, 0) / polygon.length;
+    return { lat, lng };
+  }, []);
 
   const getChipForMeter = useCallback((status: MeterStatus) => {
     const styleKey = (
@@ -278,12 +289,15 @@ function Map() {
     ],
   };
 
+  // Smart meter: teardrop with circle hole inside
   const createMarkerIcon = useCallback((color: string) => {
-    const svg = `
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" width="24" height="36">
-        <path fill="${color}" stroke="white" stroke-width="2" d="M12 0C5.4 0 0 5.4 0 12c0 8.4 12 24 12 24s12-15.6 12-24c0-6.6-5.4-12-12-12zm0 18a6 6 0 1 1 0-12 6 6 0 0 1 0 12z"/>
-      </svg>
-    `;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" width="24" height="36"><path fill="${color}" stroke="white" stroke-width="2" d="M12 0C5.4 0 0 5.4 0 12c0 8.4 12 24 12 24s12-15.6 12-24c0-6.6-5.4-12-12-12zm0 18a6 6 0 1 1 0-12 6 6 0 0 1 0 12z"/></svg>`;
+    return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+  }, []);
+
+  // Mechanical meter: filled circle with wrench-square — clearly distinct from teardrop
+  const createMechanicalMarkerIcon = useCallback((color: string) => {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30" width="30" height="30"><circle cx="15" cy="15" r="13" fill="${color}" stroke="white" stroke-width="2.5"/><rect x="9" y="9" width="12" height="12" rx="2" fill="white"/><rect x="12" y="12" width="6" height="6" rx="1" fill="${color}"/></svg>`;
     return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
   }, []);
 
@@ -316,9 +330,7 @@ function Map() {
           /(id=\"pin\"[^>]*fill=\")#[0-9a-fA-F]{3,6}/,
           `$1${color}`
         );
-        const url = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(
-          colored
-        )}`;
+        const url = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(colored)}`;
         cache[color] = url;
         return url;
       }
@@ -327,6 +339,18 @@ function Map() {
       return url;
     },
     [baseSvg, createMarkerIcon]
+  );
+
+  const mechanicalIconCacheRef = useRef<Record<string, string>>({});
+  const createMechanicalColoredIcon = useCallback(
+    (color: string) => {
+      const cache = mechanicalIconCacheRef.current;
+      if (cache[color]) return cache[color];
+      const url = createMechanicalMarkerIcon(color);
+      cache[color] = url;
+      return url;
+    },
+    [createMechanicalMarkerIcon]
   );
 
   const [map, setMap] = useState<google.maps.Map | null>(null);
@@ -473,12 +497,13 @@ function Map() {
     const googleMarkers = filteredMarkers.map((item: (typeof data)[number]) => {
       const status = item.status as MeterStatus;
       const { textColor } = getChipForMeter(status);
+      const isMech = item.meter_type === "MECHANICAL";
 
       return new google.maps.Marker({
         position: { lat: item.lat, lng: item.lng },
         icon: {
-          url: createColoredIcon(textColor),
-          scaledSize: new google.maps.Size(30, 45),
+          url: isMech ? createMechanicalColoredIcon(textColor) : createColoredIcon(textColor),
+          scaledSize: isMech ? new google.maps.Size(30, 30) : new google.maps.Size(30, 45),
         },
       }) as google.maps.Marker;
     });
@@ -511,6 +536,7 @@ function Map() {
     clusterEnabled,
     getChipForMeter,
     createColoredIcon,
+    createMechanicalColoredIcon,
   ]);
 
   const onLoad = useCallback(
@@ -590,6 +616,27 @@ function Map() {
     setNewZoneColor("#3B82F6");
     setZoneDialogOpen(false);
   }, [pendingPolygon]);
+
+  const handleSaveEditZone = useCallback(async () => {
+    if (!editingZone || !editingPolygonRef.current) return;
+    const coords: ZonePolygonPoint[] = editingPolygonRef.current
+      .getPath()
+      .getArray()
+      .map((latlng) => ({ lat: latlng.lat(), lng: latlng.lng() }));
+    try {
+      await updateZone.mutateAsync({ id: editingZone.id, polygon: coords });
+      setEditingZone(null);
+      editingPolygonRef.current = null;
+      toast({ title: "Zona actualizada correctamente" });
+    } catch {
+      toast({ title: "Error al guardar zona", variant: "destructive" });
+    }
+  }, [editingZone, updateZone, toast]);
+
+  const handleCancelEditZone = useCallback(() => {
+    setEditingZone(null);
+    editingPolygonRef.current = null;
+  }, []);
 
   if (isLoading) return <Skeleton className="h-[617px] w-full bg-gray-300" />;
   if (error) return <p>Error: {error?.message}</p>;
@@ -674,7 +721,7 @@ function Map() {
                       </div>
                     ))}
                   </div>
-                  <div className="flex justify-center gap-2">
+                  <div className="flex justify-center">
                     <Button
                       size="sm"
                       variant="outline"
@@ -686,19 +733,99 @@ function Map() {
                     >
                       <RefreshCw className="w-4 h-4" /> Reset
                     </Button>
-                    <Button
-                      size="sm"
-                      variant={drawingMode ? "default" : "outline"}
-                      onClick={() => setDrawingMode((v) => !v)}
-                      title="Dibujar zona"
-                    >
-                      {drawingMode ? (
-                        <><X className="w-4 h-4" /> Cancelar</>
-                      ) : (
-                        <><PenLine className="w-4 h-4" /> Zona</>
-                      )}
-                    </Button>
                   </div>
+                </div>
+              </div>
+            </CollapsibleContent>
+          </div>
+        </Collapsible>
+
+        {/* Zones panel */}
+        <Collapsible defaultOpen className="mt-2">
+          <div className="bg-white rounded-md shadow">
+            <CollapsibleTrigger className="w-full text-left p-3 border-b text-sm font-semibold flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <Layers className="w-3.5 h-3.5" />
+                Zonas ({zones.length})
+              </span>
+              <ChevronDown className="w-4 h-4" />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="p-2 space-y-1 max-h-[280px] overflow-y-auto">
+                {zones.length === 0 ? (
+                  <p className="text-xs text-muted-foreground text-center py-3">
+                    No hay zonas creadas
+                  </p>
+                ) : (
+                  zones.map((zone: Zone) => {
+                    const centroid = computeCentroid(zone.polygon);
+                    const statusLabel =
+                      zone.status === "ACTIVE"
+                        ? "Activa"
+                        : zone.status === "UPCOMING"
+                        ? "Próxima"
+                        : "Inactiva";
+                    const statusClass =
+                      zone.status === "ACTIVE"
+                        ? "text-green-700 bg-green-50"
+                        : zone.status === "UPCOMING"
+                        ? "text-yellow-700 bg-yellow-50"
+                        : "text-gray-500 bg-gray-100";
+
+                    return (
+                      <div
+                        key={zone.id}
+                        className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-muted/50 cursor-pointer group"
+                        onClick={() => {
+                          if (!map) return;
+                          map.panTo(centroid);
+                          map.setZoom(15);
+                          setActiveZone(zone);
+                          setActiveMarker(null);
+                          setActiveCluster(null);
+                        }}
+                      >
+                        {/* Color dot */}
+                        <span
+                          className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: zone.color }}
+                        />
+                        {/* Name */}
+                        <span className="text-xs font-medium flex-1 truncate">
+                          {zone.name}
+                        </span>
+                        {/* Status */}
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium flex-shrink-0 ${statusClass}`}>
+                          {statusLabel}
+                        </span>
+                        {/* Edit link */}
+                        <button
+                          className="opacity-0 group-hover:opacity-100 transition-opacity ml-1 flex-shrink-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/dashboard/zonas/${zone.id}`);
+                          }}
+                          title="Editar zona"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5 text-muted-foreground hover:text-primary" />
+                        </button>
+                      </div>
+                    );
+                  })
+                )}
+                <div className="pt-1 border-t mt-1">
+                  <Button
+                    size="sm"
+                    variant={drawingMode ? "default" : "outline"}
+                    className="w-full text-xs"
+                    onClick={() => setDrawingMode((v) => !v)}
+                  >
+                    {drawingMode ? (
+                      <><X className="w-3.5 h-3.5" /> Cancelar dibujo</>
+                    ) : (
+                      <><PenLine className="w-3.5 h-3.5" /> Nueva zona</>
+                    )}
+                  </Button>
                 </div>
               </div>
             </CollapsibleContent>
@@ -743,6 +870,7 @@ function Map() {
         filteredMarkers.map((item: (typeof data)[number], index: number) => {
           const status = item.status as MeterStatus;
           const { textColor } = getChipForMeter(status);
+          const isMech = item.meter_type === "MECHANICAL";
           return (
             <Marker
               key={index}
@@ -752,8 +880,8 @@ function Map() {
               }}
               onClick={() => handleMarkerClick(index)}
               icon={{
-                url: createColoredIcon(textColor),
-                scaledSize: new google.maps.Size(30, 45),
+                url: isMech ? createMechanicalColoredIcon(textColor) : createColoredIcon(textColor),
+                scaledSize: isMech ? new google.maps.Size(30, 30) : new google.maps.Size(30, 45),
               }}
             >
               {activeMarker === index && (
@@ -764,21 +892,37 @@ function Map() {
                   }}
                   onCloseClick={() => setActiveMarker(null)}
                 >
-                  <div className="p-2 bg-white rounded shadow-lg flex flex-col justify-start items-center gap-4">
-                    <div className="flex gap-2 justify-between w-full items-center">
-                      <p className="text-balance text-sm text-muted-foreground">
-                        EUI
-                      </p>
-                      <p className="text-balance text-md text-left font-medium">
-                        {item.dev_eui}
-                      </p>
+                  <div className="p-2 bg-white rounded shadow-lg flex flex-col gap-3 min-w-[200px]">
+                    {/* Title row */}
+                    <div className="flex items-center gap-2">
+                      {item.meter_type === "MECHANICAL" ? (
+                        <span className="text-xs bg-amber-100 text-amber-700 rounded-full px-2 py-0.5 font-medium">Mecánico</span>
+                      ) : (
+                        <span className="text-xs bg-blue-100 text-blue-700 rounded-full px-2 py-0.5 font-medium">Inteligente</span>
+                      )}
+                      <span className="text-sm font-semibold truncate">{item.device_name}</span>
                     </div>
 
+                    {/* Identifier */}
+                    {item.meter_type === "MECHANICAL" ? (
+                      item.street_address && (
+                        <div className="flex gap-2 justify-between w-full items-center">
+                          <p className="text-xs text-muted-foreground">Dirección</p>
+                          <p className="text-xs font-medium text-right max-w-[130px] leading-tight">{item.street_address}</p>
+                        </div>
+                      )
+                    ) : (
+                      item.dev_eui && (
+                        <div className="flex gap-2 justify-between w-full items-center">
+                          <p className="text-xs text-muted-foreground">EUI</p>
+                          <p className="text-xs font-mono font-medium">{item.dev_eui.slice(-8)}</p>
+                        </div>
+                      )
+                    )}
+
                     <div className="flex gap-2 justify-between w-full items-center">
-                      <p className="text-balance text-sm text-muted-foreground">
-                        Ultima actualización
-                      </p>
-                      <p className="text-balance text-md text-left font-medium">
+                      <p className="text-xs text-muted-foreground">Actualización</p>
+                      <p className="text-xs font-medium">
                         {new Date(item.updated_at).toLocaleDateString("es-AR", {
                           day: "2-digit",
                           month: "2-digit",
@@ -788,19 +932,16 @@ function Map() {
                     </div>
 
                     <div className="flex gap-2 justify-between w-full items-center">
-                      <p className="text-balance text-sm text-muted-foreground">
-                        Estado
-                      </p>
+                      <p className="text-xs text-muted-foreground">Estado</p>
                       <Chip status={item.status} />
                     </div>
-                    <div>
-                      <Link
-                        href={`/dashboard/medidores/${item.id}`}
-                        className="mt-1 mx-auto bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition inline-block"
-                      >
-                        Ver medidor
-                      </Link>
-                    </div>
+
+                    <Link
+                      href={`/dashboard/medidores/${item.id}`}
+                      className="block text-center bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition"
+                    >
+                      Ver medidor
+                    </Link>
                   </div>
                 </InfoWindow>
               )}
@@ -847,22 +988,134 @@ function Map() {
         </InfoWindow>
       )}
 
-      {/* Zone polygons */}
-      {zones.map((zone: Zone) => (
-        <Polygon
-          key={zone.id}
-          paths={zone.polygon}
-          options={{
-            fillColor: zone.color,
-            fillOpacity: 0.2,
-            strokeColor: zone.color,
-            strokeWeight: 2,
-            clickable: true,
-            zIndex: 1,
-          }}
-          onClick={() => router.push(`/dashboard/zonas/${zone.id}`)}
-        />
-      ))}
+      {/* Zone polygons + labels */}
+      {zones.map((zone: Zone) => {
+        const isEditing = editingZone?.id === zone.id;
+        const centroid = computeCentroid(zone.polygon);
+        const isHovered = hoveredZoneId === zone.id;
+        return (
+          <React.Fragment key={zone.id}>
+            {isEditing ? (
+              /* Fresh key forces remount so onLoad always fires when entering edit mode */
+              <Polygon
+                key={`${zone.id}-edit`}
+                paths={zone.polygon}
+                options={{
+                  fillColor: zone.color,
+                  fillOpacity: 0.3,
+                  strokeColor: zone.color,
+                  strokeWeight: 3,
+                  clickable: false,
+                  editable: true,
+                  draggable: false,
+                  zIndex: 10,
+                }}
+                onLoad={(poly) => { editingPolygonRef.current = poly; }}
+              />
+            ) : (
+              <Polygon
+                key={zone.id}
+                paths={zone.polygon}
+                options={{
+                  fillColor: zone.color,
+                  fillOpacity: isHovered ? 0.38 : 0.18,
+                  strokeColor: zone.color,
+                  strokeWeight: isHovered ? 3 : 2,
+                  clickable: true,
+                  editable: false,
+                  zIndex: 1,
+                }}
+                onMouseOver={() => { if (!editingZone) setHoveredZoneId(zone.id); }}
+                onMouseOut={() => setHoveredZoneId(null)}
+                onClick={() => {
+                  setActiveZone(zone);
+                  setActiveMarker(null);
+                  setActiveCluster(null);
+                }}
+              />
+            )}
+            {/* Zone name label — hide while editing */}
+            {!isEditing && (
+              <Marker
+                position={centroid}
+                icon={{
+                  url: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVQI12NgAAIABQAABjE+ibYAAAAASUVORK5CYII=",
+                  scaledSize: new google.maps.Size(1, 1),
+                }}
+                label={{
+                  text: zone.name,
+                  color: zone.color,
+                  fontWeight: "700",
+                  fontSize: "13px",
+                }}
+                clickable={false}
+                zIndex={2}
+              />
+            )}
+          </React.Fragment>
+        );
+      })}
+
+      {/* Active zone InfoWindow */}
+      {activeZone && !editingZone && (
+        <InfoWindow
+          position={computeCentroid(activeZone.polygon)}
+          onCloseClick={() => setActiveZone(null)}
+        >
+          <div className="p-1 min-w-[170px]">
+            <div className="flex items-center gap-2 mb-1.5">
+              <span
+                className="w-3 h-3 rounded-full flex-shrink-0"
+                style={{ backgroundColor: activeZone.color }}
+              />
+              <span className="font-semibold text-sm">{activeZone.name}</span>
+            </div>
+            {activeZone.status && (
+              <p className="text-xs text-gray-500 mb-2.5">
+                {activeZone.status === "ACTIVE"
+                  ? "Activa"
+                  : activeZone.status === "UPCOMING"
+                  ? "Próxima"
+                  : "Inactiva"}
+              </p>
+            )}
+            <div className="flex flex-col gap-1.5">
+              <button
+                onClick={() => { router.push(`/dashboard/zonas/${activeZone.id}`); setActiveZone(null); }}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-3 py-1.5 rounded transition"
+              >
+                Ver zona
+              </button>
+              <button
+                onClick={() => { setEditingZone(activeZone); setActiveZone(null); }}
+                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium px-3 py-1.5 rounded transition flex items-center justify-center gap-1"
+              >
+                <PenLine className="w-3 h-3" /> Editar polígono
+              </button>
+            </div>
+          </div>
+        </InfoWindow>
+      )}
+
+      {/* Edit mode controls bar */}
+      {editingZone && (
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-[1] bg-white rounded-xl shadow-lg border px-4 py-3 flex items-center gap-4">
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: editingZone.color }} />
+            Editando: <span className="font-semibold">{editingZone.name}</span>
+            <span className="text-xs text-muted-foreground font-normal ml-1">— arrastrá los puntos para cambiar la forma</span>
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" onClick={handleSaveEditZone} disabled={updateZone.isPending}>
+              <Check className="w-3.5 h-3.5 mr-1" />
+              {updateZone.isPending ? "Guardando..." : "Guardar"}
+            </Button>
+            <Button size="sm" variant="outline" onClick={handleCancelEditZone}>
+              <X className="w-3.5 h-3.5 mr-1" /> Cancelar
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* DrawingManager */}
       {drawingMode && (

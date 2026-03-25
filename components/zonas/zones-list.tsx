@@ -15,6 +15,7 @@ import {
 import { MapIcon } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
+import { formatDateAR } from "@/lib/utils";
 
 export function ZonesList() {
   const { data: zones, isLoading } = useZonesQuery();
@@ -79,11 +80,7 @@ export function ZonesList() {
                 <TableCell className="font-medium">{zone.name}</TableCell>
                 <TableCell>{zone.meter_count ?? 0}</TableCell>
                 <TableCell>
-                  {new Date(zone.created_at).toLocaleDateString("es-AR", {
-                    day: "2-digit",
-                    month: "2-digit",
-                    year: "numeric",
-                  })}
+                  {formatDateAR(zone.created_at)}
                 </TableCell>
                 <TableCell className="text-right">
                   <Button

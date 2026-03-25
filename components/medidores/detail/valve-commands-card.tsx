@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Valve, Loader2, Lock, LockOpen } from "lucide-react";
+import { Zap, Loader2, Lock, LockOpen } from "lucide-react";
 
 interface ValveCommandsCardProps {
   meterId: string;
@@ -32,7 +32,7 @@ export function ValveCommandsCard({ meterId }: ValveCommandsCardProps) {
     <Card>
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
-          <Valve className="h-5 w-5 text-muted-foreground" />
+          <Zap className="h-5 w-5 text-muted-foreground" />
           <h2 className="text-lg font-semibold">Control de válvula</h2>
         </div>
       </CardHeader>

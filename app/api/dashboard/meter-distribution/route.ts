@@ -70,20 +70,22 @@ export async function GET(req: Request) {
       total_consumo: number;
     }> = await prisma.$queryRawUnsafe(
       `
-      WITH base AS (
-        SELECT meter_id,
-          timezone($3, (timestamp AT TIME ZONE $3)) AS local_ts,
-          cumulative_flow::text AS cf_raw
-        FROM "Reading"
-        WHERE timezone($3, (timestamp AT TIME ZONE $3)) >= $1
-          AND timezone($3, (timestamp AT TIME ZONE $3)) < $2
-          AND cumulative_flow IS NOT NULL
-          AND cumulative_flow <> ''
+      WITH smart_base AS (
+        SELECT r.meter_id,
+          timezone($3, (r.timestamp AT TIME ZONE $3)) AS local_ts,
+          r.cumulative_flow::text AS cf_raw
+        FROM "Reading" r
+        JOIN "Meter" m ON r.meter_id = m.id
+        WHERE timezone($3, (r.timestamp AT TIME ZONE $3)) >= $1
+          AND timezone($3, (r.timestamp AT TIME ZONE $3)) < $2
+          AND r.cumulative_flow IS NOT NULL
+          AND r.cumulative_flow <> ''
+          AND m.meter_type = 'SMART'
       ),
       norm AS (
         SELECT meter_id, local_ts,
           CAST(regexp_replace(cf_raw, '[^0-9\\.,-]', '', 'g') AS numeric) AS cf
-        FROM base
+        FROM smart_base
       ),
       buckets AS (
         SELECT DISTINCT date_trunc('day', local_ts) AS bucket_local FROM norm
@@ -95,7 +97,7 @@ export async function GET(req: Request) {
         JOIN buckets b ON date_trunc('day', n.local_ts) = b.bucket_local
         GROUP BY n.meter_id, b.bucket_local
       ),
-      consumo_medidor AS (
+      consumo_smart AS (
         SELECT meter_id,
           CASE
             WHEN cierre_prev IS NULL THEN
@@ -105,12 +107,26 @@ export async function GET(req: Request) {
             ELSE GREATEST(cierre - cierre_prev, 0)
           END AS consumo_diario
         FROM closures
+      ),
+      consumo_mech AS (
+        SELECT r.meter_id, GREATEST(r.consumption::numeric, 0) AS consumo_diario
+        FROM "Reading" r
+        JOIN "Meter" m ON r.meter_id = m.id
+        WHERE timezone($3, (r.timestamp AT TIME ZONE $3)) >= $1
+          AND timezone($3, (r.timestamp AT TIME ZONE $3)) < $2
+          AND r.consumption IS NOT NULL
+          AND m.meter_type = 'MECHANICAL'
+      ),
+      all_consumo AS (
+        SELECT meter_id, consumo_diario FROM consumo_smart
+        UNION ALL
+        SELECT meter_id, consumo_diario FROM consumo_mech
       )
-      SELECT cm.meter_id, m.device_name, m.dev_eui,
-        CAST(ROUND(SUM(cm.consumo_diario)::numeric, 2) AS double precision) AS total_consumo
-      FROM consumo_medidor cm
-      JOIN "Meter" m ON m.id = cm.meter_id
-      GROUP BY cm.meter_id, m.device_name, m.dev_eui
+      SELECT ac.meter_id, m.device_name, m.dev_eui,
+        CAST(ROUND(SUM(ac.consumo_diario)::numeric, 2) AS double precision) AS total_consumo
+      FROM all_consumo ac
+      JOIN "Meter" m ON m.id = ac.meter_id
+      GROUP BY ac.meter_id, m.device_name, m.dev_eui
       ORDER BY total_consumo DESC;
       `,
       startDate,

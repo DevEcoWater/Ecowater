@@ -1,5 +1,5 @@
 // app/api/meter/[id]/route.ts
-import { MeterStatus, OperationalStatus, PrismaClient } from "@prisma/client";
+import { MeterStatus, MeterType, OperationalStatus, PrismaClient } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 const prisma = new PrismaClient();
@@ -67,6 +67,9 @@ export async function GET(_: Request, { params }: Context) {
     const rawResponse = {
       ...meter,
       user: userMeter ? userMeter.user.id : null,
+      userName: userMeter
+        ? `${userMeter.user.lastName ?? ""} ${userMeter.user.firstName ?? ""}`.trim() || null
+        : null,
       reading: formattedReading,
       connectivity: {
         status: connectivityStatus,
@@ -105,6 +108,8 @@ export async function PUT(
     const {
       dev_eui,
       device_name,
+      meter_type,
+      street_address,
       application_id,
       application_name,
       lat,
@@ -118,6 +123,8 @@ export async function PUT(
       data: {
         dev_eui,
         device_name,
+        meter_type: meter_type as MeterType,
+        street_address,
         application_id,
         application_name,
         lat,

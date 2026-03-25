@@ -57,11 +57,50 @@ export function getPageHeaderFromPath(pathname: string | null) {
       pattern: /\/zonas\/[^/]+$/,
       title: "Detalle de Zona",
       description: "Medidores dentro de esta área geográfica",
+      tourName: "zone-detail",
     },
     {
       pattern: /\/zonas$/,
       title: "Zonas",
       description: "Áreas geográficas definidas sobre el mapa",
+    },
+    {
+      pattern: /\/operarios\/nuevo/,
+      title: "Nuevo Operario",
+      description: "Registrá un nuevo operario de campo en el sistema",
+    },
+    {
+      pattern: /\/operarios\/[^/]+$/,
+      title: "Detalle del Operario",
+      description: "Perfil, zonas asignadas e historial de lecturas del operario",
+      tourName: "operario-detail",
+    },
+    {
+      pattern: /\/operarios$/,
+      title: "Operarios",
+      description: "Gestión de operarios de campo y sus zonas asignadas",
+      tourName: "operarios-list",
+    },
+    {
+      pattern: /\/portal\/zonas\/[^/]+\/medidores\/[^/]+$/,
+      title: "Registrar Lectura",
+      description: "Ingresá el valor del medidor y guardá la lectura",
+    },
+    {
+      pattern: /\/portal\/zonas\/[^/]+$/,
+      title: "Ruta de Lectura",
+      description: "Medidores pendientes de lectura en esta zona",
+    },
+    {
+      pattern: /\/portal\/zonas$/,
+      title: "Mis Zonas",
+      description: "Zonas asignadas para la ronda de lectura de hoy",
+    },
+    {
+      pattern: /^\/portal$/,
+      title: "Portal Operario",
+      description: "Resumen de tu jornada de lectura",
+      tourName: "portal-home",
     },
   ];
 
