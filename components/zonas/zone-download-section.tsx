@@ -31,6 +31,7 @@ import {
 } from "@/hooks/zones/use-zone-downloads";
 import { downloadZoneCsv } from "@/lib/export-csv";
 import { formatDateAR, formatDateTimeShortAR } from "@/lib/utils";
+import { ZoneMeter } from "@/types/zones/zone-types";
 
 const BIMESTER_LABELS = ["Ene-Feb", "Mar-Abr", "May-Jun", "Jul-Ago", "Sep-Oct", "Nov-Dic"];
 
@@ -57,15 +58,6 @@ function getBimesterPresets(): Array<{ label: string; start: string; end: string
 
 function toDateInput(isoString: string): string {
   return isoString.slice(0, 10);
-}
-
-interface ZoneMeter {
-  dev_eui: string;
-  device_name: string;
-  userName: string | null;
-  shortData: string | null;
-  cumulative_flow: string | null;
-  status: string;
 }
 
 interface ZoneDownloadSectionProps {
