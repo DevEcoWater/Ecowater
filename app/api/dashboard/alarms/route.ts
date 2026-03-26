@@ -95,12 +95,13 @@ export async function GET(req: Request) {
           WHEN $1 = 'month' THEN TO_CHAR(date_trunc('month', timezone($4, s.created_at)), 'YYYY-MM')
           ELSE TO_CHAR(timezone($4, s.created_at), 'YYYY-MM-DD')
         END AS fecha,
-        SUM(CASE WHEN s.reverse_flow_alarm THEN 1 ELSE 0 END)::int AS flujo_inverso,
-        SUM(CASE WHEN s.empty_pipe_alarm   THEN 1 ELSE 0 END)::int AS tuberia_vacia,
-        SUM(CASE WHEN s.battery_status     THEN 1 ELSE 0 END)::int AS bateria_baja,
-        SUM(CASE WHEN s.water_temp_alarm   THEN 1 ELSE 0 END)::int AS alarma_temperatura,
-        SUM(CASE WHEN s.over_range_alarm   THEN 1 ELSE 0 END)::int AS fuera_de_rango
+        COUNT(DISTINCT CASE WHEN s.reverse_flow_alarm THEN r.meter_id END)::int AS flujo_inverso,
+        COUNT(DISTINCT CASE WHEN s.empty_pipe_alarm   THEN r.meter_id END)::int AS tuberia_vacia,
+        COUNT(DISTINCT CASE WHEN s.battery_status     THEN r.meter_id END)::int AS bateria_baja,
+        COUNT(DISTINCT CASE WHEN s.water_temp_alarm   THEN r.meter_id END)::int AS alarma_temperatura,
+        COUNT(DISTINCT CASE WHEN s.over_range_alarm   THEN r.meter_id END)::int AS fuera_de_rango
       FROM "Status" s
+      JOIN "Reading" r ON s.reading_id = r.id
       WHERE timezone($4, s.created_at) >= $2
         AND timezone($4, s.created_at) < $3
       GROUP BY fecha

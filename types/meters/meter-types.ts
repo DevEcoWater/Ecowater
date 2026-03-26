@@ -17,6 +17,7 @@ export interface MeterDataForTable extends Omit<Meter, ""> {
 export interface MeterReading extends Meter {
   reading: StatusReading;
   user?: string;
+  userName?: string | null;
   connectivity?: {
     status: "ONLINE" | "OFFLINE" | "STALE";
     lastSeen: string | null;
@@ -31,6 +32,7 @@ export interface MeterReading extends Meter {
 
 export interface StatusReading extends Reading {
   statuses: Status;
+  submittedBy?: { firstName: string; lastName: string } | null;
 }
 
 type TUserMeter = {
@@ -42,6 +44,8 @@ type TUserMeter = {
   user_id: string;
 };
 
+export type MeterType = "SMART" | "MECHANICAL";
+
 export interface MeterFormData {
   userId: string;
   status?: "ACTIVE" | "INACTIVE";
@@ -52,6 +56,23 @@ export interface MeterFormData {
   device_name?: string;
   application_id?: string;
   application_name?: string;
+}
+
+export interface MechanicalMeterFormData {
+  device_name: string;
+  street_address: string;
+  lat: number;
+  lng: number;
+  dev_eui?: string;
+  status?: "ACTIVE" | "INACTIVE" | "MAINTENANCE" | "FAULTY";
+  user_id?: string;
+}
+
+export interface ManualReadingFormData {
+  instantaneous_flow: string;
+  observations?: string;
+  photo_url?: string;
+  submitted_by: string;
 }
 
 export interface MeterResponse {

@@ -3,7 +3,7 @@
 import { createContext, useContext, type ReactNode } from "react";
 import { Libraries, useJsApiLoader } from "@react-google-maps/api";
 
-const defaultLibraries: Libraries = ["places"];
+const defaultLibraries: Libraries = ["places", "drawing"];
 
 interface GoogleMapsContextType {
   isLoaded: boolean;

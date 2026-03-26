@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { CirclePlus, Search, RefreshCw } from "lucide-react";
+import { CirclePlus, Search, RefreshCw, Cpu, Wrench } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { useUserFilters } from "@/hooks/users/use-users-filters";
@@ -16,8 +16,19 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { useMeters } from "@/hooks/meters/use-meters";
+import { useState } from "react";
+import { MeterType } from "@/types/meters/meter-types";
+
+const TYPE_OPTIONS: { label: string; value: MeterType | "ALL" }[] = [
+  { label: "Todos", value: "ALL" },
+  { label: "Inteligentes", value: "SMART" },
+  { label: "Mecánicos", value: "MECHANICAL" },
+];
 
 const Meters = () => {
+  const router = useRouter();
+  const [typeFilter, setTypeFilter] = useState<MeterType | "ALL">("ALL");
+
   const {
     data,
     isLoading,
@@ -31,7 +42,7 @@ const Meters = () => {
     setPage,
     totalPages,
     total,
-  } = useMeters();
+  } = useMeters({ typeFilter: typeFilter === "ALL" ? undefined : typeFilter });
 
   const { inputValue, setInputValue, handleSearch, handleFilterChange } =
     useUserFilters({
@@ -74,6 +85,32 @@ const Meters = () => {
                 Limpiar
               </Button>
             </div>
+          </div>
+
+          {/* Type filter tabs */}
+          <div className="flex items-center gap-2">
+            {TYPE_OPTIONS.map((opt) => (
+              <Button
+                key={opt.value}
+                variant={typeFilter === opt.value ? "default" : "outline"}
+                size="sm"
+                onClick={() => { setTypeFilter(opt.value); setPage(1); }}
+              >
+                {opt.value === "SMART" && <Cpu className="h-3 w-3 mr-1" />}
+                {opt.value === "MECHANICAL" && <Wrench className="h-3 w-3 mr-1" />}
+                {opt.label}
+              </Button>
+            ))}
+            {typeFilter === "MECHANICAL" && (
+              <Button
+                size="sm"
+                className="ml-auto"
+                onClick={() => router.push("/dashboard/medidores/mecanicos/nuevo")}
+              >
+                <CirclePlus className="h-4 w-4 mr-2" />
+                Nuevo medidor mecánico
+              </Button>
+            )}
           </div>
 
           {/* Second row: Filter Tabs */}

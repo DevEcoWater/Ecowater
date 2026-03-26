@@ -9,6 +9,9 @@ export interface DashboardStats {
     maintenance: number;
     faulty: number;
     overallStatus: MeterStatus;
+    uptimePercentage: number;
+    smart: number;
+    mechanical: number;
   };
   alerts: {
     totalAlerts: number;
@@ -17,6 +20,14 @@ export interface DashboardStats {
   consumption: {
     total: number; // m³ del mes actual
     readings: number; // total de lecturas del mes
+  };
+  signal: {
+    avgRssi: number;
+    avgSnr: number;
+    quality: "EXCELLENT" | "GOOD" | "POOR";
+  };
+  temperature: {
+    avg: number | null;
   };
   systemHealth: "EXCELLENT" | "GOOD" | "ATTENTION";
   lastReadingTimestamp: string | null;

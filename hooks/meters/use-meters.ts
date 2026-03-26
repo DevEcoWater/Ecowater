@@ -4,12 +4,13 @@ import { useState } from "react";
 import { Meter, User } from "@prisma/client";
 import { TCounts } from "@/types/users/user-types";
 import { useMetersQuery } from "./use-meter-query";
-import { MeterStatusCounts } from "@/types/meters/meter-types";
+import { MeterStatusCounts, MeterType } from "@/types/meters/meter-types";
 
 export interface UseMetersOptions {
   initialFilter?: string;
   initialPage?: number;
   initialLimit?: number;
+  typeFilter?: MeterType;
 }
 export interface UseMetersReturn {
   data: Meter[] | null;
@@ -42,7 +43,7 @@ export const useMeters = (options?: UseMetersOptions): UseMetersReturn => {
     data: queryData,
     isLoading,
     error,
-  } = useMetersQuery(page, limit, searchQuery, filterState);
+  } = useMetersQuery(page, limit, searchQuery, filterState, options?.typeFilter);
 
   const resetFilters = () => {
     setFilterState("total");

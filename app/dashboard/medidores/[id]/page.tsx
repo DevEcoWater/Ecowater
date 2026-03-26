@@ -14,12 +14,14 @@ import {
   BarChart3,
   Table,
   Download,
+  Cpu,
+  Wrench,
 } from "lucide-react";
 import MeterCard from "@/components/dashboard/meter-card";
 import { Main } from "@/components/layout/panel/main";
 import { useParams } from "next/navigation";
 import { useMeterQuery } from "@/hooks/meters/use-meter-query";
-import dayjs from "dayjs";
+import { formatDateTimeShortAR } from "@/lib/utils";
 import AlertComponent from "@/components/medidores/detail/Alerts";
 import DeviceCard from "@/components/dashboard/system-status";
 import { useMeterReadings } from "@/hooks/readings/user-readings-";
@@ -46,6 +48,12 @@ import {
   PaginationEllipsis,
 } from "@/components/ui/pagination";
 import { downloadReadingsCsv } from "@/lib/export-csv";
+import { downloadInvoiceCsv } from "@/lib/export-invoice";
+import { useFeaturePacks } from "@/hooks/cooperative/use-feature-packs";
+import { ValveCommandsCard } from "@/components/medidores/detail/valve-commands-card";
+import { useMeterZoneQuery } from "@/hooks/zones/use-zones";
+import Link from "next/link";
+import { Layers } from "lucide-react";
 
 const MeterDashboard = () => {
   const { id } = useParams();
@@ -57,9 +65,11 @@ const MeterDashboard = () => {
     ? { startDate: customRange.startDate, endDate: customRange.endDate }
     : { period: selectedPeriod };
 
+  const { data: packs } = useFeaturePacks();
   const { data: meterData, isLoading: isLoadingMeter } = useMeterQuery(
     id as string
   );
+  const { data: meterZone } = useMeterZoneQuery(id as string);
 
   const { data: consumption, isLoading: consumptionLoading } =
     useConsumptionFromMeterData(id as string, consumptionParams);
@@ -80,6 +90,21 @@ const MeterDashboard = () => {
 
   const [viewMode, setViewMode] = useState<"graph" | "table">("graph");
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
+
+  async function handleDownloadInvoice() {
+    setIsDownloadingInvoice(true);
+    try {
+      await downloadInvoiceCsv({
+        meterId: id as string,
+        devEui: meterData.dev_eui ?? meterData.id.slice(-8),
+        cumulativeFlow: meterData.reading?.cumulative_flow ? parseFloat(meterData.reading.cumulative_flow) : undefined,
+        userId: meterData.user ?? null,
+      });
+    } finally {
+      setIsDownloadingInvoice(false);
+    }
+  }
 
   async function handleDownloadCsv() {
     setIsDownloading(true);
@@ -91,7 +116,13 @@ const MeterDashboard = () => {
       await downloadReadingsCsv(
         meterId,
         customRange ?? { period: selectedPeriod },
-        `lecturas-${meterId.slice(-8)}-${suffix}.csv`
+        `lecturas-${meterId.slice(-8)}-${suffix}.csv`,
+        {
+          devEui: meterData?.dev_eui ?? meterId.slice(-8),
+          userName: meterData?.userName ?? null,
+          domicilio: meterData?.street_address ?? null,
+          meterType: meterData?.meter_type ?? "SMART",
+        }
       );
     } finally {
       setIsDownloading(false);
@@ -104,28 +135,49 @@ const MeterDashboard = () => {
     alerts: true,
   });
 
-  const metrics = [
+  const isMechanical = meterData?.meter_type === "MECHANICAL";
+
+  const metrics = isMechanical
+    ? [
+        {
+          title: "Última Lectura",
+          value: meterData?.reading?.instantaneous_flow != null
+            ? `${meterData.reading.instantaneous_flow} m³`
+            : "Sin lecturas",
+          icon: Droplets,
+          status: "default",
+        },
+        {
+          title: "Consumo",
+          value: meterData?.reading?.consumption != null
+            ? `${meterData.reading.consumption} m³`
+            : "—",
+          icon: ChartColumn,
+          status: "default",
+        },
+      ]
+    : [
     {
       title: "Flujo Acumulado",
-      value: `${meterData && meterData.reading.cumulative_flow} m³`,
+      value: `${meterData?.reading?.cumulative_flow ?? "—"} m³`,
       icon: Droplets,
       status: "default",
     },
     {
       title: "Flujo Instantáneo",
-      value: `${meterData && meterData.reading.instantaneous_flow} m³`,
+      value: `${meterData?.reading?.instantaneous_flow ?? "—"} m³`,
       icon: ChartColumn,
       status: "default",
     },
     {
       title: "Flujo Reverso",
-      value: `${meterData && meterData.reading.reverse_flow} m³`,
+      value: `${meterData?.reading?.reverse_flow ?? "—"} m³`,
       icon: Activity,
       status: "error",
     },
     {
       title: "Temperatura",
-      value: `${meterData && meterData.reading.real_time_temperature}°C`,
+      value: `${meterData?.reading?.real_time_temperature ?? "—"}°C`,
       icon: ThermometerSun,
       status: "inactive",
     },
@@ -175,20 +227,30 @@ const MeterDashboard = () => {
                 </div>
 
                 {/* Right side */}
-                <div className="flex flex-col items-end">
+                <div className="flex flex-col items-end gap-1">
                   <Chip
                     showDot
                     status={
-                      meterData.reading.statuses?.meter_status || "Desconocido"
+                      meterData.reading?.statuses?.meter_status || "Desconocido"
                     }
                   />
-                  <div className="flex items-center justify-end gap-1 mt-1">
+                  <div className="flex items-center justify-end gap-1">
                     <Clock size={12} className="text-muted-foreground" />
                     <p className="text-xs text-muted-foreground truncate">
                       Última actualización:{" "}
-                      {dayjs(meterData.updated_at).format("DD/MM/YYYY HH:mm")}
+                      {formatDateTimeShortAR(meterData.updated_at)}
                     </p>
                   </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleDownloadInvoice}
+                    disabled={isDownloadingInvoice}
+                    className="gap-1.5 text-xs h-7"
+                  >
+                    <Download className="w-3 h-3" />
+                    {isDownloadingInvoice ? "Generando..." : "Descargar Factura"}
+                  </Button>
                 </div>
               </div>
             </CardContent>
@@ -213,57 +275,93 @@ const MeterDashboard = () => {
         </div>
 
         {/* Desktop */}
-        <div id="tour-meter-header" className="hidden md:block bg-background border bg-white shadow-sm rounded-xl">
-          <div className="p-6">
-            <div className="flex items-center justify-between gap-4">
-              {/* Left side */}
-              <div className="flex gap-4 items-center">
-                <div className="text-left">
-                  <p className="text-lg font-medium">
-                    Medidor {meterData.id.slice(-8)}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    DEV_EUI: {meterData.dev_eui}
-                  </p>
-                </div>
-                {meterData.user && (
-                  <>
-                    <Separator orientation="vertical" className="h-10" />
-                    <div>
-                      <UserButton userId={meterData.user} />
-                    </div>
-                  </>
+        <div id="tour-meter-header" className="hidden md:flex items-center justify-between gap-4 bg-white border shadow-sm rounded-xl px-6 py-4">
+          {/* Left: identity */}
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="text-base font-semibold leading-tight">
+                  {meterData.device_name || `Medidor ${meterData.id.slice(-8)}`}
+                </p>
+                {meterData.meter_type === "MECHANICAL" ? (
+                  <span className="inline-flex items-center gap-1 text-xs bg-amber-100 text-amber-700 rounded-full px-2 py-0.5">
+                    <Wrench className="w-3 h-3" />
+                    Mecánico
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-xs bg-blue-100 text-blue-700 rounded-full px-2 py-0.5">
+                    <Cpu className="w-3 h-3" />
+                    Inteligente
+                  </span>
                 )}
               </div>
-
-              {/* Right side */}
-              <div className="flex flex-row items-center gap-4">
-                <div className="flex items-center gap-1">
-                  <Clock size={12} className="text-muted-foreground" />
-                  <p className="text-xs text-muted-foreground">
-                    Última actualización:{" "}
-                    {dayjs(meterData.updated_at).format("DD/MM/YYYY HH:mm")}
-                  </p>
-                </div>
-                <Chip
-                  showDot
-                  status={
-                    meterData.connectivity?.status === "ONLINE"
-                      ? "ACTIVE"
-                      : meterData.connectivity?.status === "STALE"
-                      ? "INACTIVE"
-                      : meterData.connectivity?.status === "OFFLINE"
-                      ? "INACTIVE"
-                      : "Desconocido"
-                  }
-                />
-                {meterData.dataFreshness?.warning && (
-                  <p className="text-xs text-orange-600">
-                    ⚠️ {meterData.dataFreshness.warning}
-                  </p>
-                )}
-              </div>
+              <p className="text-xs text-muted-foreground font-mono mt-0.5">
+                {meterData.meter_type === "MECHANICAL"
+                  ? meterData.street_address ?? "Sin dirección"
+                  : meterData.dev_eui}
+              </p>
             </div>
+
+            {meterData.user && (
+              <>
+                <Separator orientation="vertical" className="h-8" />
+                <UserButton userId={meterData.user} />
+              </>
+            )}
+
+            {meterZone && (
+              <>
+                <Separator orientation="vertical" className="h-8" />
+                <Link
+                  href={`/dashboard/zonas/${meterZone.id}`}
+                  className="flex items-center gap-1.5 text-xs font-medium hover:underline"
+                >
+                  <span
+                    className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: meterZone.color }}
+                  />
+                  <Layers className="w-3.5 h-3.5 text-muted-foreground" />
+                  {meterZone.name}
+                </Link>
+              </>
+            )}
+          </div>
+
+          {/* Right: status + actions */}
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Clock size={12} />
+              <span>{formatDateTimeShortAR(meterData.updated_at)}</span>
+            </div>
+
+            <Separator orientation="vertical" className="h-5" />
+
+            <Chip
+              showDot
+              status={
+                meterData.connectivity?.status === "ONLINE"
+                  ? "ACTIVE"
+                  : meterData.connectivity?.status === "STALE"
+                  ? "INACTIVE"
+                  : meterData.connectivity?.status === "OFFLINE"
+                  ? "INACTIVE"
+                  : "Desconocido"
+              }
+            />
+
+
+            <Separator orientation="vertical" className="h-5" />
+
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleDownloadInvoice}
+              disabled={isDownloadingInvoice}
+              className="gap-1.5"
+            >
+              <Download className="w-4 h-4" />
+              {isDownloadingInvoice ? "Generando..." : "Descargar Factura"}
+            </Button>
           </div>
         </div>
 
@@ -382,6 +480,7 @@ const MeterDashboard = () => {
                         data={readingsData}
                         isLoading={readingsLoading}
                         error={null}
+                        meterType={meterData?.meter_type}
                       />
                     </div>
                     <TablePagination
@@ -396,7 +495,8 @@ const MeterDashboard = () => {
             )}
           </Card>
 
-          {/* Device Status Section */}
+          {/* Device Status Section — only for smart meters */}
+          {!isMechanical && (
           <Card>
             <CardHeader
               className="pb-3 cursor-pointer"
@@ -419,7 +519,7 @@ const MeterDashboard = () => {
                   status={meterData.status}
                   signal={true}
                   valve_status={
-                    meterData.reading.statuses?.valve_status as
+                    meterData.reading?.statuses?.valve_status as
                       | "open"
                       | "closed"
                       | "abnormal"
@@ -427,7 +527,7 @@ const MeterDashboard = () => {
                       | undefined
                   }
                   battery_voltage={
-                    meterData.reading.statuses?.battery_voltage as
+                    meterData.reading?.statuses?.battery_voltage as
                       | "normal"
                       | "low"
                       | undefined
@@ -436,6 +536,7 @@ const MeterDashboard = () => {
               </CardContent>
             )}
           </Card>
+          )}
 
           {/* Alerts Section */}
           <Card>
@@ -454,7 +555,7 @@ const MeterDashboard = () => {
             </CardHeader>
             {expandedSections.alerts && (
               <CardContent className="pt-0">
-                <AlertComponent meterId={meterData.id} />
+                <AlertComponent meterId={meterData.id} meterType={meterData.meter_type} />
               </CardContent>
             )}
           </Card>
@@ -550,6 +651,7 @@ const MeterDashboard = () => {
                         data={readingsData}
                         isLoading={readingsLoading}
                         error={null}
+                        meterType={meterData?.meter_type}
                       />
                       <TablePagination
                         page={page}
@@ -565,7 +667,8 @@ const MeterDashboard = () => {
 
             {/* Sidebar - Right Side */}
             <div className="col-span-4 space-y-6">
-              {/* Device Status */}
+              {/* Device Status — only for smart meters */}
+              {!isMechanical && (
               <Card id="tour-meter-status">
                 <CardHeader>
                   <h2 className="text-lg font-semibold">
@@ -577,7 +680,7 @@ const MeterDashboard = () => {
                     status={meterData.status}
                     signal={true}
                     valve_status={
-                      meterData.reading.statuses?.valve_status as
+                      meterData.reading?.statuses?.valve_status as
                         | "open"
                         | "closed"
                         | "abnormal"
@@ -585,7 +688,7 @@ const MeterDashboard = () => {
                         | undefined
                     }
                     battery_voltage={
-                      meterData.reading.statuses?.battery_voltage as
+                      meterData.reading?.statuses?.battery_voltage as
                         | "normal"
                         | "low"
                         | undefined
@@ -593,6 +696,7 @@ const MeterDashboard = () => {
                   />
                 </CardContent>
               </Card>
+              )}
 
               {/* Alerts */}
               <Card id="tour-meter-alerts">
@@ -602,9 +706,14 @@ const MeterDashboard = () => {
                   </h2>
                 </CardHeader>
                 <CardContent>
-                  <AlertComponent meterId={meterData.id} />
+                  <AlertComponent meterId={meterData.id} meterType={meterData.meter_type} />
                 </CardContent>
               </Card>
+
+              {/* Valve commands — visible only if pack is enabled */}
+              {packs?.valve_control && (
+                <ValveCommandsCard meterId={meterData.id} />
+              )}
             </div>
           </div>
         </div>

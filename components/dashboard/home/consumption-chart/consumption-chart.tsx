@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConsumptionData } from "@/hooks/dashboard/use-consumption-data";
 import {
@@ -23,7 +24,7 @@ interface ConsumptionChartProps {
   meterStatus?: string;
 }
 
-export function ConsumptionChart({ data, meterStatus }: ConsumptionChartProps) {
+export const ConsumptionChart = React.memo(function ConsumptionChart({ data, meterStatus }: ConsumptionChartProps) {
   const { color } = getStatusColor(meterStatus as MeterStatus);
 
   const groupBy: "day" | "week" | "month" = (() => {
@@ -111,43 +112,58 @@ export function ConsumptionChart({ data, meterStatus }: ConsumptionChartProps) {
   };
 
   return (
-    <Card className="border-0 shadow-sm bg-white">
-      <CardHeader className="pb-4">
-        <CardTitle className="text-lg font-semibold text-gray-900">
-          Análisis de Consumo de Agua - {getPeriodLabel()}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="h-[21rem]">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={formatChartData(data.series)}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="label" stroke="#6b7280" fontSize={12} />
-              <YAxis
-                stroke="#6b7280"
-                fontSize={12}
-                label={{
-                  value: "Consumo (m³)",
-                  angle: -90,
-                  position: "insideLeft",
-                  fontSize: 12,
-                  fill: "#6b7280",
-                }}
-              />
-              <Tooltip
-                formatter={(value: number) => [`${value} m³`, "Consumo"]}
-                labelFormatter={(label) => `Fecha: ${label}`}
-              />
-              <Bar
-                dataKey="totalFlow"
-                fill={meterStatus ? color : "#3b82f6"}
-                radius={[4, 4, 0, 0]}
-                name="Flujo Acumulado"
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </CardContent>
-    </Card>
+    <motion.div
+      key={data.period ?? `${data.startDate}-${data.endDate}`}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: "easeOut" }}
+    >
+      <Card className="border-0 shadow-sm bg-white dark:bg-card">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg font-semibold text-gray-900 dark:text-foreground">
+            Análisis de Consumo de Agua - {getPeriodLabel()}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[21rem]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={formatChartData(data.series)}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                <YAxis
+                  stroke="hsl(var(--muted-foreground))"
+                  fontSize={12}
+                  label={{
+                    value: "Consumo (m³)",
+                    angle: -90,
+                    position: "insideLeft",
+                    fontSize: 12,
+                    fill: "hsl(var(--muted-foreground))",
+                  }}
+                />
+                <Tooltip
+                  contentStyle={{
+                    borderRadius: 8,
+                    fontSize: 12,
+                    backgroundColor: "hsl(var(--popover))",
+                    borderColor: "hsl(var(--border))",
+                    color: "hsl(var(--popover-foreground))",
+                  }}
+                  formatter={(value: number) => [`${value} m³`, "Consumo"]}
+                  labelFormatter={(label) => `Fecha: ${label}`}
+                />
+                <Bar
+                  dataKey="totalFlow"
+                  fill={meterStatus ? color : "#3b82f6"}
+                  radius={[4, 4, 0, 0]}
+                  name="Flujo Acumulado"
+                  isAnimationActive={false}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
   );
-}
+});

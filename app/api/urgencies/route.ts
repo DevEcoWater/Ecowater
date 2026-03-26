@@ -186,6 +186,9 @@ function processAlertsByContext(meterData: any[], params: UrgencyParams) {
       connectivity,
     } = data;
 
+    // Mechanical meters never report connectivity — skip inactive alerts for them
+    if (meter.meter_type === "MECHANICAL") continue;
+
     if (isActive && lastReading?.statuses[0]) {
       // Medidor activo: mostrar alertas del status actual
       const alerts = mapStatusToAlerts(lastReading.statuses[0] as StatusData);

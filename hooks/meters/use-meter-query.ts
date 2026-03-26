@@ -1,19 +1,32 @@
 import {
+  MechanicalMeterFormData,
   MeterFormData,
   MeterReading,
+  MeterType,
   PaginatedMeterResponse,
 } from "@/types/meters/meter-types";
 import { Meter } from "@prisma/client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 // Function to fetch all meters with pagination
-export const useMetersQuery = (page = 1, limit = 10, search, filter) => {
+export const useMetersQuery = (
+  page = 1,
+  limit = 10,
+  search: string,
+  filter: string,
+  type?: MeterType
+) => {
   return useQuery<PaginatedMeterResponse, Error>({
-    queryKey: ["meters", page, limit, search, filter],
+    queryKey: ["meters", page, limit, search, filter, type],
     queryFn: async () => {
-      const response = await fetch(
-        `/api/meter?search=${search}&status=${filter}&page=${page}&limit=${limit}`
-      );
+      const params = new URLSearchParams({
+        search,
+        status: filter,
+        page: String(page),
+        limit: String(limit),
+      });
+      if (type) params.set("type", type);
+      const response = await fetch(`/api/meter?${params}`);
       if (!response.ok) {
         throw new Error("Failed to fetch meters");
       }
@@ -161,6 +174,55 @@ export const useAssignMeterMutation = () => {
         queryKey: ["userMeters", variables.userId],
       });
       queryClient.invalidateQueries({ queryKey: ["meter", variables.meterId] });
+    },
+  });
+};
+
+// Create a mechanical meter
+export const useCreateMechanicalMeterMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation<Meter, Error, MechanicalMeterFormData>({
+    mutationFn: async (data) => {
+      const response = await fetch("/api/meter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...data, meter_type: "MECHANICAL" }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Error al crear medidor mecánico");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["meters"] });
+    },
+  });
+};
+
+// Submit a manual reading for a mechanical meter
+export const useSubmitManualReadingMutation = (meterId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation<
+    any,
+    Error,
+    { instantaneous_flow: string; observations?: string; photo_url?: string; submitted_by: string }
+  >({
+    mutationFn: async (data) => {
+      const response = await fetch(`/api/meter/${meterId}/readings`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Error al guardar lectura");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["meter", meterId] });
+      queryClient.invalidateQueries({ queryKey: ["meters"] });
     },
   });
 };

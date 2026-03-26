@@ -73,33 +73,40 @@
     --sidebar-ring: var(--ring);
   }
 
-  /* styles.css */
+  /* Collapsible menu groups — grid-template-rows is more GPU-friendly than height */
   .CollapsibleContent {
     overflow: hidden;
+    display: grid;
   }
   .CollapsibleContent[data-state="open"] {
-    animation: slideDown 300ms ease-out;
+    grid-template-rows: 1fr;
+    animation: slideDown 200ms ease-out;
   }
   .CollapsibleContent[data-state="closed"] {
-    animation: slideUp 300ms ease-out;
+    grid-template-rows: 0fr;
+    animation: slideUp 200ms ease-out;
   }
 
   @keyframes slideDown {
-    from {
-      height: 0;
-    }
-    to {
-      height: var(--radix-collapsible-content-height);
-    }
+    from { grid-template-rows: 0fr; }
+    to   { grid-template-rows: 1fr; }
   }
 
   @keyframes slideUp {
-    from {
-      height: var(--radix-collapsible-content-height);
-    }
-    to {
-      height: 0;
-    }
+    from { grid-template-rows: 1fr; }
+    to   { grid-template-rows: 0fr; }
+  }
+
+  /* Sidebar GPU acceleration — avoids main-thread reflow on width animation */
+  [data-sidebar="sidebar"] {
+    transform: translateZ(0);
+    will-change: width;
+    backface-visibility: hidden;
+  }
+
+  /* Contain sidebar animation scope so layout changes don't cascade to main content */
+  [data-sidebar="sidebar"] > div {
+    contain: layout style;
   }
 
   /* Prevent focus zoom on mobile devices */

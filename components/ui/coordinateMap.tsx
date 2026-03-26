@@ -1,9 +1,16 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
-import { GoogleMap, Marker } from "@react-google-maps/api";
+import { GoogleMap, Marker, Polygon } from "@react-google-maps/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGoogleMaps } from "@/providers/google-maps-provider";
+
+interface ZoneOverlay {
+  id: string;
+  name: string;
+  color: string;
+  polygon: { lat: number; lng: number }[];
+}
 
 interface CoordinateMapProps {
   initialLocation: { lat: number; lng: number };
@@ -14,6 +21,7 @@ interface CoordinateMapProps {
   zoom?: number;
   className?: string;
   title?: string;
+  zones?: ZoneOverlay[];
 }
 
 function CoordinateMap({
@@ -25,6 +33,7 @@ function CoordinateMap({
   zoom = 14,
   className = "",
   title,
+  zones,
 }: CoordinateMapProps) {
   const { isLoaded } = useGoogleMaps();
 
@@ -40,23 +49,28 @@ function CoordinateMap({
     height,
   };
 
-  const options = {
+  const options: google.maps.MapOptions = {
     disableDefaultUI: readOnly,
     zoomControl: !readOnly,
     scrollwheel: !readOnly,
     draggable: !readOnly,
     clickableIcons: !readOnly,
-    minZoom: 15,
-    maxZoom: 17,
-    restriction: {
-      latLngBounds: {
-        north: initialLocation.lat + 0.03,
-        south: initialLocation.lat - 0.03,
-        east: initialLocation.lng + 0.03,
-        west: initialLocation.lng - 0.03,
-      },
-      strictBounds: true,
-    },
+    // Only restrict when no zones are shown (free placement mode needs wider view)
+    ...(zones
+      ? {}
+      : {
+          minZoom: 15,
+          maxZoom: 17,
+          restriction: {
+            latLngBounds: {
+              north: initialLocation.lat + 0.03,
+              south: initialLocation.lat - 0.03,
+              east: initialLocation.lng + 0.03,
+              west: initialLocation.lng - 0.03,
+            },
+            strictBounds: true,
+          },
+        }),
   };
 
   const onLoad = useCallback((map: google.maps.Map) => {
@@ -96,10 +110,25 @@ function CoordinateMap({
         onUnmount={onUnmount}
         onClick={handleMapClick}
       >
+        {zones?.map((zone) => (
+          <Polygon
+            key={zone.id}
+            paths={zone.polygon}
+            options={{
+              fillColor: zone.color,
+              fillOpacity: 0.18,
+              strokeColor: zone.color,
+              strokeWeight: 2,
+              clickable: false,
+              zIndex: 1,
+            }}
+          />
+        ))}
         <Marker
           position={markerPosition}
           title={title}
           draggable={!readOnly}
+          zIndex={10}
           onDragEnd={(e: google.maps.MapMouseEvent) => {
             if (e.latLng && onLocationChange) {
               const newPosition = {
