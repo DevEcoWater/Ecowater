@@ -7,6 +7,8 @@ import {
   StatusData,
 } from "@/utils/alertMapper";
 
+export const dynamic = "force-dynamic";
+
 const prisma = new PrismaClient();
 
 type UrgencyParams = {
@@ -183,6 +185,9 @@ function processAlertsByContext(meterData: any[], params: UrgencyParams) {
       hoursSinceLastReading,
       connectivity,
     } = data;
+
+    // Mechanical meters never report connectivity — skip inactive alerts for them
+    if (meter.meter_type === "MECHANICAL") continue;
 
     if (isActive && lastReading?.statuses[0]) {
       // Medidor activo: mostrar alertas del status actual

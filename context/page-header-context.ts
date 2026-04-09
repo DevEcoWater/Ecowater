@@ -3,13 +3,15 @@ import { createContext, useContext } from "react";
 export type PageHeaderContextType = {
   title: string;
   description: string;
-  setPageHeader: (title: string, description: string) => void;
+  tourName: string | null;
+  setPageHeader: (title: string, description: string, tourName?: string | null) => void;
 };
 
 export const defaultPageHeader: PageHeaderContextType = {
   title: "Gestión de Usuarios",
   description:
     "Administre usuarios, registre nuevos clientes y actualice información.",
+  tourName: null,
   setPageHeader: () => {},
 };
 

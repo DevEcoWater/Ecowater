@@ -2,17 +2,29 @@ import React from "react";
 import { TriangleAlert, Clock } from "lucide-react";
 import { useMeterDetailUrgencies } from "@/hooks/urgencies/use-urgencies";
 import { MeterStatusBadge } from "@/components/ui/meter-status-badge";
+import { formatDateTimeShortAR } from "@/lib/utils";
 
 interface AlertComponentProps {
   meterId: string;
+  meterType?: "SMART" | "MECHANICAL";
 }
 
-const AlertComponent = ({ meterId }: AlertComponentProps) => {
+const AlertComponent = ({ meterId, meterType }: AlertComponentProps) => {
   const {
     data: urgencies,
     isLoading,
     error,
   } = useMeterDetailUrgencies(meterId);
+
+  if (meterType === "MECHANICAL") {
+    return (
+      <div className="p-4 border border-blue-200 rounded-lg bg-blue-50">
+        <p className="text-sm text-blue-800">
+          Los medidores mecánicos no generan alertas automáticas. Las lecturas se registran manualmente por los operarios.
+        </p>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -95,13 +107,7 @@ const AlertComponent = ({ meterId }: AlertComponentProps) => {
   const formatTimestamp = (timestamp: string) => {
     try {
       const date = new Date(timestamp);
-      return date.toLocaleString("es-ES", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
+      return formatDateTimeShortAR(date);
     } catch {
       return "Desconocido";
     }
@@ -122,6 +128,7 @@ const AlertComponent = ({ meterId }: AlertComponentProps) => {
               operationalStatus={allAlerts[0].meter?.operational_status}
               showDetails={true}
               size="md"
+              className="w-full"
             />
           </div>
         </div>

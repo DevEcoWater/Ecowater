@@ -3,6 +3,8 @@ import { parseMeterStatus } from "@/utils/parseMeterStatus";
 import { parseMeterData } from "@/utils/parseMeterData";
 import { parseFlowHex } from "@/utils/parseFlowHex";
 import { parseInstantaneousFlow } from "@/utils/parseInstantaneousFlow";
+
+export const dynamic = "force-dynamic";
 import { parseTemperature } from "@/utils/parseTemperature";
 import {
   parseTimestamp,

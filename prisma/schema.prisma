@@ -22,18 +22,20 @@ model Cooperative {
 }
 
 model User {
-  id         String      @id @default(uuid())
-  email      String      @unique
-  password   String
-  created_at DateTime    @default(now())
-  updated_at DateTime    @updatedAt
-  status     UserStatus  @default(ACTIVE)
-  addressId  String      @unique
-  firstName  String
-  lastName   String
-  address    Address     @relation(fields: [addressId], references: [id], map: "User_adressId_fkey")
-  userMeters UserMeter[]
-  userRoles  UserRole[]
+  id                String         @id @default(uuid())
+  email             String         @unique
+  password          String
+  created_at        DateTime       @default(now())
+  updated_at        DateTime       @updatedAt
+  status            UserStatus     @default(ACTIVE)
+  addressId         String         @unique
+  firstName         String
+  lastName          String
+  address           Address        @relation(fields: [addressId], references: [id], map: "User_adressId_fkey")
+  userMeters        UserMeter[]
+  userRoles         UserRole[]
+  zoneOperators     ZoneOperator[]
+  submittedReadings Reading[]      @relation("SubmittedReadings")
 
   @@index([email])
 }
@@ -79,8 +81,10 @@ model UserMeter {
 
 model Meter {
   id                 String            @id @default(uuid())
-  dev_eui            String            @unique
+  dev_eui            String?           @unique
   device_name        String
+  meter_type         MeterType         @default(SMART)
+  street_address     String?
   application_id     String?
   application_name   String?
   lat                Float?
@@ -91,8 +95,6 @@ model Meter {
   operational_status OperationalStatus @default(OPERATIONAL)
   readings           Reading[]
   userMeters         UserMeter[]
-
-  @@index([dev_eui])
 }
 
 model Reading {
@@ -112,11 +114,16 @@ model Reading {
   spare                 String?
   check_code            String?
   ending_code           String?
+  consumption           Float?
+  observations          String?
+  photo_url             String?
+  submitted_by          String?
   status                ReadingStatus @default(VALID)
   plot                  String?
   meter                 Meter         @relation(fields: [meter_id], references: [id], onDelete: Cascade)
   rxInfos               RxInfo[]
   statuses              Status[]
+  submittedBy           User?         @relation("SubmittedReadings", fields: [submitted_by], references: [id])
 
   @@index([meter_id])
   @@index([timestamp])
@@ -169,6 +176,44 @@ model Gateway {
   rxInfos      RxInfo[]
 }
 
+model Zone {
+  id            String         @id @default(uuid())
+  name          String
+  color         String         @default("#3B82F6")
+  polygon       Json
+  status        ZoneStatus     @default(ACTIVE)
+  created_at    DateTime       @default(now())
+  updated_at    DateTime       @updatedAt
+  zoneOperators ZoneOperator[]
+  downloads     ZoneDownload[]
+}
+
+model ZoneDownload {
+  id            String   @id @default(uuid())
+  zone_id       String
+  downloaded_at DateTime @default(now())
+  period_start  DateTime
+  period_end    DateTime
+  meter_count   Int
+  notes         String?
+  zone          Zone     @relation(fields: [zone_id], references: [id], onDelete: Cascade)
+
+  @@index([zone_id])
+}
+
+model ZoneOperator {
+  id          String   @id @default(uuid())
+  zone_id     String
+  user_id     String
+  assigned_at DateTime @default(now())
+  zone        Zone     @relation(fields: [zone_id], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([zone_id, user_id])
+  @@index([zone_id])
+  @@index([user_id])
+}
+
 enum CooperativeStatus {
   ACTIVE
   INACTIVE
@@ -186,6 +231,17 @@ enum MeterStatus {
   INACTIVE
   MAINTENANCE
   FAULTY
+}
+
+enum MeterType {
+  SMART
+  MECHANICAL
+}
+
+enum ZoneStatus {
+  ACTIVE
+  UPCOMING
+  INACTIVE
 }
 
 enum OperationalStatus {

@@ -1,15 +1,69 @@
 // app/api/meter/route.ts
 import { NextResponse } from "next/server";
 import { getPaginationParams } from "../../../utils/pagination";
-import { MeterStatus, PrismaClient } from "@prisma/client";
+import { MeterStatus, MeterType, PrismaClient } from "@prisma/client";
+
+export const dynamic = "force-dynamic";
 
 const prisma = new PrismaClient();
+
+export async function POST(req: Request) {
+  try {
+    const body = await req.json();
+    const {
+      device_name,
+      meter_type,
+      street_address,
+      dev_eui,
+      application_id,
+      application_name,
+      lat,
+      lng,
+      status,
+      operational_status,
+      user_id,
+    } = body;
+
+    const meter = await prisma.meter.create({
+      data: {
+        device_name,
+        meter_type: (meter_type as MeterType) ?? "SMART",
+        street_address: street_address ?? null,
+        dev_eui: meter_type === "MECHANICAL" ? null : dev_eui,
+        application_id: meter_type === "MECHANICAL" ? null : application_id,
+        application_name: meter_type === "MECHANICAL" ? null : application_name,
+        lat: lat ?? null,
+        lng: lng ?? null,
+        status: status ?? "ACTIVE",
+        operational_status: operational_status ?? "OPERATIONAL",
+      },
+    });
+
+    // Assign user if provided
+    if (user_id) {
+      await prisma.userMeter.create({
+        data: { user_id, meter_id: meter.id },
+      });
+    }
+
+    return NextResponse.json(meter, { status: 201 });
+  } catch (error) {
+    console.error("[POST METER]", error);
+    return NextResponse.json(
+      { error: "Failed to create meter" },
+      { status: 400 }
+    );
+  }
+}
 
 export async function GET(req: Request) {
   try {
     const { page, limit, search, status } = getPaginationParams({
       url: req.url,
     });
+
+    const url = new URL(req.url);
+    const typeFilter = url.searchParams.get("type");
 
     // build where filters
     const where: any = {};
@@ -35,6 +89,10 @@ export async function GET(req: Request) {
 
     if (status && status !== "total") {
       where.status = status.toUpperCase() as MeterStatus;
+    }
+
+    if (typeFilter && (typeFilter === "SMART" || typeFilter === "MECHANICAL")) {
+      where.meter_type = typeFilter as MeterType;
     }
 
     // query meters + total with filters
@@ -107,8 +165,8 @@ export async function GET(req: Request) {
                 ? "Medidor sin actividad reciente"
                 : null,
           },
-          // Usar estado de conectividad en lugar del estado de BD
-          status: chipStatus as MeterStatus,
+          // Mecánicos usan estado real de BD; inteligentes usan conectividad
+          status: (meter.meter_type === "MECHANICAL" ? meter.status : chipStatus) as MeterStatus,
         };
       }
 
@@ -154,21 +212,27 @@ export async function GET(req: Request) {
 
     if (status && status !== "total") {
       const normalizedStatus = status.toUpperCase() as MeterStatus;
-      filteredMeters = filteredMeters.filter(
-        (meter) => meter.status === normalizedStatus
-      );
+      filteredMeters = filteredMeters.filter((meter) => {
+        if (meter.meter_type === "MECHANICAL") {
+          // Mecánicos solo aparecen en Mantenimiento/Fallidos, nunca en Activos/Inactivos
+          if (normalizedStatus === "ACTIVE" || normalizedStatus === "INACTIVE") return false;
+          return meter.status === normalizedStatus;
+        }
+        return meter.status === normalizedStatus;
+      });
     }
 
-    // Calcular conteos basados en conectividad real
+    // Calcular conteos basados en conectividad real (excluye mecánicos)
+    const smartMeters = meters.filter((m) => m.meter_type !== "MECHANICAL");
     const counts = {
-      actives: meters.filter((m) => m.connectivity?.status === "ONLINE").length,
-      inactives: meters.filter(
+      actives: smartMeters.filter((m) => m.connectivity?.status === "ONLINE").length,
+      inactives: smartMeters.filter(
         (m) =>
           m.connectivity?.status === "STALE" ||
           m.connectivity?.status === "OFFLINE"
       ).length,
-      maintenances: 0, // No aplicamos lógica de conectividad a mantenimiento
-      faultys: 0, // No aplicamos lógica de conectividad a fallas
+      maintenances: meters.filter((m) => m.status === "MAINTENANCE").length,
+      faultys: meters.filter((m) => m.status === "FAULTY").length,
     };
 
     return NextResponse.json({
