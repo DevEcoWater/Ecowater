@@ -36,17 +36,53 @@ import { usePageHeader } from "@/context/page-header-context";
 import ZoneAssignment from "@/components/operarios/zone-assignment";
 import { useOperariosQuery } from "@/hooks/operarios/use-operarios";
 import { Badge } from "@/components/ui/badge";
+import { getTodayDateInputAR } from "@/lib/utils";
 
 interface ZoneDetailProps {
   id: string;
+}
+
+function toDateInput(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function getCurrentBimesterRange(): { startDate: string; endDate: string } {
+  const todayAR = getTodayDateInputAR();
+  const [year, month] = todayAR.split("-").map(Number);
+  const bimesterStartMonth = month % 2 === 0 ? month - 1 : month;
+  return {
+    startDate: `${year}-${String(bimesterStartMonth).padStart(2, "0")}-01`,
+    endDate: todayAR,
+  };
+}
+
+function getPreviousBimesterRange(): { startDate: string; endDate: string } {
+  const todayAR = getTodayDateInputAR();
+  const [year, month] = todayAR.split("-").map(Number);
+  const now = new Date(year, month - 1, 1);
+  const currentStartMonthIdx = (now.getMonth() % 2 === 0 ? now.getMonth() : now.getMonth() - 1);
+  const previousStart = new Date(now.getFullYear(), currentStartMonthIdx - 2, 1);
+  const previousEnd = new Date(previousStart.getFullYear(), previousStart.getMonth() + 2, 0);
+  return {
+    startDate: toDateInput(previousStart),
+    endDate: toDateInput(previousEnd),
+  };
+}
+
+function isSamePeriod(
+  a: { startDate: string; endDate: string },
+  b: { startDate: string; endDate: string },
+): boolean {
+  return a.startDate === b.startDate && a.endDate === b.endDate;
 }
 
 export function ZoneDetail({ id }: ZoneDetailProps) {
   const router = useRouter();
   const { toast } = useToast();
   const { setPageHeader } = usePageHeader();
+  const [selectedPeriod, setSelectedPeriod] = useState(getCurrentBimesterRange);
   const { data: zone, isLoading: zoneLoading } = useZoneQuery(id);
-  const { data: meters, isLoading: metersLoading } = useZoneMetersQuery(id);
+  const { data: meters, isLoading: metersLoading } = useZoneMetersQuery(id, selectedPeriod);
   const { data: operariosData } = useOperariosQuery(1, "");
   // Filter operators assigned to this zone
   const assignedOperarios = operariosData?.data.filter((op) =>
@@ -64,6 +100,10 @@ export function ZoneDetail({ id }: ZoneDetailProps) {
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState("");
   const [editColor, setEditColor] = useState("");
+  const currentBimesterPeriod = getCurrentBimesterRange();
+  const previousBimesterPeriod = getPreviousBimesterRange();
+  const isCurrentBimesterSelected = isSamePeriod(selectedPeriod, currentBimesterPeriod);
+  const isPreviousBimesterSelected = isSamePeriod(selectedPeriod, previousBimesterPeriod);
 
   const startEdit = () => {
     setEditName(zone?.name ?? "");
@@ -152,6 +192,7 @@ export function ZoneDetail({ id }: ZoneDetailProps) {
               className="w-4 h-4 rounded-full border flex-shrink-0"
               style={{ backgroundColor: zone.color }}
             />
+            <span className="font-medium">{zone.name}</span>
             <Button size="sm" variant="ghost" onClick={startEdit} className="gap-1.5">
               <Pencil className="w-3.5 h-3.5" />
               Editar nombre
@@ -191,14 +232,57 @@ export function ZoneDetail({ id }: ZoneDetailProps) {
 
       {/* Meters table */}
       <div>
-        <h2 className="text-lg font-semibold mb-3">
-          Medidores en la zona{" "}
-          {!metersLoading && meters && (
-            <span className="text-muted-foreground font-normal text-sm">
-              ({meters.length})
-            </span>
-          )}
-        </h2>
+        <div className="mb-3 flex flex-col gap-2">
+          <Label>Periodo para tabla y descarga</Label>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant={isCurrentBimesterSelected ? "default" : "outline"}
+              onClick={() => setSelectedPeriod(currentBimesterPeriod)}
+            >
+              Bimestre actual
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={isPreviousBimesterSelected ? "default" : "outline"}
+              onClick={() => setSelectedPeriod(previousBimesterPeriod)}
+            >
+              Bimestre anterior
+            </Button>
+            <Input
+              type="date"
+              className="w-[170px]"
+              value={selectedPeriod.startDate}
+              onChange={(e) =>
+                setSelectedPeriod((prev) => ({ ...prev, startDate: e.target.value }))
+              }
+            />
+            <Input
+              type="date"
+              className="w-[170px]"
+              value={selectedPeriod.endDate}
+              onChange={(e) =>
+                setSelectedPeriod((prev) => ({ ...prev, endDate: e.target.value }))
+              }
+            />
+          </div>
+        </div>
+
+        <div className="mb-3">
+          <h2 className="text-lg font-semibold">
+            Medidores en la zona{" "}
+            {!metersLoading && meters && (
+              <span className="text-muted-foreground font-normal text-sm">
+                ({meters.length})
+              </span>
+            )}
+          </h2>
+          <p className="text-xs text-muted-foreground mt-1">
+            Acumulado para el periodo {selectedPeriod.startDate} {"->"} {selectedPeriod.endDate}
+          </p>
+        </div>
 
         {metersLoading ? (
           <div className="space-y-2">
@@ -218,7 +302,7 @@ export function ZoneDetail({ id }: ZoneDetailProps) {
                 <TableHead>Dispositivo</TableHead>
                 <TableHead>Usuario</TableHead>
                 <TableHead>Dirección</TableHead>
-                <TableHead>Última Lectura (m³)</TableHead>
+                <TableHead>Acumulado del periodo (m³)</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead />
               </TableRow>
@@ -244,7 +328,7 @@ export function ZoneDetail({ id }: ZoneDetailProps) {
                   <TableCell className="max-w-[200px] truncate">
                     {m.meter_type === "MECHANICAL" ? m.street_address ?? "—" : m.shortData ?? "—"}
                   </TableCell>
-                  <TableCell>{m.last_reading_value ?? m.cumulative_flow ?? "—"}</TableCell>
+                  <TableCell>{m.month_cumulative_flow ?? "—"}</TableCell>
                   <TableCell>
                     <Chip status={m.status as any} />
                   </TableCell>
@@ -261,7 +345,13 @@ export function ZoneDetail({ id }: ZoneDetailProps) {
       </div>
 
       {/* Download history section */}
-      <ZoneDownloadSection zoneId={id} zoneName={zone.name} meters={meters} />
+      <ZoneDownloadSection
+        zoneId={id}
+        zoneName={zone.name}
+        meters={meters}
+        periodStart={selectedPeriod.startDate}
+        periodEnd={selectedPeriod.endDate}
+      />
 
       {/* Operators section */}
       <div>

@@ -37,3 +37,25 @@ export function formatDateTimeShortAR(date: Date | string): string {
     minute: "2-digit",
   });
 }
+
+/** YYYY-MM-DD en zona horaria Argentina (UTC-3). */
+export function getTodayDateInputAR(): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+
+  const year = parts.find((p) => p.type === "year")?.value ?? "1970";
+  const month = parts.find((p) => p.type === "month")?.value ?? "01";
+  const day = parts.find((p) => p.type === "day")?.value ?? "01";
+  return `${year}-${month}-${day}`;
+}
+
+/** Formatea YYYY-MM-DD sin conversion de zona (evita corrimientos de dia). */
+export function formatDateInputAR(dateInput: string): string {
+  const [year, month, day] = dateInput.slice(0, 10).split("-");
+  if (!year || !month || !day) return dateInput;
+  return `${day}/${month}/${year}`;
+}

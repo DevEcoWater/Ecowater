@@ -30,31 +30,8 @@ import {
   ZoneDownload,
 } from "@/hooks/zones/use-zone-downloads";
 import { downloadZoneCsv } from "@/lib/export-csv";
-import { formatDateAR, formatDateTimeShortAR } from "@/lib/utils";
+import { formatDateInputAR, formatDateTimeShortAR } from "@/lib/utils";
 import { ZoneMeter } from "@/types/zones/zone-types";
-
-const BIMESTER_LABELS = ["Ene-Feb", "Mar-Abr", "May-Jun", "Jul-Ago", "Sep-Oct", "Nov-Dic"];
-
-function getBimesterRange(year: number, index: number): { start: string; end: string } {
-  const startMonth = index * 2;
-  const start = new Date(year, startMonth, 1);
-  const end = new Date(year, startMonth + 2, 0);
-  return {
-    start: start.toISOString().slice(0, 10),
-    end: end.toISOString().slice(0, 10),
-  };
-}
-
-function getCurrentBimester(): { start: string; end: string } {
-  const now = new Date();
-  return getBimesterRange(now.getFullYear(), Math.floor(now.getMonth() / 2));
-}
-
-function getBimesterPresets(): Array<{ label: string; start: string; end: string }> {
-  const now = new Date();
-  const year = now.getFullYear();
-  return BIMESTER_LABELS.map((label, i) => ({ label, ...getBimesterRange(year, i) }));
-}
 
 function toDateInput(isoString: string): string {
   return isoString.slice(0, 10);
@@ -64,9 +41,17 @@ interface ZoneDownloadSectionProps {
   zoneId: string;
   zoneName: string;
   meters: ZoneMeter[] | undefined;
+  periodStart: string;
+  periodEnd: string;
 }
 
-export function ZoneDownloadSection({ zoneId, zoneName, meters }: ZoneDownloadSectionProps) {
+export function ZoneDownloadSection({
+  zoneId,
+  zoneName,
+  meters,
+  periodStart,
+  periodEnd,
+}: ZoneDownloadSectionProps) {
   const { toast } = useToast();
   const { data: downloads, isLoading } = useZoneDownloads(zoneId);
   const createDownload = useCreateZoneDownload(zoneId);
@@ -74,9 +59,6 @@ export function ZoneDownloadSection({ zoneId, zoneName, meters }: ZoneDownloadSe
 
   // Download dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
-  const bimester = getCurrentBimester();
-  const [periodStart, setPeriodStart] = useState(bimester.start);
-  const [periodEnd, setPeriodEnd] = useState(bimester.end);
   const [notes, setNotes] = useState("");
 
   // Edit row state
@@ -86,9 +68,6 @@ export function ZoneDownloadSection({ zoneId, zoneName, meters }: ZoneDownloadSe
   const [editNotes, setEditNotes] = useState("");
 
   const openDialog = () => {
-    const b = getCurrentBimester();
-    setPeriodStart(b.start);
-    setPeriodEnd(b.end);
     setNotes("");
     setDialogOpen(true);
   };
@@ -96,7 +75,10 @@ export function ZoneDownloadSection({ zoneId, zoneName, meters }: ZoneDownloadSe
   const handleDownloadAndSave = async () => {
     if (!meters) return;
     try {
-      downloadZoneCsv(zoneName, meters);
+      downloadZoneCsv(zoneName, meters, {
+        startDate: periodStart,
+        endDate: periodEnd,
+      }, notes.trim() || undefined);
       await createDownload.mutateAsync({
         period_start: periodStart,
         period_end: periodEnd,
@@ -106,7 +88,10 @@ export function ZoneDownloadSection({ zoneId, zoneName, meters }: ZoneDownloadSe
       toast({ title: "Descarga registrada correctamente" });
       setDialogOpen(false);
     } catch {
-      toast({ title: "Error al registrar la descarga", variant: "destructive" });
+      toast({
+        title: "Error al registrar la descarga",
+        variant: "destructive",
+      });
     }
   };
 
@@ -125,7 +110,7 @@ export function ZoneDownloadSection({ zoneId, zoneName, meters }: ZoneDownloadSe
         download_id: downloadId,
         period_start: editStart,
         period_end: editEnd,
-        notes: editNotes.trim() || undefined,
+        notes: editNotes.trim() || "Sin observaciones",
       });
       setEditingId(null);
       toast({ title: "Descarga actualizada" });
@@ -136,20 +121,26 @@ export function ZoneDownloadSection({ zoneId, zoneName, meters }: ZoneDownloadSe
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-lg font-semibold flex items-center gap-2">
-          <History className="h-4 w-4" />
-          Historial de descargas
-        </h2>
+      <div className="flex items-center justify-between rounded-md border p-3 mb-4">
+        <div className="text-xs text-muted-foreground">
+          CSV del periodo {formatDateInputAR(periodStart)} {"->"}{" "}
+          {formatDateInputAR(periodEnd)}
+        </div>
         <Button
           variant="outline"
           size="sm"
           onClick={openDialog}
-          disabled={!meters || meters.length === 0}
-        >
+          disabled={!meters || meters.length === 0}>
           <Download className="w-4 h-4 mr-2" />
           Descargar CSV
         </Button>
+      </div>
+
+      <div className="flex items-center gap-2 mb-3">
+        <h2 className="text-lg font-semibold flex items-center gap-2">
+          <History className="h-4 w-4" />
+          Historial de descargas
+        </h2>
       </div>
 
       {isLoading ? (
@@ -213,16 +204,14 @@ export function ZoneDownloadSection({ zoneId, zoneName, meters }: ZoneDownloadSe
                         variant="ghost"
                         className="h-7 w-7"
                         onClick={() => saveEdit(d.id)}
-                        disabled={updateDownload.isPending}
-                      >
+                        disabled={updateDownload.isPending}>
                         <Check className="h-3.5 w-3.5 text-green-600" />
                       </Button>
                       <Button
                         size="icon"
                         variant="ghost"
                         className="h-7 w-7"
-                        onClick={cancelEdit}
-                      >
+                        onClick={cancelEdit}>
                         <X className="h-3.5 w-3.5" />
                       </Button>
                     </div>
@@ -234,9 +223,12 @@ export function ZoneDownloadSection({ zoneId, zoneName, meters }: ZoneDownloadSe
                     {formatDateTimeShortAR(d.downloaded_at)}
                   </TableCell>
                   <TableCell className="text-sm">
-                    {formatDateAR(d.period_start)} → {formatDateAR(d.period_end)}
+                    {formatDateInputAR(toDateInput(d.period_start))} →{" "}
+                    {formatDateInputAR(toDateInput(d.period_end))}
                   </TableCell>
-                  <TableCell className="text-center text-sm">{d.meter_count}</TableCell>
+                  <TableCell className="text-center text-sm">
+                    {d.meter_count}
+                  </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {d.notes ?? "—"}
                   </TableCell>
@@ -245,13 +237,12 @@ export function ZoneDownloadSection({ zoneId, zoneName, meters }: ZoneDownloadSe
                       size="icon"
                       variant="ghost"
                       className="h-7 w-7"
-                      onClick={() => startEdit(d)}
-                    >
+                      onClick={() => startEdit(d)}>
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
                   </TableCell>
                 </TableRow>
-              )
+              ),
             )}
           </TableBody>
         </Table>
@@ -264,46 +255,12 @@ export function ZoneDownloadSection({ zoneId, zoneName, meters }: ZoneDownloadSe
             <DialogTitle>Registrar descarga CSV</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-4 py-2">
-            {/* Bimester presets */}
             <div className="flex flex-col gap-1.5">
-              <Label>Bimestre {new Date().getFullYear()}</Label>
-              <div className="grid grid-cols-3 gap-1.5">
-                {getBimesterPresets().map((preset) => {
-                  const active = periodStart === preset.start && periodEnd === preset.end;
-                  return (
-                    <Button
-                      key={preset.label}
-                      type="button"
-                      size="sm"
-                      variant={active ? "default" : "outline"}
-                      className="text-xs h-8"
-                      onClick={() => {
-                        setPeriodStart(preset.start);
-                        setPeriodEnd(preset.end);
-                      }}
-                    >
-                      {preset.label}
-                    </Button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Custom range */}
-            <div className="flex flex-col gap-1.5">
-              <Label>Rango personalizado</Label>
-              <div className="grid grid-cols-2 gap-3">
-                <Input
-                  type="date"
-                  value={periodStart}
-                  onChange={(e) => setPeriodStart(e.target.value)}
-                />
-                <Input
-                  type="date"
-                  value={periodEnd}
-                  onChange={(e) => setPeriodEnd(e.target.value)}
-                />
-              </div>
+              <Label>Periodo seleccionado</Label>
+              <p className="text-sm text-muted-foreground">
+                {formatDateInputAR(periodStart)} {"->"}{" "}
+                {formatDateInputAR(periodEnd)}
+              </p>
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="notes">Observaciones (opcional)</Label>
@@ -316,14 +273,18 @@ export function ZoneDownloadSection({ zoneId, zoneName, meters }: ZoneDownloadSe
               />
             </div>
             <p className="text-xs text-muted-foreground">
-              Se descargarán los datos de <strong>{meters?.length ?? 0} medidores</strong> y la descarga quedará registrada en el historial.
+              Se descargarán los datos de{" "}
+              <strong>{meters?.length ?? 0} medidores</strong> y la descarga
+              quedará registrada en el historial.
             </p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleDownloadAndSave} disabled={createDownload.isPending}>
+            <Button
+              onClick={handleDownloadAndSave}
+              disabled={createDownload.isPending}>
               <Download className="w-4 h-4 mr-2" />
               Descargar y registrar
             </Button>
