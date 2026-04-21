@@ -28,6 +28,7 @@ export interface ZoneMeter {
   userName: string | null;
   shortData: string | null;
   cumulative_flow: string | null;
+  month_cumulative_flow: string | null;
   last_reading_value: string | null;
   last_reading_date: string | Date | null;
   last_reading_observations: string | null;
