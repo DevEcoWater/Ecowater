@@ -40,11 +40,17 @@ export function useMeterZoneQuery(meterId: string | null) {
   });
 }
 
-export function useZoneMetersQuery(id: string | null) {
+export function useZoneMetersQuery(
+  id: string | null,
+  period?: { startDate: string; endDate: string }
+) {
   return useQuery<ZoneMeter[]>({
-    queryKey: [...ZONES_KEY, id, "meters"],
+    queryKey: [...ZONES_KEY, id, "meters", period?.startDate, period?.endDate],
     queryFn: async () => {
-      const res = await fetch(`/api/zones/${id}/meters`);
+      const query = period
+        ? `?startDate=${encodeURIComponent(period.startDate)}&endDate=${encodeURIComponent(period.endDate)}`
+        : "";
+      const res = await fetch(`/api/zones/${id}/meters${query}`);
       if (!res.ok) throw new Error("Error al obtener medidores de la zona");
       return res.json();
     },

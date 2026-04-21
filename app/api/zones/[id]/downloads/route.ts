@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 export async function GET(
   _req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const downloads = await prisma.zoneDownload.findMany({
@@ -14,7 +14,10 @@ export async function GET(
     });
     return NextResponse.json(downloads);
   } catch (e) {
-    return NextResponse.json({ error: "Error al obtener historial" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Error al obtener historial" },
+      { status: 500 },
+    );
   } finally {
     await prisma.$disconnect().catch(() => {});
   }
@@ -22,14 +25,17 @@ export async function GET(
 
 export async function POST(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const body = await req.json();
     const { period_start, period_end, meter_count, notes } = body;
 
     if (!period_start || !period_end || meter_count == null) {
-      return NextResponse.json({ error: "Faltan campos requeridos" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Faltan campos requeridos" },
+        { status: 400 },
+      );
     }
 
     const download = await prisma.zoneDownload.create({
@@ -44,7 +50,10 @@ export async function POST(
 
     return NextResponse.json(download, { status: 201 });
   } catch (e) {
-    return NextResponse.json({ error: "Error al registrar descarga" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Error al registrar descarga" },
+      { status: 500 },
+    );
   } finally {
     await prisma.$disconnect().catch(() => {});
   }
@@ -52,7 +61,7 @@ export async function POST(
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const body = await req.json();
@@ -73,7 +82,10 @@ export async function PATCH(
 
     return NextResponse.json(updated);
   } catch (e) {
-    return NextResponse.json({ error: "Error al actualizar descarga" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Error al actualizar descarga" },
+      { status: 500 },
+    );
   } finally {
     await prisma.$disconnect().catch(() => {});
   }
