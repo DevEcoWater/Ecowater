@@ -8,7 +8,6 @@ export const dynamic = "force-dynamic";
 import { parseTemperature } from "@/utils/parseTemperature";
 import {
   parseTimestamp,
-  parseUnixTimeToArgentina,
 } from "@/utils/parseTimestamp ";
 import { PrismaClient } from "@prisma/client";
 import { convertTimestampToArgentinaTime } from "@/utils/timestampConverter";

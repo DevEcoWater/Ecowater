@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
+import { unstable_cache } from "next/cache";
 
 const prisma = new PrismaClient();
 
@@ -74,21 +75,25 @@ function resolveRange(params: URLSearchParams, tz: string) {
   };
 }
 
-export async function GET(req: Request) {
-  const tz = "America/Argentina/Buenos_Aires";
+// Cached: alarm aggregation SQL — 1-hour TTL per date range + groupBy
+const getCachedAlarms = unstable_cache(
+  async (
+    startIso: string,
+    endIso: string,
+    groupBy: string
+  ): Promise<Array<{
+    fecha: string;
+    flujo_inverso: number;
+    tuberia_vacia: number;
+    bateria_baja: number;
+    alarma_temperatura: number;
+    fuera_de_rango: number;
+  }>> => {
+    const tz = "America/Argentina/Buenos_Aires";
+    const startDate = new Date(startIso);
+    const endDate = new Date(endIso);
 
-  try {
-    const { searchParams } = new URL(req.url);
-    const { startDate, endDate, groupBy } = resolveRange(searchParams, tz);
-
-    const rows: Array<{
-      fecha: string;
-      flujo_inverso: number;
-      tuberia_vacia: number;
-      bateria_baja: number;
-      alarma_temperatura: number;
-      fuera_de_rango: number;
-    }> = await prisma.$queryRawUnsafe(
+    const rows = await prisma.$queryRawUnsafe(
       `
       SELECT
         CASE
@@ -107,13 +112,13 @@ export async function GET(req: Request) {
       GROUP BY fecha
       ORDER BY fecha ASC
       `,
-      groupBy,    // $1
-      startDate,  // $2
-      endDate,    // $3
-      tz          // $4
+      groupBy,
+      startDate,
+      endDate,
+      tz
     );
 
-    const series = rows.map((r) => ({
+    return (rows as any[]).map((r) => ({
       fecha: r.fecha,
       flujo_inverso: Number(r.flujo_inverso ?? 0),
       tuberia_vacia: Number(r.tuberia_vacia ?? 0),
@@ -121,6 +126,23 @@ export async function GET(req: Request) {
       alarma_temperatura: Number(r.alarma_temperatura ?? 0),
       fuera_de_rango: Number(r.fuera_de_rango ?? 0),
     }));
+  },
+  ["dashboard-alarms"],
+  { revalidate: 3600, tags: ["dashboard", "dashboard-alarms"] }
+);
+
+export async function GET(req: Request) {
+  const tz = "America/Argentina/Buenos_Aires";
+
+  try {
+    const { searchParams } = new URL(req.url);
+    const { startDate, endDate, groupBy } = resolveRange(searchParams, tz);
+
+    const series = await getCachedAlarms(
+      startDate.toISOString(),
+      endDate.toISOString(),
+      groupBy
+    );
 
     return NextResponse.json({ series, groupBy });
   } catch (e) {

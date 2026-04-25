@@ -50,7 +50,9 @@ export const useDashboardStats = () => {
       }
       return response.json();
     },
-    refetchInterval: 30000, // Refrescar cada 30 segundos
-    staleTime: 10000, // Considerar datos frescos por 10 segundos
+    staleTime: 60 * 60 * 1000,
+    refetchInterval: false,
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
   });
 };
