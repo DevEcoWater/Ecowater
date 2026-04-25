@@ -13,12 +13,12 @@ import {
 import { useUrgencies } from "@/hooks/dashboard/use-urgencies";
 import { useMeterDistribution } from "@/hooks/dashboard/use-meter-distribution";
 import { useAlarmTrends } from "@/hooks/dashboard/use-alarm-trends";
-import { formatDateTimeShortAR } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, Bell, Clock, DropletIcon, Gauge, Signal, Thermometer } from "lucide-react";
+import { AlertCircle, Bell, DropletIcon, Gauge, Signal, Thermometer } from "lucide-react";
 import { UrgenciesSection } from "./urgencies/urgencies-section";
 import { MeterDistributionChart } from "./meter-distribution-chart/meter-distribution-chart";
 import { AlarmTrendsChart } from "./alarm-trends-chart/alarm-trends-chart";
+import { SyncPanel } from "./sync-panel";
 import dayjs from "dayjs";
 
 const PERIOD_LABELS: Record<DashboardPeriod, string> = {
@@ -143,18 +143,7 @@ export function HomeDashboard() {
             </div>
           )}
         </div>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
-          </span>
-          <Clock className="w-4 h-4" />
-          <span>
-            {stats?.lastReadingTimestamp
-              ? formatLastUpdate(stats.lastReadingTimestamp)
-              : "Sin datos"}
-          </span>
-        </div>
+        <SyncPanel initialTimestamp={stats?.meta?.timestamp ?? null} />
       </div>
 
       {/* ── Sección: Resumen ── */}
@@ -242,10 +231,3 @@ function DashboardSkeleton() {
   );
 }
 
-function formatLastUpdate(timestamp: string): string {
-  try {
-    return formatDateTimeShortAR(timestamp);
-  } catch {
-    return "Desconocido";
-  }
-}
