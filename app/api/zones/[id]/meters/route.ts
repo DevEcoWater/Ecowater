@@ -62,6 +62,7 @@ export async function GET(
       where: {
         lat: { not: null },
         lng: { not: null },
+        
       },
       include: {
         userMeters: {
