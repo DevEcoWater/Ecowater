@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
+import { unstable_cache } from "next/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -56,12 +57,15 @@ function resolveRange(params: URLSearchParams, tz: string) {
   return { startDate: toMidnight(start, tz), endDate: addDays(toMidnight(now, tz), 1) };
 }
 
-export async function GET(req: Request) {
-  const tz = "America/Argentina/Buenos_Aires";
-
-  try {
-    const { searchParams } = new URL(req.url);
-    const { startDate, endDate } = resolveRange(searchParams, tz);
+// Cached: heavy aggregation SQL — 1-hour TTL per date range
+const getCachedDistribution = unstable_cache(
+  async (
+    startIso: string,
+    endIso: string
+  ): Promise<Array<{ meterId: string; name: string; devEui: string; totalConsumo: number }>> => {
+    const tz = "America/Argentina/Buenos_Aires";
+    const startDate = new Date(startIso);
+    const endDate = new Date(endIso);
 
     const rows: Array<{
       meter_id: string;
@@ -84,7 +88,7 @@ export async function GET(req: Request) {
       ),
       norm AS (
         SELECT meter_id, local_ts,
-          CAST(regexp_replace(cf_raw, '[^0-9\\.,-]', '', 'g') AS numeric) AS cf
+          CAST(NULLIF(regexp_replace(cf_raw, '[^0-9\\.,-]', '', 'g'), '') AS numeric) AS cf
         FROM smart_base
       ),
       buckets AS (
@@ -134,17 +138,33 @@ export async function GET(req: Request) {
       tz
     );
 
-    const meters = rows.map((r) => ({
+    return (rows as any[]).map((r) => ({
       meterId: r.meter_id,
       name: r.device_name || r.dev_eui,
       devEui: r.dev_eui,
       totalConsumo: Number(r.total_consumo ?? 0),
     }));
+  },
+  ["dashboard-distribution"],
+  { revalidate: 3600, tags: ["dashboard", "dashboard-distribution"] }
+);
+
+export async function GET(req: Request) {
+  const tz = "America/Argentina/Buenos_Aires";
+
+  try {
+    const { searchParams } = new URL(req.url);
+    const { startDate, endDate } = resolveRange(searchParams, tz);
+
+    const meters = await getCachedDistribution(
+      startDate.toISOString(),
+      endDate.toISOString()
+    );
 
     return NextResponse.json({ meters });
   } catch (e) {
     return NextResponse.json(
-      { error: "Failed to fetch meter distribution" },
+      { error: "Failed to fetch meter distribution", detail: e instanceof Error ? e.message : String(e), stack: e instanceof Error ? e.stack : undefined },
       { status: 500 }
     );
   } finally {

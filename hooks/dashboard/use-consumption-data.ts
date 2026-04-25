@@ -65,8 +65,10 @@ export const useConsumptionData = (
       return response.json();
     },
     enabled: isRangeEnabled(params),
-    refetchInterval: 60000,
-    staleTime: 30000,
+    staleTime: 60 * 60 * 1000,
+    refetchInterval: false,
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
   });
 };
 
@@ -85,7 +87,9 @@ export const useConsumptionFromMeterData = (
       return response.json();
     },
     enabled: isRangeEnabled(params),
-    refetchInterval: 60000,
-    staleTime: 30000,
+    staleTime: 60 * 60 * 1000,
+    refetchInterval: false,
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
   });
 };

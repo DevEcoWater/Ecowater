@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
+import { unstable_cache } from "next/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +24,6 @@ function normalizeGroupBy(s?: string | null): GroupBy {
     : "day";
 }
 
-/** Devuelve YYYY-MM-DD en TZ dada */
 function fmtDateTZ(d: Date, tz: string) {
   return new Intl.DateTimeFormat("sv-SE", {
     timeZone: tz,
@@ -33,7 +33,6 @@ function fmtDateTZ(d: Date, tz: string) {
   }).format(d);
 }
 
-/** Calcula el offset UTC en ms para una fecha dada en la TZ (maneja DST) */
 function getTZOffsetMs(d: Date, tz: string): number {
   const fmt = (timeZone: string) =>
     new Intl.DateTimeFormat("en-CA", {
@@ -50,31 +49,26 @@ function getTZOffsetMs(d: Date, tz: string): number {
   return new Date(fmt(tz)).getTime() - new Date(fmt("UTC")).getTime();
 }
 
-/** Convierte YYYY-MM-DD a medianoche exacta en la TZ dada, devuelve UTC Date */
 function toMidnightTZ(ymd: string, tz: string): Date {
   const estimate = new Date(ymd + "T00:00:00Z");
   const offsetMs = getTZOffsetMs(estimate, tz);
   return new Date(estimate.getTime() - offsetMs);
 }
 
-/** Devuelve YYYY-MM-DD de hoy en la TZ dada */
 function todayInTZ(tz: string): string {
   return fmtDateTZ(new Date(), tz);
 }
 
-/** Devuelve YYYY-MM-01 del mes actual en la TZ dada */
 function startOfMonthInTZ(tz: string): string {
   return todayInTZ(tz).substring(0, 7) + "-01";
 }
 
-/** Suma n días a un string YYYY-MM-DD, devuelve YYYY-MM-DD */
 function addDaysToYMD(ymd: string, n: number): string {
   const d = new Date(ymd + "T00:00:00Z");
   d.setUTCDate(d.getUTCDate() + n);
   return d.toISOString().substring(0, 10);
 }
 
-/** Resuelve rango y agrupación */
 function resolveRange(
   params: URLSearchParams,
   tz: string
@@ -92,7 +86,6 @@ function resolveRange(
 
   const todayYMD = todayInTZ(tz);
 
-  // Caso fechas explícitas
   if (sd && ed) {
     const startYMD = fmtDateTZ(sd, tz);
     const endYMD = fmtDateTZ(ed, tz);
@@ -106,7 +99,6 @@ function resolveRange(
     };
   }
 
-  // Mapeo period -> startYMD y groupBy
   const periodMap: Record<string, { startYMD: string; groupBy: GroupBy }> = {
     "7d":    { startYMD: addDaysToYMD(todayYMD, -7),   groupBy: "day" },
     "30d":   { startYMD: addDaysToYMD(todayYMD, -30),  groupBy: "day" },
@@ -121,7 +113,6 @@ function resolveRange(
 
   if (!params.get("groupBy")) groupByParam = config.groupBy;
 
-  // endDate = mañana en Argentina para incluir todo el día de hoy
   const endYMD = addDaysToYMD(todayYMD, 1);
 
   return {
@@ -148,7 +139,7 @@ const PREVIOUS_TOTAL_SQL = `
   ),
   norm AS (
     SELECT meter_id, local_ts,
-      CAST(regexp_replace(cf_raw, '[^0-9\\.,-]', '', 'g') AS numeric) AS cf
+      CAST(NULLIF(regexp_replace(cf_raw, '[^0-9\\.,-]', '', 'g'), '') AS numeric) AS cf
     FROM base
   ),
   buckets AS (
@@ -176,35 +167,29 @@ const PREVIOUS_TOTAL_SQL = `
   FROM consumo_medidor;
 `;
 
-export async function GET(req: Request) {
-  const tz = "America/Argentina/Buenos_Aires";
+// Cached: all consumption query logic — 1-hour TTL per unique param combination
+const getCachedConsumptionData = unstable_cache(
+  async (
+    startIso: string,
+    endIso: string,
+    groupBy: string,
+    meterId: string,
+    isMechanicalStr: string,
+    compareStr: string
+  ): Promise<{
+    series: Array<{ fecha: string; consumo_m3: number; medidores_activos: number }>;
+    previousTotal?: number;
+  }> => {
+    const tz = "America/Argentina/Buenos_Aires";
+    const startDate = new Date(startIso);
+    const endDate = new Date(endIso);
+    const isMechanicalMeter = isMechanicalStr === "true";
+    const compare = compareStr === "true";
+    const meterIdOrNull = meterId === "all" ? null : meterId;
 
-  try {
-    const { searchParams } = new URL(req.url);
-    const meterId = searchParams.get("meterId") || null;
-    const compare = searchParams.get("compare") === "true";
-
-    const { startDate, endDate, groupBy, fromExplicit, startOut, endOut } =
-      resolveRange(searchParams, tz);
-
-    // Determine if the requested meter is mechanical
-    let isMechanicalMeter = false;
-    if (meterId) {
-      const meter = await prisma.meter.findUnique({
-        where: { id: meterId },
-        select: { meter_type: true },
-      });
-      isMechanicalMeter = meter?.meter_type === "MECHANICAL";
-    }
-
-    let rows: Array<{
-      fecha: string;
-      consumo_m3: number;
-      medidores_activos: number;
-    }>;
+    let rows: Array<{ fecha: string; consumo_m3: number; medidores_activos: number }>;
 
     if (isMechanicalMeter) {
-      // Single mechanical meter: use pre-calculated consumption field
       rows = await prisma.$queryRawUnsafe(
         `
         SELECT
@@ -224,14 +209,13 @@ export async function GET(req: Request) {
           date_trunc($1, timezone($4, timestamp AT TIME ZONE $4))
         ORDER BY date_trunc($1, timezone($4, timestamp AT TIME ZONE $4));
         `,
-        groupBy,   // $1
-        startDate, // $2
-        endDate,   // $3
-        tz,        // $4
-        meterId    // $5
+        groupBy,
+        startDate,
+        endDate,
+        tz,
+        meterIdOrNull
       );
-    } else if (!meterId) {
-      // All meters: UNION smart (cumulative_flow diff) + mechanical (consumption field)
+    } else if (!meterIdOrNull) {
       rows = await prisma.$queryRawUnsafe(
         `
         WITH smart_base AS (
@@ -247,7 +231,7 @@ export async function GET(req: Request) {
         ),
         norm AS (
           SELECT meter_id, local_ts,
-            CAST(regexp_replace(cf_raw, '[^0-9\\.,-]', '', 'g') AS numeric) AS cf
+            CAST(NULLIF(regexp_replace(cf_raw, '[^0-9\\.,-]', '', 'g'), '') AS numeric) AS cf
           FROM smart_base
         ),
         buckets AS (SELECT DISTINCT date_trunc($1, local_ts) AS bucket_local FROM norm),
@@ -290,13 +274,12 @@ export async function GET(req: Request) {
         GROUP BY fecha, bucket_local
         ORDER BY bucket_local;
         `,
-        groupBy,   // $1
-        startDate, // $2
-        endDate,   // $3
-        tz         // $4
+        groupBy,
+        startDate,
+        endDate,
+        tz
       );
     } else {
-      // Specific smart meter: cumulative_flow diff algorithm
       rows = await prisma.$queryRawUnsafe(
         `
         WITH base AS (
@@ -316,7 +299,7 @@ export async function GET(req: Request) {
           SELECT
             meter_id,
             local_ts,
-            CAST(regexp_replace(cf_raw, '[^0-9\\.,-]', '', 'g') AS numeric) AS cf,
+            CAST(NULLIF(regexp_replace(cf_raw, '[^0-9\\.,-]', '', 'g'), '') AS numeric) AS cf,
             timestamp
           FROM base
         ),
@@ -359,21 +342,20 @@ export async function GET(req: Request) {
         GROUP BY fecha, bucket_local
         ORDER BY bucket_local;
         `,
-        groupBy,  // $1
-        startDate, // $2
-        endDate,   // $3
-        tz,        // $4
-        meterId    // $5
+        groupBy,
+        startDate,
+        endDate,
+        tz,
+        meterIdOrNull
       );
     }
 
-    const series = rows.map((r) => ({
+    const series = (rows as any[]).map((r) => ({
       fecha: r.fecha,
       consumo_m3: Number(r.consumo_m3 ?? 0),
       medidores_activos: Number(r.medidores_activos ?? 0),
     }));
 
-    // Período anterior para comparación
     let previousTotal: number | undefined;
     if (compare) {
       const durationMs = endDate.getTime() - startDate.getTime();
@@ -389,12 +371,12 @@ export async function GET(req: Request) {
              AND timezone($3, (timestamp AT TIME ZONE $3)) < $2
              AND meter_id = $4
              AND consumption IS NOT NULL`,
-          prevStart,  // $1
-          prevEnd,    // $2
-          tz,         // $3
-          meterId     // $4
+          prevStart,
+          prevEnd,
+          tz,
+          meterIdOrNull
         );
-      } else if (!meterId) {
+      } else if (!meterIdOrNull) {
         prevRows = await prisma.$queryRawUnsafe(
           `
           WITH smart_base AS (
@@ -428,22 +410,57 @@ export async function GET(req: Request) {
           SELECT CAST(ROUND(SUM(consumo_diario)::numeric,2) AS double precision) AS total_consumo
           FROM (SELECT consumo_diario FROM consumo_smart UNION ALL SELECT consumo_diario FROM consumo_mech) combined;
           `,
-          prevStart, // $1
-          prevEnd,   // $2
-          tz         // $3
+          prevStart,
+          prevEnd,
+          tz
         );
       } else {
         prevRows = await prisma.$queryRawUnsafe(
           PREVIOUS_TOTAL_SQL,
-          "day",    // $1
-          prevStart, // $2
-          prevEnd,   // $3
-          tz,        // $4
-          meterId    // $5
+          "day",
+          prevStart,
+          prevEnd,
+          tz,
+          meterIdOrNull
         );
       }
-      previousTotal = Number(prevRows[0]?.total_consumo ?? 0);
+      previousTotal = Number((prevRows as any[])[0]?.total_consumo ?? 0);
     }
+
+    return { series, ...(compare && { previousTotal }) };
+  },
+  ["dashboard-consumption"],
+  { revalidate: 3600, tags: ["dashboard", "dashboard-consumption"] }
+);
+
+export async function GET(req: Request) {
+  const tz = "America/Argentina/Buenos_Aires";
+
+  try {
+    const { searchParams } = new URL(req.url);
+    const meterId = searchParams.get("meterId") || null;
+    const compare = searchParams.get("compare") === "true";
+
+    const { startDate, endDate, groupBy, fromExplicit, startOut, endOut } =
+      resolveRange(searchParams, tz);
+
+    let isMechanicalMeter = false;
+    if (meterId) {
+      const meter = await prisma.meter.findUnique({
+        where: { id: meterId },
+        select: { meter_type: true },
+      });
+      isMechanicalMeter = meter?.meter_type === "MECHANICAL";
+    }
+
+    const { series, previousTotal } = await getCachedConsumptionData(
+      startDate.toISOString(),
+      endDate.toISOString(),
+      groupBy,
+      meterId ?? "all",
+      isMechanicalMeter ? "true" : "false",
+      compare ? "true" : "false"
+    );
 
     return NextResponse.json({
       meterId: meterId || "all",
@@ -456,7 +473,7 @@ export async function GET(req: Request) {
     });
   } catch (e) {
     return NextResponse.json(
-      { error: "Failed to fetch consumption data" },
+      { error: "Failed to fetch consumption data", detail: e instanceof Error ? e.message : String(e), stack: e instanceof Error ? e.stack : undefined },
       { status: 500 }
     );
   } finally {
