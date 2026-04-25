@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { PrismaClient, MeterStatus } from "@prisma/client";
+import { unstable_cache } from "next/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -55,61 +56,20 @@ function getMonthRangeTZ(tz: string): { startMid: Date; endMidExcl: Date } {
   };
 }
 
-export async function GET() {
-  const tz = "America/Argentina/Buenos_Aires";
-
-  try {
-    try {
-      await prisma.$connect();
-    } catch (connectionError) {
-      return NextResponse.json(
-        { error: "Database connection failed", details: connectionError },
-        { status: 500 }
-      );
-    }
-
-    let totalUsers = 0;
-    let totalMeters = 0;
-    let totalCooperatives = 0;
-    let totalReadings = 0;
-
-    try {
-      totalUsers = await prisma.user.count();
-    } catch {
-      totalUsers = 0;
-    }
-
-    try {
-      totalMeters = await prisma.meter.count();
-    } catch {
-      totalMeters = 0;
-    }
-
-    try {
-      totalCooperatives = await prisma.cooperative.count();
-    } catch {
-      totalCooperatives = 0;
-    }
-
-    try {
-      const { startMid, endMidExcl } = getMonthRangeTZ(tz);
-
-      totalReadings = await prisma.reading.count({
-        where: {
-          timestamp: {
-            gte: startMid,
-            lt: endMidExcl,
-          },
-        },
-      });
-    } catch {
-      totalReadings = 0;
-    }
+// Cached: expensive read-only aggregations — 1-hour TTL
+// Side effects (meter status updates) are intentionally excluded.
+const getCachedAggregates = unstable_cache(
+  async (): Promise<{
+    totalConsumption: number;
+    signalQuality: { avgRssi: number; avgSnr: number; quality: "EXCELLENT" | "GOOD" | "POOR" };
+    avgTemperature: number | null;
+    meta: { timestamp: string };
+  }> => {
+    const tz = "America/Argentina/Buenos_Aires";
 
     let totalConsumption = 0;
     try {
       const { startMid, endMidExcl } = getMonthRangeTZ(tz);
-
       const consumptionResult = await prisma.$queryRawUnsafe(
         `
         WITH base AS (
@@ -130,7 +90,7 @@ export async function GET() {
           SELECT
             meter_id,
             local_ts,
-            CAST(regexp_replace(cf_raw, '[^0-9\\.,-]', '', 'g') AS numeric) AS cf,
+            CAST(NULLIF(regexp_replace(cf_raw, '[^0-9\\.,-]', '', 'g'), '') AS numeric) AS cf,
             timestamp
           FROM base
         ),
@@ -187,125 +147,11 @@ export async function GET() {
         endMidExcl,
         tz
       );
-
-      totalConsumption = Number(consumptionResult[0]?.total_consumo || 0);
-    } catch (error) {
+      totalConsumption = Number((consumptionResult as any)[0]?.total_consumo || 0);
+    } catch {
       totalConsumption = 0;
     }
 
-    let activeMeters = 0;
-    let inactiveMeters = 0;
-    let maintenanceMeters = 0;
-    let faultyMeters = 0;
-    let totalAlerts = 0;
-    let metersToDeactivate: any[] = [];
-    let metersToActivate: any[] = [];
-
-    try {
-      const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
-
-      metersToDeactivate = await prisma.meter.findMany({
-        where: {
-          status: "ACTIVE",
-          readings: {
-            none: {
-              timestamp: { gte: last24Hours },
-            },
-          },
-        },
-        select: { id: true },
-      });
-
-      metersToActivate = await prisma.meter.findMany({
-        where: {
-          status: "INACTIVE",
-          readings: {
-            some: {
-              timestamp: { gte: last24Hours },
-            },
-          },
-        },
-        select: { id: true },
-      });
-
-      if (metersToDeactivate.length > 0) {
-        await prisma.meter.updateMany({
-          where: { id: { in: metersToDeactivate.map((m) => m.id) } },
-          data: { status: "INACTIVE", updated_at: new Date() },
-        });
-        console.log(`[STATS] Actualizados ${metersToDeactivate.length} medidores a INACTIVE`);
-      }
-
-      if (metersToActivate.length > 0) {
-        await prisma.meter.updateMany({
-          where: { id: { in: metersToActivate.map((m) => m.id) } },
-          data: { status: "ACTIVE", updated_at: new Date() },
-        });
-        console.log(`[STATS] Actualizados ${metersToActivate.length} medidores a ACTIVE`);
-      }
-
-      activeMeters = await prisma.meter.count({
-        where: {
-          status: "ACTIVE",
-          readings: {
-            some: { timestamp: { gte: last24Hours } },
-          },
-        },
-      });
-
-      inactiveMeters = await prisma.meter.count({
-        where: {
-          OR: [
-            { status: "INACTIVE" },
-            {
-              status: "ACTIVE",
-              readings: { none: { timestamp: { gte: last24Hours } } },
-            },
-          ],
-        },
-      });
-
-      maintenanceMeters = await prisma.meter.count({
-        where: { status: "MAINTENANCE" },
-      });
-
-      faultyMeters = await prisma.meter.count({
-        where: { status: "FAULTY" },
-      });
-
-      totalAlerts = inactiveMeters;
-    } catch (error) {
-      console.error("Error calculando estadísticas de medidores:", error);
-      activeMeters = 0;
-      inactiveMeters = 0;
-      maintenanceMeters = 0;
-      faultyMeters = 0;
-      totalAlerts = 0;
-      metersToDeactivate = [];
-      metersToActivate = [];
-    }
-
-    let activeCooperatives = 0;
-    try {
-      activeCooperatives = await prisma.cooperative.count({
-        where: { status: "ACTIVE" },
-      });
-    } catch {
-      activeCooperatives = 0;
-    }
-
-    let lastReadingTimestamp = null;
-    try {
-      const lastReading = await prisma.reading.findFirst({
-        orderBy: { timestamp: "desc" },
-        select: { timestamp: true },
-      });
-      lastReadingTimestamp = lastReading?.timestamp || null;
-    } catch {
-      lastReadingTimestamp = null;
-    }
-
-    // Signal quality — promedio RSSI/SNR últimas 24h
     let signalQuality: { avgRssi: number; avgSnr: number; quality: "EXCELLENT" | "GOOD" | "POOR" } = {
       avgRssi: 0,
       avgSnr: 0,
@@ -334,10 +180,6 @@ export async function GET() {
       // mantener valores default
     }
 
-    // Uptime % — medidores activos / total (ya calculado)
-    const uptimePercentage = totalMeters > 0 ? Math.round((activeMeters / totalMeters) * 100) : 0;
-
-    // Temperatura promedio del agua — última lectura por medidor activo
     let avgTemperature: number | null = null;
     try {
       const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -370,19 +212,133 @@ export async function GET() {
       avgTemperature = null;
     }
 
+    return {
+      totalConsumption,
+      signalQuality,
+      avgTemperature,
+      meta: { timestamp: new Date().toISOString() },
+    };
+  },
+  ["dashboard-stats"],
+  { revalidate: 3600, tags: ["dashboard", "dashboard-stats"] }
+);
+
+export async function GET() {
+  const tz = "America/Argentina/Buenos_Aires";
+
+  try {
+    try {
+      await prisma.$connect();
+    } catch (connectionError) {
+      return NextResponse.json(
+        { error: "Database connection failed", details: connectionError },
+        { status: 500 }
+      );
+    }
+
+    // ── Fast counts (uncached — cheap queries) ──────────────────────────────
+    let totalMeters = 0;
+    let totalReadings = 0;
+
+    try { totalMeters = await prisma.meter.count(); } catch { totalMeters = 0; }
+
+    try {
+      const { startMid, endMidExcl } = getMonthRangeTZ(tz);
+      totalReadings = await prisma.reading.count({
+        where: { timestamp: { gte: startMid, lt: endMidExcl } },
+      });
+    } catch { totalReadings = 0; }
+
+    // ── Meter status update (side effect — MUST stay uncached) ──────────────
+    let activeMeters = 0;
+    let inactiveMeters = 0;
+    let maintenanceMeters = 0;
+    let faultyMeters = 0;
+    let totalAlerts = 0;
+    let metersToDeactivate: any[] = [];
+    let metersToActivate: any[] = [];
+
+    try {
+      const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+      metersToDeactivate = await prisma.meter.findMany({
+        where: {
+          status: "ACTIVE",
+          readings: { none: { timestamp: { gte: last24Hours } } },
+        },
+        select: { id: true },
+      });
+
+      metersToActivate = await prisma.meter.findMany({
+        where: {
+          status: "INACTIVE",
+          readings: { some: { timestamp: { gte: last24Hours } } },
+        },
+        select: { id: true },
+      });
+
+      if (metersToDeactivate.length > 0) {
+        await prisma.meter.updateMany({
+          where: { id: { in: metersToDeactivate.map((m) => m.id) } },
+          data: { status: "INACTIVE", updated_at: new Date() },
+        });
+        console.log(`[STATS] Actualizados ${metersToDeactivate.length} medidores a INACTIVE`);
+      }
+
+      if (metersToActivate.length > 0) {
+        await prisma.meter.updateMany({
+          where: { id: { in: metersToActivate.map((m) => m.id) } },
+          data: { status: "ACTIVE", updated_at: new Date() },
+        });
+        console.log(`[STATS] Actualizados ${metersToActivate.length} medidores a ACTIVE`);
+      }
+
+      activeMeters = await prisma.meter.count({
+        where: {
+          status: "ACTIVE",
+          readings: { some: { timestamp: { gte: last24Hours } } },
+        },
+      });
+
+      inactiveMeters = await prisma.meter.count({
+        where: {
+          OR: [
+            { status: "INACTIVE" },
+            { status: "ACTIVE", readings: { none: { timestamp: { gte: last24Hours } } } },
+          ],
+        },
+      });
+
+      maintenanceMeters = await prisma.meter.count({ where: { status: "MAINTENANCE" } });
+      faultyMeters = await prisma.meter.count({ where: { status: "FAULTY" } });
+      totalAlerts = inactiveMeters;
+    } catch (error) {
+      console.error("Error calculando estadísticas de medidores:", error);
+    }
+
+    let lastReadingTimestamp = null;
+    try {
+      const lastReading = await prisma.reading.findFirst({
+        orderBy: { timestamp: "desc" },
+        select: { timestamp: true },
+      });
+      lastReadingTimestamp = lastReading?.timestamp || null;
+    } catch { lastReadingTimestamp = null; }
+
+    const uptimePercentage = totalMeters > 0 ? Math.round((activeMeters / totalMeters) * 100) : 0;
+
     let overallMeterStatus: MeterStatus = MeterStatus.ACTIVE;
     let smartMeters = 0;
     let mechanicalMeters = 0;
     try {
-      const meters = await prisma.meter.findMany({
-        select: { status: true, meter_type: true },
-      });
+      const meters = await prisma.meter.findMany({ select: { status: true, meter_type: true } });
       overallMeterStatus = getOverallMeterStatus(meters.map((m) => m.status));
       smartMeters = meters.filter((m) => m.meter_type === "SMART").length;
       mechanicalMeters = meters.filter((m) => m.meter_type === "MECHANICAL").length;
-    } catch {
-      overallMeterStatus = MeterStatus.ACTIVE;
-    }
+    } catch { overallMeterStatus = MeterStatus.ACTIVE; }
+
+    // ── Expensive aggregates (1-hour cached) ────────────────────────────────
+    const aggregates = await getCachedAggregates();
 
     const response = {
       meters: {
@@ -401,11 +357,11 @@ export async function GET() {
         problematicMeters: faultyMeters + maintenanceMeters + inactiveMeters,
       },
       consumption: {
-        total: totalConsumption,
+        total: aggregates.totalConsumption,
         readings: totalReadings,
       },
-      signal: signalQuality,
-      temperature: { avg: avgTemperature },
+      signal: aggregates.signalQuality,
+      temperature: { avg: aggregates.avgTemperature },
       systemHealth:
         faultyMeters === 0 && maintenanceMeters === 0 && inactiveMeters === 0
           ? "EXCELLENT"
@@ -414,7 +370,7 @@ export async function GET() {
           : "ATTENTION",
       lastReadingTimestamp,
       meta: {
-        timestamp: new Date().toISOString(),
+        timestamp: aggregates.meta.timestamp,
         updatedMeters: {
           deactivated: metersToDeactivate.length,
           activated: metersToActivate.length,

@@ -40,7 +40,9 @@ export const useMeterDistribution = (
     enabled: isRange
       ? !!(params as any).startDate && !!(params as any).endDate
       : true,
-    refetchInterval: 60000,
-    staleTime: 30000,
+    staleTime: 60 * 60 * 1000,
+    refetchInterval: false,
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
   });
 };

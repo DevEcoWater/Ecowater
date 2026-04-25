@@ -1,5 +1,3 @@
-import { formatDateTimeAR } from "@/lib/utils";
-
 type CsvRow = Record<string, string | number | null | undefined>;
 
 function escapeCsvValue(value: string | number | null | undefined): string {
@@ -36,23 +34,40 @@ export function downloadZoneCsv(
   meters: Array<{
     id: string;
     dev_eui: string | null;
+    device_name: string;
+    meter_type: "SMART" | "MECHANICAL";
     userName: string | null;
+    status: string;
+    street_address: string | null;
     shortData: string | null;
-    cumulative_flow: string | null;
-    last_reading_value: string | null;
+    month_cumulative_flow: string | null;
+    last_reading_date: string | Date | null;
     last_reading_observations: string | null;
-  }>
+  }>,
+  period?: { startDate: string; endDate: string },
+  globalObservation?: string
 ): void {
+  const showValue = (value: string | null | undefined): string =>
+    value && value.trim().length > 0 ? value : "—";
+
   const rows: CsvRow[] = meters.map((m) => ({
-    "ID / DEV EUI": m.dev_eui ?? m.id,
-    "Apellido y Nombre": m.userName ?? "",
-    "Domicilio": m.shortData ?? "",
-    "Consumo (m³)": m.last_reading_value ?? m.cumulative_flow ?? "",
-    "Observaciones": m.last_reading_observations ?? "",
+    // Mismo orden/criterio que la tabla de zona.
+    "Tipo": m.meter_type === "MECHANICAL" ? "Mecánico" : "Inteligente",
+    "Dispositivo": showValue(m.device_name),
+    "Usuario": showValue(m.userName),
+    "Dirección": showValue(
+      m.meter_type === "MECHANICAL" ? m.street_address : m.shortData
+    ),
+    "Acumulado del periodo (m³)": showValue(m.month_cumulative_flow),
+    "Estado": showValue(m.status),
+    "Observación medidor": showValue(m.last_reading_observations),
+    "Observación descarga": showValue(globalObservation),
   }));
   const csv = toCsvString(rows);
-  const date = new Date().toISOString().slice(0, 10);
-  downloadCsv(csv, `zona-${zoneName.toLowerCase().replace(/\s+/g, "-")}-${date}.csv`);
+  const suffix = period
+    ? `${period.startDate}_${period.endDate}`
+    : new Date().toISOString().slice(0, 10);
+  downloadCsv(csv, `zona-${zoneName.toLowerCase().replace(/\s+/g, "-")}-${suffix}.csv`);
 }
 
 export async function downloadReadingsCsv(
