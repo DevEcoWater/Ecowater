@@ -3,11 +3,15 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 const LECTOR_ALLOWED = ["/dashboard/mapa", "/dashboard/zonas"];
+const authSecret =
+  process.env.AUTH_SECRET ||
+  process.env.NEXTAUTH_SECRET ||
+  process.env.NEXT_PUBLIC_AUTH_SECRET;
 
 export async function middleware(req: NextRequest) {
   const token = await getToken({
     req,
-    secret: process.env.NEXT_PUBLIC_AUTH_SECRET,
+    secret: authSecret,
   });
 
   if (!token) return NextResponse.next();
