@@ -17,14 +17,14 @@
  * Resultado: 37.3556
  */
 export const parseInstantaneousFlow = (input: string): number => {
-  const clean = input.replace(/\D+/g, "");
+  const clean = input.replace(/[^a-fA-F0-9]/g, "");
 
-  if (clean.length < 8) {
+  if (clean.length < 10) {
     throw new Error("Invalid input. Expected at least 8 digits.");
   }
 
-  const integerPart = clean.slice(4, 6);
-  const decimalPart = clean.slice(2, 4) + clean.slice(0, 2);
+  const integerPart = clean.slice(8, 10) + clean.slice(6, 8);
+  const decimalPart = clean.slice(4, 6) + clean.slice(2, 4);
   const value = parseFloat(`${integerPart}.${decimalPart}`);
 
   return parseFloat(value.toFixed(4));

@@ -6,5 +6,7 @@ export const formatUserType = (userType: string): string => {
       return "Usuario";
     case "supervisor":
       return "Supervisor";
+    default:
+      return "Desconocido";
   }
 };
