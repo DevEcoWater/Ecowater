@@ -24,10 +24,10 @@ export function parseMeterStatus(byte1: number, byte2: number): MeterStatus {
     valveBits === 0b00
       ? "open"
       : valveBits === 0b01
-      ? "closed"
-      : valveBits === 0b11
-      ? "abnormal"
-      : "unknown";
+        ? "closed"
+        : valveBits === 0b11
+          ? "abnormal"
+          : "unknown";
 
   const battery_voltage = batteryVoltageBit === 0b0 ? "normal" : "low";
   const battery_status = Boolean(byte2 & 0b00000001);
@@ -42,6 +42,7 @@ export function parseMeterStatus(byte1: number, byte2: number): MeterStatus {
 
   const hasCriticalAlarm = empty_pipe_alarm || reverse_flow_alarm;
   const hasAnyAlarm =
+    battery_voltage === "low" ||
     battery_status ||
     empty_pipe_alarm ||
     reverse_flow_alarm ||

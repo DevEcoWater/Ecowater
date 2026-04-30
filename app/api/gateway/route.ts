@@ -98,7 +98,7 @@ export async function POST(request: Request) {
         {
           latValue: primaryLat,
           lngValue: primaryLng,
-        }
+        },
       );
     }
 
@@ -121,7 +121,7 @@ export async function POST(request: Request) {
     const reading = await prisma.reading.create({
       data: {
         meter_id: meter.id,
-        timestamp: convertTimestampToArgentinaTime(timestamp),
+        timestamp: parsedValues.timestamps,  
         plot: data,
         fCnt,
         fPort,
@@ -172,15 +172,21 @@ export async function POST(request: Request) {
           gateway_id: gateway.id,
           lora_snr: rx.loRaSNR,
           rssi: rx.rssi,
-          latitude: rx.location?.latitude
-            ? parseFloat(rx.location.latitude)
-            : null,
-          longitude: rx.location?.longitude
-            ? parseFloat(rx.location.longitude)
-            : null,
-          altitude: rx.location?.altitude
-            ? parseFloat(rx.location.altitude)
-            : null,
+          latitude:
+            rx.location?.latitude !== undefined &&
+            rx.location?.latitude !== null
+              ? parseFloat(rx.location.latitude)
+              : null,
+          longitude:
+            rx.location?.longitude !== undefined &&
+            rx.location?.longitude !== null
+              ? parseFloat(rx.location.longitude)
+              : null,
+          altitude:
+            rx.location?.altitude !== undefined &&
+            rx.location?.altitude !== null
+              ? parseFloat(rx.location.altitude)
+              : null,
           time: rx.time,
           error_detail: null,
           status: "RECEIVED",
@@ -190,18 +196,18 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       { finalAlertStatus, parsedValues, parseData },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     if (error instanceof Error) {
       return NextResponse.json(
         { message: "Error saving meter data", error: error.message },
-        { status: 500 }
+        { status: 500 },
       );
     }
     return NextResponse.json(
       { message: "Unknown error saving meter data" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
