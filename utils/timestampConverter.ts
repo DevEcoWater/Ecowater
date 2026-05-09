@@ -13,7 +13,7 @@ dayjs.extend(timezone);
 export const convertTimestampToArgentinaTime = (timestamp: number): string => {
   return dayjs(timestamp * 1000)
     .tz("America/Argentina/Buenos_Aires")
-    .format("YYYY-MM-DDTHH:mm:ss.SSS[Z]");
+    .format("YYYY-MM-DDTHH:mm:ss.SSSZ");
 };
 
 /**
@@ -28,7 +28,7 @@ export const convertTimestampToTimezone = (
 ): string => {
   return dayjs(timestamp * 1000)
     .tz(timezone)
-    .format("YYYY-MM-DDTHH:mm:ss.SSS[Z]");
+    .format("YYYY-MM-DDTHH:mm:ss.SSSZ");
 };
 
 /**

@@ -5,9 +5,9 @@ import timezone from "dayjs/plugin/timezone";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 export const parseTimestamp = (timestamp: string): string => {
-  if (timestamp.length < 12) {
+  if (timestamp.length < 14) {
     throw new Error(
-      "Invalid timestamp format. Expected at least 12 characters."
+      "Invalid timestamp format. Expected at least 14 characters.",
     );
   }
 
@@ -17,19 +17,19 @@ export const parseTimestamp = (timestamp: string): string => {
   const dd = timestamp.slice(6, 8);
   const MM = timestamp.slice(8, 10);
   const yy = timestamp.slice(10, 12);
+  const century = timestamp.slice(12, 14);
 
-  const fullYear = 2000 + parseInt(yy);
+  const fullYear = parseInt(century + yy, 10);
 
   const formattedInput = `${fullYear}-${MM}-${dd} ${HH}:${mm}:${ss}`;
   const argentinaTime = dayjs
-    .utc(formattedInput)
-    .tz("America/Argentina/Buenos_Aires")
+    .tz(formattedInput, "America/Argentina/Buenos_Aires")
     .format("DD/MM/YYYY HH:mm:ss");
 
-  return argentinaTime.toString();
+  return argentinaTime;
 };
 
 export const parseUnixTimeToArgentina = (unixTime: number): string => {
   const date = new Date(unixTime * 1000);
-  return dayjs(date).tz("America/Argentina/Buenos_Aires").toISOString();
+  return dayjs(date).tz("America/Argentina/Buenos_Aires").format();
 };
