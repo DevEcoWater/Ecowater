@@ -26,4 +26,4 @@ else
 fi
 
 echo "[entrypoint] Starting Next.js..."
-exec node server.js
+exec env HOSTNAME=0.0.0.0 PORT="${PORT:-3000}" node server.js
