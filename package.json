@@ -60,6 +60,8 @@
     "firebase": "^12.6.0",
     "framer-motion": "^11.3.21",
     "lucide-react": "^0.424.0",
+    "mongodb": "^7.2.0",
+    "mqtt": "^5.15.1",
     "next": "^14.2.22",
     "next-auth": "^4.24.7",
     "next-safe-action": "^7.7.0",

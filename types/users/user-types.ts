@@ -9,6 +9,7 @@ export interface UserDetail {
   status: UserStatus;
   firstName: string;
   lastName: string;
+  can_write: boolean;
   address?: Address;
   meter?: Meter;
   role?: string;
@@ -28,7 +29,7 @@ export interface UserColumn
 
 export type CreateUserFormValues = Omit<
   UserDetail,
-  "id" | "address" | "created_at" | "updated_at" | "status"
+  "id" | "address" | "created_at" | "updated_at" | "status" | "can_write"
 > & {
   address: Omit<Address, "id"> & {
     shortData: string;

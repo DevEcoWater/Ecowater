@@ -5,6 +5,7 @@ declare module "next-auth" {
     user: {
       id: string;
       role: string;
+      canWrite: boolean;
       firstName?: string;
       lastName?: string;
     } & DefaultSession["user"];
@@ -13,6 +14,7 @@ declare module "next-auth" {
   interface User {
     id: string;
     role: string;
+    canWrite: boolean;
     firstName?: string;
     lastName?: string;
   }
