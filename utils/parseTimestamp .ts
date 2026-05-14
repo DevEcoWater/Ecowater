@@ -22,11 +22,12 @@ export const parseTimestamp = (timestamp: string): string => {
   const fullYear = parseInt(century + yy, 10);
 
   const formattedInput = `${fullYear}-${MM}-${dd} ${HH}:${mm}:${ss}`;
-  const argentinaTime = dayjs
-    .tz(formattedInput, "America/Argentina/Buenos_Aires")
-    .format("DD/MM/YYYY HH:mm:ss");
 
-  return argentinaTime;
+  // Interpreta como Argentina local y convierte a UTC ISO para que Prisma lo almacene correctamente.
+  // Sin esto, el string sin zona se guardaba como UTC y al mostrar con UTC-3 aparecía 3h antes.
+  return dayjs
+    .tz(formattedInput, "America/Argentina/Buenos_Aires")
+    .toISOString();
 };
 
 export const parseUnixTimeToArgentina = (unixTime: number): string => {

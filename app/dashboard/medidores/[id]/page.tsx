@@ -710,17 +710,19 @@ const MeterDashboard = () => {
                 </CardContent>
               </Card>
 
-              {/* Valve commands — visible only if pack is enabled */}
-              {packs?.valve_control && (
+            </div>
+
+            {/* Valve control — full width row */}
+            {packs?.valve_control && (
+              <div className="col-span-12">
                 <ValveCommandsCard
                   meterId={meterData.id}
                   deviceName={meterData.device_name}
-                  currentValveStatus={
-                    meterData.reading?.statuses?.valve_status ?? null
-                  }
+                  currentValveStatus={meterData.reading?.statuses?.valve_status ?? null}
+                  lastSeen={meterData.connectivity?.lastSeen ?? null}
                 />
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       </Main>

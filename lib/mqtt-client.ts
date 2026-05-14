@@ -1,21 +1,26 @@
 import mqtt from "mqtt";
 
-const OPEN_PAYLOAD = Buffer.from("aBCqqqqqqqqqBASgFwBVMhY=", "base64");
-const CLOSE_PAYLOAD = Buffer.from("aBCqqqqqqqqqBASgFwCZdhY=", "base64");
-
-export const VALVE_TOPICS = {
-  OPEN: "downlink/valve/open",
-  CLOSE: "downlink/valve/close",
-} as const;
-
 export type ValveCommand = "OPEN" | "CLOSE";
 
-export async function publishValveCommand(command: ValveCommand): Promise<void> {
+const HEX_DATA: Record<ValveCommand, string> = {
+  OPEN:  "6810AAAAAAAAAAAAAA0404A01700553216",
+  CLOSE: "6810AAAAAAAAAAAAAA0404A01700997616",
+};
+
+export function getValveTopic(devEui: string, appId: string): string {
+  return `application/${appId}/device/${devEui}/tx`;
+}
+
+export async function publishValveCommand(
+  command: ValveCommand,
+  devEui: string,
+  appId: string
+): Promise<void> {
   const brokerUrl = process.env.MQTT_BROKER_URL;
   if (!brokerUrl) throw new Error("MQTT_BROKER_URL no configurado");
 
-  const topic = VALVE_TOPICS[command];
-  const payload = command === "OPEN" ? OPEN_PAYLOAD : CLOSE_PAYLOAD;
+  const topic   = getValveTopic(devEui, appId);
+  const payload = JSON.stringify({ confirmed: true, fPort: 2, data: HEX_DATA[command] });
 
   return new Promise((resolve, reject) => {
     const client = mqtt.connect(brokerUrl, {

@@ -20,6 +20,7 @@ export function useValveCommandMutation(meterId: string) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["valve-history", meterId] });
+      qc.invalidateQueries({ queryKey: ["meter", meterId] });
     },
   });
 }
