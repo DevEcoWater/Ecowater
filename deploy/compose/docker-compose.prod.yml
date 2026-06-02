@@ -43,7 +43,6 @@ services:
       context: ../..
       dockerfile: deploy/docker/Dockerfile
       args:
-        NEXT_PUBLIC_AUTH_SECRET: ${NEXT_PUBLIC_AUTH_SECRET}
         NEXT_PUBLIC_NAME: ${NEXT_PUBLIC_NAME}
         NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
         NEXT_PUBLIC_FIREBASE_API_KEY: ${NEXT_PUBLIC_FIREBASE_API_KEY}
