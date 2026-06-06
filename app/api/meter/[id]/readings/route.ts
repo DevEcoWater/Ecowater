@@ -1,12 +1,12 @@
 // app/api/meter/[id]/readings/route.ts
-import { PrismaClient } from "@prisma/client";
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
 export async function POST(
   req: Request,
   { params }: { params: { id: string } }
 ) {
-  const prisma = new PrismaClient();
+
   try {
     const body = await req.json();
     const { instantaneous_flow, observations, photo_url, submitted_by } = body;
@@ -110,7 +110,7 @@ export async function GET(
   req: Request,
   { params }: { params: { id: string } }
 ) {
-  const prisma = new PrismaClient();
+
 
   try {
     const { searchParams } = new URL(req.url);

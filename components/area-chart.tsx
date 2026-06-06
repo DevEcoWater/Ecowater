@@ -43,6 +43,8 @@ const parseCumulativeFlow = (flowValue: any): number => {
   return isNaN(parsed) ? 0 : parsed;
 };
 
+const AR_TZ = "America/Argentina/Buenos_Aires";
+
 const formatTimeForRange = (timestamp: string, range: string): string => {
   const date = new Date(timestamp);
 
@@ -51,16 +53,19 @@ const formatTimeForRange = (timestamp: string, range: string): string => {
       return date.toLocaleTimeString("es-ES", {
         hour: "2-digit",
         minute: "2-digit",
+        timeZone: AR_TZ,
       });
     case "week":
-      return date.toLocaleDateString("es-ES", { weekday: "long" });
+      return date.toLocaleDateString("es-ES", { weekday: "long", timeZone: AR_TZ });
     case "month":
-      const weekNumber = Math.ceil(date.getDate() / 7);
+      // Use Argentina-local date for week calculation to avoid off-by-one at midnight
+      const localDay = new Date(date.toLocaleString("en-US", { timeZone: AR_TZ })).getDate();
+      const weekNumber = Math.ceil(localDay / 7);
       return `Sem ${weekNumber}`;
     case "6months":
-      return date.toLocaleDateString("es-ES", { month: "long" });
+      return date.toLocaleDateString("es-ES", { month: "long", timeZone: AR_TZ });
     default:
-      return date.toLocaleDateString("es-ES");
+      return date.toLocaleDateString("es-ES", { timeZone: AR_TZ });
   }
 };
 

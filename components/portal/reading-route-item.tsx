@@ -4,6 +4,13 @@ import { useRouter } from "next/navigation";
 import { Clock, CheckCircle2, MapPin } from "lucide-react";
 import { ReadingRouteItem } from "@/types/operarios/operario-types";
 import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
+const AR_TZ = "America/Argentina/Buenos_Aires";
 
 interface ReadingRouteItemProps {
   item: ReadingRouteItem;
@@ -34,7 +41,7 @@ export function ReadingRouteItemCard({ item, zoneId }: ReadingRouteItemProps) {
           <>
             <span className="text-xs text-gray-400">
               {item.reading_time_today
-                ? dayjs(item.reading_time_today).format("HH:mm")
+                ? dayjs(item.reading_time_today).tz(AR_TZ).format("HH:mm")
                 : ""}
             </span>
             <span className="flex items-center gap-1 text-xs font-medium text-green-600">
@@ -46,7 +53,7 @@ export function ReadingRouteItemCard({ item, zoneId }: ReadingRouteItemProps) {
           <>
             <span className="text-xs text-gray-400">
               {item.last_reading_date
-                ? dayjs(item.last_reading_date).format("HH:mm")
+                ? dayjs(item.last_reading_date).tz(AR_TZ).format("HH:mm")
                 : ""}
             </span>
             <span className="flex items-center gap-1 text-xs font-medium text-amber-500">

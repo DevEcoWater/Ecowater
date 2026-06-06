@@ -54,9 +54,9 @@ export function CooperativeForm() {
     },
   });
 
-  // Update form when cooperative data loads
+  // Populate form on initial load only — skip if the user has unsaved changes
   useEffect(() => {
-    if (cooperative) {
+    if (cooperative && !form.formState.isDirty) {
       form.reset({
         name: cooperative.name,
         location: cooperative.location || "",
@@ -69,7 +69,16 @@ export function CooperativeForm() {
 
   const onSubmit = async (data: CooperativeFormData) => {
     try {
-      await updateCooperative.mutateAsync(data);
+      const updated = await updateCooperative.mutateAsync(data);
+      // Reset after successful save so the form is no longer "dirty" and the
+      // useEffect above won't overwrite any new edits the user starts immediately after.
+      form.reset({
+        name: updated.name,
+        location: updated.location || "",
+        contact_person: updated.contact_person || "",
+        phone_number: updated.phone_number || "",
+        status: updated.status,
+      });
       toast({
         title: "Éxito",
         description: "La cooperativa ha sido actualizada correctamente",

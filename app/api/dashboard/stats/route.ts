@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
-import { PrismaClient, MeterStatus } from "@prisma/client";
+import { MeterStatus } from "@prisma/client";
 import { unstable_cache } from "next/cache";
+import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
-
-const prisma = new PrismaClient();
 
 function getOverallMeterStatus(statuses: MeterStatus[]): MeterStatus {
   if (statuses.includes(MeterStatus.FAULTY)) return MeterStatus.FAULTY;

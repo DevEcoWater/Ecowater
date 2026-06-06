@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { OcrScanButton } from "./ocr-scan-button";
 import { useSubmitReadingMutation } from "@/hooks/portal/use-portal";
-import dayjs from "dayjs";
+import { formatDateAR } from "@/lib/utils";
 
 const formSchema = z.object({
   instantaneous_flow: z
@@ -104,7 +104,7 @@ export function ManualReadingForm({
             <Input
               value={
                 lastReadingDate
-                  ? dayjs(lastReadingDate).format("DD/MM/YYYY")
+                  ? formatDateAR(lastReadingDate)
                   : "—"
               }
               readOnly

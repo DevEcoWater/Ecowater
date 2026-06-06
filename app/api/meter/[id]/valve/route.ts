@@ -2,7 +2,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
 import { publishValveCommand, getValveTopic } from "@/lib/mqtt-client";
@@ -18,7 +18,6 @@ type Context = { params: { id: string } };
 const DEV_BYPASS = process.env.NODE_ENV !== "production" && process.env.VALVE_BYPASS_AUTH === "true";
 
 export async function POST(req: Request, { params }: Context) {
-  const prisma = new PrismaClient();
   try {
     const session = await getServerSession(authOptions);
 

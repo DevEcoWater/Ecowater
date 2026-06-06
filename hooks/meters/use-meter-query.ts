@@ -6,7 +6,7 @@ import {
   PaginatedMeterResponse,
 } from "@/types/meters/meter-types";
 import { Meter } from "@prisma/client";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 // Function to fetch all meters with pagination
 export const useMetersQuery = (
@@ -33,7 +33,9 @@ export const useMetersQuery = (
       return response.json();
     },
     retry: 3,
-    refetchInterval: 10000,
+    refetchInterval: 30000,
+    refetchOnWindowFocus: false,
+    placeholderData: keepPreviousData,
   });
 };
 

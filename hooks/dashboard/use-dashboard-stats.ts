@@ -1,5 +1,5 @@
 import { MeterStatus } from "@prisma/client";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 export interface DashboardStats {
   meters: {
@@ -54,5 +54,6 @@ export const useDashboardStats = () => {
     refetchInterval: false,
     refetchOnWindowFocus: false,
     refetchOnMount: true,
+    placeholderData: keepPreviousData,
   });
 };

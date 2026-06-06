@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 import {
   mapStatusToAlerts,
   groupAlertsBySeverity,
@@ -8,8 +8,6 @@ import {
 } from "@/utils/alertMapper";
 
 export const dynamic = "force-dynamic";
-
-const prisma = new PrismaClient();
 
 type UrgencyParams = {
   meterId?: string;

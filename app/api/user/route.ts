@@ -1,12 +1,10 @@
 // app/api/user/route.ts
 import { NextResponse } from "next/server";
 import { getPaginationParams } from "../../../utils/pagination";
-import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { parseUserStatus } from "@/utils/parseUserStatus";
 import { PaginatedUserResponse } from "@/types/users/user-types";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 export async function GET(req: Request) {
   try {

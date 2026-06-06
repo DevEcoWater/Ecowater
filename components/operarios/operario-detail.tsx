@@ -23,10 +23,16 @@ import { useOperarioQuery, useOperarioReadingsQuery } from "@/hooks/operarios/us
 import ZoneAssignment from "./zone-assignment";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
 import "dayjs/locale/es";
 
 dayjs.extend(relativeTime);
+dayjs.extend(utc);
+dayjs.extend(timezone);
 dayjs.locale("es");
+
+const AR_TZ = "America/Argentina/Buenos_Aires";
 
 interface OperarioDetailProps {
   id: string;
@@ -88,7 +94,7 @@ export default function OperarioDetail({ id }: OperarioDetailProps) {
               {data.created_at && (
                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
                   <CalendarDays className="h-3.5 w-3.5" />
-                  Miembro desde {dayjs(data.created_at).format("MMMM YYYY")}
+                  Miembro desde {dayjs(data.created_at).tz(AR_TZ).format("MMMM YYYY")}
                 </div>
               )}
             </div>
@@ -220,7 +226,7 @@ export default function OperarioDetail({ id }: OperarioDetailProps) {
                         {r.consumption != null ? r.consumption.toFixed(2) : "—"}
                       </td>
                       <td className="py-2.5 pr-4 whitespace-nowrap text-muted-foreground">
-                        {dayjs(r.timestamp).format("DD/MM/YY HH:mm")}
+                        {dayjs(r.timestamp).tz(AR_TZ).format("DD/MM/YY HH:mm")}
                       </td>
                       <td className="py-2.5 text-muted-foreground max-w-[200px] truncate">
                         {r.observations ?? "—"}

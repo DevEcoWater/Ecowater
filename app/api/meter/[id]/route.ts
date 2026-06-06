@@ -1,8 +1,7 @@
 // app/api/meter/[id]/route.ts
-import { MeterStatus, MeterType, OperationalStatus, PrismaClient } from "@prisma/client";
+import { MeterStatus, MeterType, OperationalStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 type Context = {
   params: { id: string };

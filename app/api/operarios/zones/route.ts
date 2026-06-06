@@ -1,12 +1,10 @@
-import { PrismaClient } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { pointInPolygon, PolygonPoint } from "@/lib/point-in-polygon";
+import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
-
-const prisma = new PrismaClient();
 
 // GET /api/operarios/zones — zones assigned to the authenticated operator
 export async function GET() {

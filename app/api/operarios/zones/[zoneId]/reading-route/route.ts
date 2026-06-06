@@ -1,10 +1,8 @@
-import { PrismaClient } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { pointInPolygon, PolygonPoint } from "@/lib/point-in-polygon";
+import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
-
-const prisma = new PrismaClient();
 
 // GET /api/operarios/zones/[zoneId]/reading-route
 // Returns MECHANICAL meters in the zone polygon with read status for today

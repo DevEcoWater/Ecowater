@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import dayjs from "dayjs";
 
 export type DashboardPeriod = "7d" | "30d" | "90d" | "6m" | "1y";
@@ -69,6 +69,7 @@ export const useConsumptionData = (
     refetchInterval: false,
     refetchOnWindowFocus: false,
     refetchOnMount: true,
+    placeholderData: keepPreviousData,
   });
 };
 
@@ -91,5 +92,6 @@ export const useConsumptionFromMeterData = (
     refetchInterval: false,
     refetchOnWindowFocus: false,
     refetchOnMount: true,
+    placeholderData: keepPreviousData,
   });
 };
