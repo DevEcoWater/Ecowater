@@ -42,6 +42,9 @@ next-env.d.ts
 .claude
 supabase_dump.sql
 
+# local agent tooling
+.atl/
+
 # MQTT runtime
 deploy/mqtt/config/passwords
 deploy/mqtt/config/certs
