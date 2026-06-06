@@ -44,6 +44,7 @@ export const authOptions: NextAuthOptions = {
           firstName: user.firstName,
           lastName: user.lastName,
           role: role,
+          canWrite: user.can_write,
         };
       },
     }),
@@ -58,6 +59,7 @@ export const authOptions: NextAuthOptions = {
         token.lastName = user.lastName;
         token.sub = user.id;
         token.role = user.role;
+        token.canWrite = user.canWrite;
       }
       return token;
     },
@@ -67,6 +69,7 @@ export const authOptions: NextAuthOptions = {
         session.user.firstName = token.firstName as string;
         session.user.lastName = token.lastName as string;
         session.user.role = token.role as string;
+        session.user.canWrite = token.canWrite as boolean;
       }
       return session;
     },

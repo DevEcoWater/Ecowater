@@ -10,11 +10,11 @@ export async function GET() {
   const apiKey = process.env.CRM_API_KEY;
 
   if (!crmUrl || !apiKey) {
-    // No CRM configured — all packs disabled (graceful degradation)
+    // No CRM configured — check local overrides for dev/testing
     return NextResponse.json({
-      valve_control: false,
-      advanced_export: false,
-      urgencies: false,
+      valve_control: process.env.FEATURE_VALVE_CONTROL === "true",
+      advanced_export: process.env.FEATURE_ADVANCED_EXPORT === "true",
+      urgencies: process.env.FEATURE_URGENCIES === "true",
     });
   }
 

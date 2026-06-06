@@ -38,4 +38,13 @@ deploy/backups/
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+.claude
 supabase_dump.sql
+
+# MQTT runtime
+deploy/mqtt/config/passwords
+deploy/mqtt/config/certs
+deploy/mqtt/data
+deploy/mqtt/log
+deploy/mqtt/config/mosquitto.conf

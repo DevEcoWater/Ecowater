@@ -72,6 +72,20 @@ services:
     networks:
       - ecowater_net
 
+  mqtt:
+    image: eclipse-mosquitto:2
+    container_name: ecowater-mqtt
+    restart: unless-stopped
+    volumes:
+      - /var/www/ecowater/mqtt/config:/mosquitto/config
+      - /var/www/ecowater/mqtt/data:/mosquitto/data
+      - /var/www/ecowater/mqtt/log:/mosquitto/log
+    ports:
+      - "1883:1883"
+      - "8883:8883"
+    networks:
+      - ecowater_net
+
 volumes:
   postgres_data:
 

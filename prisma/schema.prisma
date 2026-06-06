@@ -31,6 +31,7 @@ model User {
   addressId         String         @unique
   firstName         String
   lastName          String
+  can_write         Boolean        @default(false)
   address           Address        @relation(fields: [addressId], references: [id], map: "User_adressId_fkey")
   userMeters        UserMeter[]
   userRoles         UserRole[]

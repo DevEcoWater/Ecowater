@@ -1,0 +1,17 @@
+persistence true
+persistence_location /mosquitto/data/
+
+log_dest file /mosquitto/log/mosquitto.log
+
+allow_anonymous false
+password_file /mosquitto/config/passwords
+
+listener 1883
+protocol mqtt
+
+listener 8883
+protocol mqtt
+
+cafile /mosquitto/config/certs/fullchain.pem
+certfile /mosquitto/config/certs/cert.pem
+keyfile /mosquitto/config/certs/privkey.pem
