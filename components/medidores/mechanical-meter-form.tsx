@@ -18,6 +18,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Card,
   CardContent,
   CardHeader,
@@ -35,10 +42,18 @@ import { pointInPolygon, PolygonPoint } from "@/lib/point-in-polygon";
 
 const defaultLocation = { lat: -34.9035949, lng: -58.0373327 };
 
+const METER_STATUS_OPTIONS = [
+  { value: "ACTIVE", label: "Activo" },
+  { value: "INACTIVE", label: "Inactivo" },
+  { value: "MAINTENANCE", label: "En mantenimiento" },
+  { value: "FAULTY", label: "Con falla" },
+] as const;
+
 const formSchema = z.object({
   device_name: z.string().min(1, "El nombre es obligatorio"),
   street_address: z.string().min(1, "La dirección es obligatoria"),
   dev_eui: z.string().optional(),
+  status: z.enum(["ACTIVE", "INACTIVE", "MAINTENANCE", "FAULTY"]).optional(),
   coordinates: z.object({
     lat: z.number(),
     lng: z.number(),
@@ -56,6 +71,7 @@ interface MechanicalMeterFormProps {
     dev_eui: string;
     lat: number;
     lng: number;
+    status?: string;
   };
 }
 
@@ -83,6 +99,7 @@ export default function MechanicalMeterForm({
       device_name: initialValues?.device_name ?? "",
       street_address: initialValues?.street_address ?? "",
       dev_eui: initialValues?.dev_eui ?? "",
+      status: (initialValues?.status as FormValues["status"]) ?? "ACTIVE",
       coordinates: startLocation,
     },
   });
@@ -123,6 +140,7 @@ export default function MechanicalMeterForm({
           dev_eui: values.dev_eui || undefined,
           lat: values.coordinates.lat,
           lng: values.coordinates.lng,
+          status: values.status,
         });
         toast({ title: "Medidor actualizado exitosamente" });
         router.push(`/dashboard/medidores/${meterId}`);
@@ -188,6 +206,33 @@ export default function MechanicalMeterForm({
                 </FormItem>
               )}
             />
+
+            {isEdit && (
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Estado</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccioná un estado" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {METER_STATUS_OPTIONS.map((opt) => (
+                          <SelectItem key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
           </CardContent>
         </Card>
 
