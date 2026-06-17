@@ -12,8 +12,28 @@ export async function GET() {
 
 export async function PATCH(req: Request) {
   try {
-    const data = await req.json();
+    const body = await req.json();
     const existing = await prisma.cooperative.findFirstOrThrow();
+
+    // Whitelist allowed fields — never pass raw body to Prisma
+    const allowed = [
+      "name",
+      "location",
+      "lat",
+      "lng",
+      "contact_person",
+      "phone_number",
+      "email",
+      "website",
+      "status",
+      "logo_url",
+      "primary_color",
+    ] as const;
+
+    const data: Record<string, unknown> = {};
+    for (const key of allowed) {
+      if (body[key] !== undefined) data[key] = body[key];
+    }
 
     const updated = await prisma.cooperative.update({
       where: { id: existing.id },

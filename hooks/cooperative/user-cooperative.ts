@@ -4,8 +4,15 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 interface UpdateCooperativeData {
   name?: string;
   location?: string;
+  lat?: number | null;
+  lng?: number | null;
   contact_person?: string;
   phone_number?: string;
+  email?: string;
+  website?: string;
+  status?: "ACTIVE" | "INACTIVE";
+  logo_url?: string;
+  primary_color?: string;
 }
 
 // Get cooperative data
