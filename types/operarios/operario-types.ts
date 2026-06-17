@@ -36,6 +36,8 @@ export interface OperatorZone {
   color: string;
   status: ZoneStatus;
   meter_count: number;
+  assigned_count: number;
+  read_count_today: number;
   operator_count: number;
 }
 
@@ -51,13 +53,22 @@ export interface ReadingRouteItem {
   last_reading_date: string | Date | null;
   read_today: boolean;
   reading_time_today: string | Date | null;
+  order?: number | null;
+  operator_id?: string | null;
+  read_in_period?: boolean;
+  period_reading_date?: string | null;
 }
 
 export interface ReadingRouteResponse {
   zone: { id: string; name: string; color: string };
   meters: ReadingRouteItem[];
   total: number;
+  zone_total?: number;
   read_count: number;
+  operator_count?: number;
+  operators?: { id: string; name: string }[];
+  completed?: boolean;
+  completed_at?: string | null;
 }
 
 export interface OperarioFormData {

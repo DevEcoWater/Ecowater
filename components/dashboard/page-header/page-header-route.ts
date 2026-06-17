@@ -37,6 +37,16 @@ export function getPageHeaderFromPath(pathname: string | null) {
       tourName: "users-list",
     },
     {
+      pattern: /\/medidores\/mecanicos\/nuevo$/,
+      title: "Nuevo Medidor Mecánico",
+      description: "Registrá un medidor de lectura manual en el sistema.",
+    },
+    {
+      pattern: /\/medidores\/mecanicos\/[^/]+\/editar$/,
+      title: "Editar Medidor Mecánico",
+      description: "Actualizá los datos y la ubicación del medidor de lectura manual.",
+    },
+    {
       pattern: /\/medidores\/[^/]+$/,
       title: "Detalle del Medidor",
       description: "Información en tiempo real del medidor seleccionado",
@@ -118,8 +128,7 @@ export function getPageHeaderFromPath(pathname: string | null) {
 }
 
 const defaultHeader = {
-  title: "Gestión de Usuarios",
-  description:
-    "Administre usuarios, registre nuevos clientes y actualice información.",
+  title: "Dashboard",
+  description: "Panel de control principal",
   tourName: null,
 };

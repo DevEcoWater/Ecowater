@@ -19,6 +19,10 @@ model Cooperative {
   status         CooperativeStatus @default(ACTIVE)
   lat            Float?
   lng            Float?
+  logo_url       String?
+  primary_color  String?
+  email          String?
+  website        String?
 }
 
 model User {
@@ -178,15 +182,18 @@ model Gateway {
 }
 
 model Zone {
-  id            String         @id @default(uuid())
-  name          String
-  color         String         @default("#3B82F6")
-  polygon       Json
-  status        ZoneStatus     @default(ACTIVE)
-  created_at    DateTime       @default(now())
-  updated_at    DateTime       @updatedAt
-  zoneOperators ZoneOperator[]
-  downloads     ZoneDownload[]
+  id              String         @id @default(uuid())
+  name            String
+  color           String         @default("#3B82F6")
+  polygon         Json
+  route_order        Json?
+  route_assignments  Json?
+  operator_target    Int?
+  status          ZoneStatus     @default(ACTIVE)
+  created_at      DateTime       @default(now())
+  updated_at      DateTime       @updatedAt
+  zoneOperators   ZoneOperator[]
+  downloads       ZoneDownload[]
 }
 
 model ZoneDownload {

@@ -55,7 +55,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <SidebarMenuItem>
               <SidebarMenuButton asChild className="flex items-center gap-2">
                 <span className="text-base font-semibold flex items-center gap-2">
-                  <Cosego />
+                  {(cooperative as any)?.logo_url ? (
+                    <img
+                      src={(cooperative as any).logo_url}
+                      alt={cooperative!.name}
+                      className="h-6 w-6 rounded object-contain shrink-0"
+                    />
+                  ) : (
+                    <Cosego />
+                  )}
                   {open &&
                     (cooperative ? (
                       cooperative.name
