@@ -15,6 +15,8 @@ interface SummaryCardsProps {
   consumptionTotal: number;
   previousTotal?: number;
   period: string;
+  smartTotal?: number;
+  mechTotal?: number;
 }
 
 const containerVariants = {
@@ -35,7 +37,7 @@ const cardVariants = {
   },
 };
 
-export function SummaryCards({ stats, consumptionTotal, previousTotal, period }: SummaryCardsProps) {
+export const SummaryCards = React.memo(function SummaryCards({ stats, consumptionTotal, previousTotal, period, smartTotal, mechTotal }: SummaryCardsProps) {
   const { data: urgencies } = useUrgencies({
     includeInactive: true,
     limit: 100,
@@ -44,6 +46,15 @@ export function SummaryCards({ stats, consumptionTotal, previousTotal, period }:
   const totalErrors =
     (urgencies?.alerts.critical.length || 0) +
     (urgencies?.alerts.high.length || 0);
+
+  // Real alert count: critical + high + medium + low real alerts.
+  // The "inactive" bucket in urgencies is excluded — it's a connectivity-state bucket,
+  // not a true alarm. stats.alerts.totalAlerts was counting inactive meters instead.
+  const totalAlerts =
+    (urgencies?.alerts.critical.length || 0) +
+    (urgencies?.alerts.high.length || 0) +
+    (urgencies?.alerts.medium.length || 0) +
+    (urgencies?.alerts.low.length || 0);
 
   return (
     <motion.div
@@ -57,6 +68,8 @@ export function SummaryCards({ stats, consumptionTotal, previousTotal, period }:
           totalConsumption={consumptionTotal}
           previousTotal={previousTotal}
           period={period}
+          smartTotal={smartTotal}
+          mechTotal={mechTotal}
         />
       </motion.div>
       <motion.div variants={cardVariants} className="h-full">
@@ -72,11 +85,11 @@ export function SummaryCards({ stats, consumptionTotal, previousTotal, period }:
         />
       </motion.div>
       <motion.div variants={cardVariants} className="h-full">
-        <AlertsCard activeAlerts={stats.alerts.totalAlerts} />
+        <AlertsCard activeAlerts={totalAlerts} />
       </motion.div>
       <motion.div variants={cardVariants} className="h-full">
         <ErrorsCard totalErrors={totalErrors} />
       </motion.div>
     </motion.div>
   );
-}
+});
