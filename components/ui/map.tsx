@@ -15,7 +15,8 @@ import {
   SuperClusterAlgorithm,
 } from "@googlemaps/markerclusterer";
 import { MeterStatus } from "@prisma/client";
-import { useMeters } from "@/hooks/meters/use-meters";
+import { useMapMetersQuery } from "@/hooks/meters/use-meter-query";
+import { MapMeter, ValveStatus } from "@/types/meters/meter-types";
 import { useGoogleMaps } from "@/providers/google-maps-provider";
 import Link from "next/link";
 import {
@@ -27,7 +28,10 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Layers, ChevronDown, PenLine, X, ExternalLink, MapPin, Check } from "lucide-react";
+import { RefreshCw, Layers, ChevronDown, PenLine, X, ExternalLink, MapPin, Check, Cpu, Wrench, Search, Clock, Gauge, Droplets } from "lucide-react";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+dayjs.extend(relativeTime);
 import {
   Collapsible,
   CollapsibleContent,
@@ -50,7 +54,8 @@ import { useToast } from "@/hooks/use-toast";
 
 const containerStyle = {
   width: "100%",
-  height: "calc(100svh - 220px)", // 64px fixed header + ~101px page-header/separator/padding
+  // 64px header offset (mt-16) + 8px pt-2 + ~116px page-header + 49px separator (my-6) + 8px pb-2 = ~245px chrome
+  height: "calc(100svh - 265px)",
 };
 
 const center = {
@@ -59,7 +64,7 @@ const center = {
 };
 
 function Map() {
-  const { data, isLoading, error } = useMeters();
+  const { data, isLoading, error } = useMapMetersQuery();
   const { data: cooperative } = useCooperative();
   const { isLoaded, loadError } = useGoogleMaps();
   const [showCoopInfo, setShowCoopInfo] = useState(false);
@@ -289,9 +294,16 @@ function Map() {
     ],
   };
 
-  // Smart meter: teardrop with circle hole inside
-  const createMarkerIcon = useCallback((color: string) => {
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" width="24" height="36"><path fill="${color}" stroke="white" stroke-width="2" d="M12 0C5.4 0 0 5.4 0 12c0 8.4 12 24 12 24s12-15.6 12-24c0-6.6-5.4-12-12-12zm0 18a6 6 0 1 1 0-12 6 6 0 0 1 0 12z"/></svg>`;
+  // Smart meter: teardrop with a small valve-status dot in the inner circle
+  // open → green, closed → red, anything else → no dot (transparent)
+  const createSmartIcon = useCallback((color: string, valveStatus: ValveStatus | null) => {
+    const dotColor =
+      valveStatus === "open"
+        ? "#10B981"
+        : valveStatus === "closed"
+          ? "#EF4444"
+          : "transparent";
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" width="24" height="36"><path fill="${color}" stroke="white" stroke-width="2" d="M12 0C5.4 0 0 5.4 0 12c0 8.4 12 24 12 24s12-15.6 12-24c0-6.6-5.4-12-12-12zm0 18a6 6 0 1 1 0-12 6 6 0 0 1 0 12z"/><circle cx="12" cy="12" r="3.5" fill="${dotColor}"/></svg>`;
     return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
   }, []);
 
@@ -301,44 +313,17 @@ function Map() {
     return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
   }, []);
 
-  // Optional: use external SVG asset and recolor it
-  const [baseSvg, setBaseSvg] = useState<string | null>(null);
-  useEffect(() => {
-    let mounted = true;
-    if (!baseSvg) {
-      fetch("/meter-pin.svg")
-        .then((r) => r.text())
-        .then((txt) => {
-          if (mounted) setBaseSvg(txt);
-        })
-        .catch(() => {
-          // ignore; fallback uses inline SVG
-        });
-    }
-    return () => {
-      mounted = false;
-    };
-  }, [baseSvg]);
-
-  const iconCacheRef = useRef<Record<string, string>>({});
-  const createColoredIcon = useCallback(
-    (color: string) => {
-      const cache = iconCacheRef.current;
-      if (cache[color]) return cache[color];
-      if (baseSvg) {
-        const colored = baseSvg.replace(
-          /(id=\"pin\"[^>]*fill=\")#[0-9a-fA-F]{3,6}/,
-          `$1${color}`
-        );
-        const url = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(colored)}`;
-        cache[color] = url;
-        return url;
-      }
-      const url = createMarkerIcon(color);
-      cache[color] = url;
+  const smartIconCacheRef = useRef<Record<string, string>>({});
+  const getSmartIcon = useCallback(
+    (color: string, valveStatus: ValveStatus | null) => {
+      const key = `${color}|${valveStatus ?? "none"}`;
+      const cache = smartIconCacheRef.current;
+      if (cache[key]) return cache[key];
+      const url = createSmartIcon(color, valveStatus);
+      cache[key] = url;
       return url;
     },
-    [baseSvg, createMarkerIcon]
+    [createSmartIcon]
   );
 
   const mechanicalIconCacheRef = useRef<Record<string, string>>({});
@@ -372,6 +357,9 @@ function Map() {
     FAULTY: true,
   });
 
+  const [typeFilter, setTypeFilter] = useState<"ALL" | "SMART" | "MECHANICAL">("ALL");
+  const [searchQuery, setSearchQuery] = useState("");
+
   const markers = useMemo(
     () => data?.filter((item: any) => item?.lat && item?.lng) || [],
     [data]
@@ -379,10 +367,19 @@ function Map() {
 
   const filteredMarkers = useMemo(
     () =>
-      markers.filter(
-        (m: any) => visibleStatuses[(m.status as MeterStatus) ?? "ACTIVE"]
-      ),
-    [markers, visibleStatuses]
+      markers
+        .filter((m: any) => visibleStatuses[(m.status as MeterStatus) ?? "ACTIVE"])
+        .filter((m: any) => typeFilter === "ALL" || m.meter_type === typeFilter)
+        .filter((m: any) => {
+          if (!searchQuery.trim()) return true;
+          const q = searchQuery.toLowerCase();
+          return (
+            m.device_name?.toLowerCase().includes(q) ||
+            m.dev_eui?.toLowerCase().includes(q) ||
+            m.street_address?.toLowerCase().includes(q)
+          );
+        }),
+    [markers, visibleStatuses, typeFilter, searchQuery]
   );
 
   const bounds = useMemo(() => {
@@ -398,19 +395,69 @@ function Map() {
     } as google.maps.LatLngBoundsLiteral;
   }, [markers]);
 
+  // Larger than fitBounds padding (0.02) so user can pan beyond the outermost meters
+  const RESTRICTION_PADDING = 0.05;
+
+  const restrictionBounds = useMemo(() => {
+    // Priority 1: derive from meters
+    if (bounds) {
+      return {
+        north: bounds.north + RESTRICTION_PADDING,
+        south: bounds.south - RESTRICTION_PADDING,
+        east:  bounds.east  + RESTRICTION_PADDING,
+        west:  bounds.west  - RESTRICTION_PADDING,
+      };
+    }
+    // Priority 2: derive from cooperative position
+    if (cooperativePosition) {
+      return {
+        north: cooperativePosition.lat + RESTRICTION_PADDING,
+        south: cooperativePosition.lat - RESTRICTION_PADDING,
+        east:  cooperativePosition.lng + RESTRICTION_PADDING,
+        west:  cooperativePosition.lng - RESTRICTION_PADDING,
+      };
+    }
+    // Priority 3: hardcoded fallback (current behavior)
+    return {
+      north: -34.9035949 + RESTRICTION_PADDING,
+      south: -34.9035949 - RESTRICTION_PADDING,
+      east:  -58.0373327 + RESTRICTION_PADDING,
+      west:  -58.0373327 - RESTRICTION_PADDING,
+    };
+  }, [bounds, cooperativePosition]);
+
+  const meterCounts = useMemo(() => {
+    const smart   = filteredMarkers.filter((m: MapMeter) => m.meter_type !== "MECHANICAL");
+    const mech    = filteredMarkers.filter((m: MapMeter) => m.meter_type === "MECHANICAL");
+    const open    = smart.filter((m: MapMeter) => m.valve_status === "open");
+    const closed  = smart.filter((m: MapMeter) => m.valve_status === "closed");
+    const online  = filteredMarkers.filter((m: MapMeter) => m.status === "ACTIVE");
+    const total   = filteredMarkers.length;
+    const onlinePct = total > 0 ? Math.round((online.length / total) * 100) : 0;
+    return {
+      total,
+      smart:  smart.length,
+      mech:   mech.length,
+      open:   open.length,
+      closed: closed.length,
+      online: online.length,
+      onlinePct,
+    };
+  }, [filteredMarkers]);
+
   const OPTIONS = useMemo(
     () => ({
       minZoom: 2,
       maxZoom: 18,
       restriction: {
-        latLngBounds: {
-          north: -34.9035949 + 0.05,
-          south: -34.9035949 - 0.05,
-          east: -58.0373327 + 0.05,
-          west: -58.0373327 - 0.05,
-        },
+        latLngBounds: restrictionBounds,
         strictBounds: true,
       },
+      zoomControl: true,
+      zoomControlOptions: { position: 7 }, // 7 = RIGHT_BOTTOM in google.maps.ControlPosition
+      mapTypeControl: false,    // redundant — custom theme selector exists in the panel
+      streetViewControl: false, // declutter
+      fullscreenControl: false, // declutter — panel already constrained to map area
       styles:
         mapTheme === "satellite"
           ? hidePoiLabels
@@ -479,7 +526,7 @@ function Map() {
       mapTypeId: (mapTheme === "satellite" ? "hybrid" : "roadmap") as any,
       gestureHandling: "greedy",
     }),
-    [bounds, mapTheme, hidePoiLabels]
+    [restrictionBounds, mapTheme, hidePoiLabels]
   );
 
   useEffect(() => {
@@ -499,10 +546,13 @@ function Map() {
       const { textColor } = getChipForMeter(status);
       const isMech = item.meter_type === "MECHANICAL";
 
+      const vs = isMech ? null : ((item as MapMeter).valve_status ?? null);
       return new google.maps.Marker({
         position: { lat: item.lat, lng: item.lng },
         icon: {
-          url: isMech ? createMechanicalColoredIcon(textColor) : createColoredIcon(textColor),
+          url: isMech
+            ? createMechanicalColoredIcon(textColor)
+            : getSmartIcon(textColor, vs),
           scaledSize: isMech ? new google.maps.Size(30, 30) : new google.maps.Size(30, 45),
         },
       }) as google.maps.Marker;
@@ -535,7 +585,7 @@ function Map() {
     zoomLevel,
     clusterEnabled,
     getChipForMeter,
-    createColoredIcon,
+    getSmartIcon,
     createMechanicalColoredIcon,
   ]);
 
@@ -651,7 +701,7 @@ function Map() {
       onLoad={onLoad}
       onUnmount={onUnmount}
     >
-      <div className="absolute right-4 top-4 z-[1] w-[280px]">
+      <div className="absolute right-4 top-4 z-[1] w-[280px] max-h-[calc(100%-2rem)] overflow-y-auto">
         <Collapsible defaultOpen>
           <div className="bg-white rounded-md shadow">
             <CollapsibleTrigger className="w-full text-left p-3 border-b text-sm font-semibold flex items-center justify-between">
@@ -676,12 +726,46 @@ function Map() {
                     </SelectContent>
                   </Select>
                   <label className="flex items-center gap-2 text-sm ml-2">
-                    <span>Off POI</span>
+                    <span>Ocultar POI</span>
                     <Checkbox
                       checked={hidePoiLabels}
                       onCheckedChange={(v) => setHidePoiLabels(Boolean(v))}
                     />
                   </label>
+                </div>
+                {/* Meter type + search filters */}
+                <div className="rounded-md p-3 border space-y-2">
+                  <div className="flex items-center rounded-md border overflow-hidden text-xs">
+                    {(
+                      [
+                        { label: "Todos", value: "ALL" as const },
+                        { label: "Smart", value: "SMART" as const, icon: <Cpu className="w-3 h-3" /> },
+                        { label: "Mecánicos", value: "MECHANICAL" as const, icon: <Wrench className="w-3 h-3" /> },
+                      ] as { label: string; value: "ALL" | "SMART" | "MECHANICAL"; icon?: React.ReactNode }[]
+                    ).map(({ label, value, icon }) => (
+                      <button
+                        key={value}
+                        onClick={() => setTypeFilter(value)}
+                        className={`flex-1 flex items-center justify-center gap-1 py-1 text-xs transition-colors ${
+                          typeFilter === value
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-background text-muted-foreground hover:bg-muted"
+                        }`}
+                      >
+                        {icon}
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="relative">
+                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                    <Input
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Buscar medidor..."
+                      className="pl-7 h-7 text-xs"
+                    />
+                  </div>
                 </div>
                 <div className="rounded-md p-3 border space-y-2">
                   <div className="flex items-center justify-between">
@@ -727,8 +811,18 @@ function Map() {
                       variant="outline"
                       onClick={() => {
                         if (!map) return;
-                        map.setZoom(8);
-                        map.panTo(center as google.maps.LatLngLiteral);
+                        if (bounds) {
+                          map.fitBounds(new window.google.maps.LatLngBounds(
+                            { lat: bounds.south, lng: bounds.west },
+                            { lat: bounds.north, lng: bounds.east }
+                          ));
+                        } else if (cooperativePosition) {
+                          map.setZoom(14);
+                          map.panTo(cooperativePosition);
+                        } else {
+                          map.setZoom(8);
+                          map.panTo(center as google.maps.LatLngLiteral);
+                        }
                       }}
                     >
                       <RefreshCw className="w-4 h-4" /> Reset
@@ -833,6 +927,59 @@ function Map() {
         </Collapsible>
       </div>
 
+      {/* Meter count summary overlay — bottom-left */}
+      <div className="absolute bottom-8 left-4 z-[1] bg-card/95 backdrop-blur-sm rounded-xl shadow-md border border-border/50 px-4 py-3 min-w-[170px] pointer-events-none">
+        {/* Total + health pct */}
+        <div className="flex items-end justify-between gap-3 mb-2">
+          <div>
+            <p className="text-2xl font-bold leading-none text-foreground">{meterCounts.total}</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">medidores</p>
+          </div>
+          {meterCounts.total > 0 && (() => {
+            const pct = meterCounts.onlinePct;
+            const [color, bg] = pct >= 80
+              ? ["#16a34a", "#dcfce7"]
+              : pct >= 50
+              ? ["#d97706", "#fef3c7"]
+              : ["#dc2626", "#fee2e2"];
+            return (
+              <span
+                className="text-xs font-semibold px-2 py-0.5 rounded-full shrink-0"
+                style={{ color, backgroundColor: bg }}
+              >
+                {pct}% en línea
+              </span>
+            );
+          })()}
+        </div>
+
+        {/* Type breakdown */}
+        <div className="space-y-1 text-[11px] text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
+            <span>{meterCounts.smart} inteligentes</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+            <span>{meterCounts.mech} mecánicos</span>
+          </div>
+        </div>
+
+        {/* Valve breakdown (smart only) */}
+        {meterCounts.smart > 0 && (
+          <div className="mt-2 pt-2 border-t border-border/40 flex gap-3 text-[10px] text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+              {meterCounts.open} abierta
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
+              {meterCounts.closed} cerrada
+            </span>
+          </div>
+        )}
+      </div>
+
       {cooperativePosition && (
         <Marker
           position={cooperativePosition}
@@ -880,7 +1027,9 @@ function Map() {
               }}
               onClick={() => handleMarkerClick(index)}
               icon={{
-                url: isMech ? createMechanicalColoredIcon(textColor) : createColoredIcon(textColor),
+                url: isMech
+                  ? createMechanicalColoredIcon(textColor)
+                  : getSmartIcon(textColor, (item as MapMeter).valve_status ?? null),
                 scaledSize: isMech ? new google.maps.Size(30, 30) : new google.maps.Size(30, 45),
               }}
             >
@@ -892,55 +1041,70 @@ function Map() {
                   }}
                   onCloseClick={() => setActiveMarker(null)}
                 >
-                  <div className="p-2 bg-white rounded shadow-lg flex flex-col gap-3 min-w-[200px]">
-                    {/* Title row */}
-                    <div className="flex items-center gap-2">
-                      {item.meter_type === "MECHANICAL" ? (
-                        <span className="text-xs bg-amber-100 text-amber-700 rounded-full px-2 py-0.5 font-medium">Mecánico</span>
-                      ) : (
-                        <span className="text-xs bg-blue-100 text-blue-700 rounded-full px-2 py-0.5 font-medium">Inteligente</span>
-                      )}
-                      <span className="text-sm font-semibold truncate">{item.device_name}</span>
+                  <div className="min-w-[210px] max-w-[240px] py-0.5 space-y-2.5">
+                    {/* Header: type icon + name + status chip */}
+                    <div className="flex items-start gap-2">
+                      <div className="mt-0.5 shrink-0 text-gray-400">
+                        {isMech
+                          ? <Gauge className="w-4 h-4" />
+                          : <Droplets className="w-4 h-4 text-blue-500" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 leading-tight truncate">
+                          {item.device_name}
+                        </p>
+                        <p className="text-[10px] text-gray-400 font-medium mt-0.5">
+                          {isMech ? "Mecánico" : "Inteligente"}
+                        </p>
+                      </div>
+                      <div className="shrink-0">
+                        <Chip status={item.status} />
+                      </div>
                     </div>
 
-                    {/* Identifier */}
-                    {item.meter_type === "MECHANICAL" ? (
-                      item.street_address && (
-                        <div className="flex gap-2 justify-between w-full items-center">
-                          <p className="text-xs text-muted-foreground">Dirección</p>
-                          <p className="text-xs font-medium text-right max-w-[130px] leading-tight">{item.street_address}</p>
-                        </div>
-                      )
-                    ) : (
-                      item.dev_eui && (
-                        <div className="flex gap-2 justify-between w-full items-center">
-                          <p className="text-xs text-muted-foreground">EUI</p>
-                          <p className="text-xs font-mono font-medium">{item.dev_eui.slice(-8)}</p>
-                        </div>
-                      )
+                    {/* Valve pill (smart only) */}
+                    {!isMech && (() => {
+                      const vs = (item as MapMeter).valve_status;
+                      const [label, cls] = vs === "open"
+                        ? ["Válvula abierta", "bg-emerald-50 text-emerald-700 border border-emerald-200"]
+                        : vs === "closed"
+                        ? ["Válvula cerrada", "bg-red-50 text-red-700 border border-red-200"]
+                        : vs === "abnormal"
+                        ? ["Válvula anormal", "bg-orange-50 text-orange-700 border border-orange-200"]
+                        : ["Válvula desc.", "bg-gray-50 text-gray-400 border border-gray-200"];
+                      return (
+                        <span className={`inline-block text-[10px] font-medium px-1.5 py-0.5 rounded-full ${cls}`}>
+                          {label}
+                        </span>
+                      );
+                    })()}
+
+                    {/* Identifier — address (mech) or partial EUI (smart) */}
+                    {(isMech ? item.street_address : item.dev_eui) && (
+                      <p className="text-[11px] text-gray-500 font-mono truncate">
+                        {isMech
+                          ? item.street_address
+                          : `···${item.dev_eui!.slice(-8)}`}
+                      </p>
                     )}
 
-                    <div className="flex gap-2 justify-between w-full items-center">
-                      <p className="text-xs text-muted-foreground">Actualización</p>
-                      <p className="text-xs font-medium">
-                        {new Date(item.updated_at).toLocaleDateString("es-AR", {
-                          day: "2-digit",
-                          month: "2-digit",
-                          year: "numeric",
-                        })}
-                      </p>
+                    {/* Last reading */}
+                    <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
+                      <Clock className="w-3.5 h-3.5 shrink-0" />
+                      <span>
+                        {(item as MapMeter).last_reading_at
+                          ? dayjs((item as MapMeter).last_reading_at).fromNow()
+                          : "Sin lecturas"}
+                      </span>
                     </div>
 
-                    <div className="flex gap-2 justify-between w-full items-center">
-                      <p className="text-xs text-muted-foreground">Estado</p>
-                      <Chip status={item.status} />
-                    </div>
-
+                    {/* CTA */}
                     <Link
                       href={`/dashboard/medidores/${item.id}`}
-                      className="block text-center bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition"
+                      className="flex items-center justify-center gap-1.5 w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-2 rounded-lg transition-colors"
                     >
                       Ver medidor
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3 h-3"><path fillRule="evenodd" d="M6.22 4.22a.75.75 0 0 1 1.06 0l3.25 3.25a.75.75 0 0 1 0 1.06l-3.25 3.25a.75.75 0 0 1-1.06-1.06L8.94 8 6.22 5.28a.75.75 0 0 1 0-1.06Z" clipRule="evenodd"/></svg>
                     </Link>
                   </div>
                 </InfoWindow>
@@ -954,13 +1118,17 @@ function Map() {
           position={activeCluster.position}
           onCloseClick={() => setActiveCluster(null)}
         >
-          <div className="p-2 bg-white rounded shadow-lg max-w-xs">
-            <h3 className="text-lg font-bold">Información de la zona</h3>
-            <p className="text-sm text-gray-600">
-              {activeCluster.markers.length} medidores en la zona
-            </p>
+          <div className="min-w-[220px] max-w-[260px] py-0.5">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-2.5">
+              <p className="text-sm font-semibold text-gray-900">
+                {activeCluster.markers.length} medidores
+              </p>
+              <span className="text-[10px] text-gray-400 font-medium">en esta zona</span>
+            </div>
 
-            <div className="list-disc pl-4 mt-2 text-sm text-gray-800 max-h-64 overflow-y-auto">
+            {/* Meter list */}
+            <div className="space-y-1.5 max-h-60 overflow-y-auto pr-0.5">
               {activeCluster.markers.map((marker, index) => {
                 const m = marker as google.maps.Marker;
                 const position = m.getPosition();
@@ -969,18 +1137,26 @@ function Map() {
                     item.lat === position?.lat() && item.lng === position?.lng()
                 );
 
+                if (!markerData) return null;
+
+                const isClusterMech = markerData.meter_type === "MECHANICAL";
+
                 return (
-                  markerData && (
-                    <p className="my-4" key={index}>
-                      <Chip status={markerData.status} />{" "}
-                      <Link
-                        href={`/dashboard/medidores/${markerData.id}`}
-                        className="text-primary underline"
-                      >
-                        Ver medidor
-                      </Link>
+                  <Link
+                    key={index}
+                    href={`/dashboard/medidores/${markerData.id}`}
+                    className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-50 transition-colors group"
+                  >
+                    <div className="shrink-0 text-gray-400">
+                      {isClusterMech
+                        ? <Gauge className="w-3.5 h-3.5" />
+                        : <Droplets className="w-3.5 h-3.5 text-blue-500" />}
+                    </div>
+                    <p className="flex-1 text-xs font-medium text-gray-800 truncate">
+                      {markerData.device_name}
                     </p>
-                  )
+                    <Chip status={markerData.status} />
+                  </Link>
                 );
               })}
             </div>
