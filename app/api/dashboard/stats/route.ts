@@ -260,8 +260,10 @@ export async function GET() {
     try {
       const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
+      // Mechanical meters are excluded — their status is managed manually by users.
       metersToDeactivate = await prisma.meter.findMany({
         where: {
+          meter_type: "SMART",
           status: "ACTIVE",
           readings: { none: { timestamp: { gte: last24Hours } } },
         },
@@ -270,6 +272,7 @@ export async function GET() {
 
       metersToActivate = await prisma.meter.findMany({
         where: {
+          meter_type: "SMART",
           status: "INACTIVE",
           readings: { some: { timestamp: { gte: last24Hours } } },
         },
@@ -292,8 +295,10 @@ export async function GET() {
         console.log(`[STATS] Actualizados ${metersToActivate.length} medidores a ACTIVE`);
       }
 
+      // Active/inactive counts are smart-only — mechanical status is not derived from connectivity.
       activeMeters = await prisma.meter.count({
         where: {
+          meter_type: "SMART",
           status: "ACTIVE",
           readings: { some: { timestamp: { gte: last24Hours } } },
         },
@@ -301,6 +306,7 @@ export async function GET() {
 
       inactiveMeters = await prisma.meter.count({
         where: {
+          meter_type: "SMART",
           OR: [
             { status: "INACTIVE" },
             { status: "ACTIVE", readings: { none: { timestamp: { gte: last24Hours } } } },
