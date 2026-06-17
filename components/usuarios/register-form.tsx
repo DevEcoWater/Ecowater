@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useUserMutation } from "@/hooks/users/use-user-query";
 import { useToast } from "@/hooks/use-toast";
@@ -27,7 +27,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import CoordinateMap from "@/components/ui/coordinateMap";
 import AddressAutocomplete from "@/components/ui/address-autocomplete";
 
@@ -40,7 +46,9 @@ const formSchema = z
     email: z.string().email("Ingrese un email válido"),
     address: z.string().min(1, "Debe seleccionar una ubicación válida"),
     shortData: z.string(),
-    role_id: z.string(),
+    role: z.enum(["admin", "lector"], {
+      required_error: "Seleccioná un rol",
+    }),
     password: z
       .string()
       .min(6, "La contraseña debe tener al menos 6 caracteres"),
@@ -64,7 +72,6 @@ export default function RegisterUserPage() {
   const router = useRouter();
   const pathname = usePathname();
 
-  // Initialize form with zod resolver
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -73,8 +80,8 @@ export default function RegisterUserPage() {
       email: "",
       address: "",
       shortData: "",
+      // No default for role — forces a conscious choice
       password: "",
-      role_id: "10e34911-a3b5-4d3f-891a-99cefc440ef8",
       confirmPassword: "",
       coordinates: defaultLocation,
     },
@@ -95,20 +102,15 @@ export default function RegisterUserPage() {
   };
 
   const onSubmit = (data: FormValues) => {
-    const userData = {
-      firstName: data.firstName,
-      lastName: data.lastName,
-      email: data.email,
-      address: data.address,
-      password: data.password,
-      role_id: "10e34911-a3b5-4d3f-891a-99cefc440ef8",
-    };
-
     createUser(
       {
-        ...userData,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        password: data.password,
+        role: data.role,
         address: {
-          data: userData.address,
+          data: data.address,
           shortData: data.shortData,
           lat: data.coordinates.lat.toString(),
           lng: data.coordinates.lng.toString(),
@@ -117,19 +119,23 @@ export default function RegisterUserPage() {
       {
         onSuccess: () => {
           toast({
-            title: "Registro exitoso",
+            title: "Usuario creado",
             description: "El usuario ha sido registrado correctamente.",
-            variant: "default",
           });
-
+          form.reset();
           setTimeout(() => {
             router.push("/dashboard/usuarios");
-          }, 2000);
+          }, 1500);
+        },
+        onError: (err) => {
+          toast({
+            title: "Error al crear el usuario",
+            description: err.message || "No se pudo registrar el usuario. Intentá de nuevo.",
+            variant: "destructive",
+          });
         },
       }
     );
-
-    form.reset();
   };
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
@@ -141,142 +147,147 @@ export default function RegisterUserPage() {
   const isLoading = isCreatingUser;
 
   return (
-    <div className="mx-auto w-full h-full ">
+    <div className="space-y-6">
       <Form {...form}>
         <form
           onKeyDown={handleKeyDown}
           onSubmit={form.handleSubmit(onSubmit)}
-          autoComplete="off">
-          <div className="grid grid-cols-1 gap-6">
-            <Card className="lg:col-span-2">
-              <CardHeader>
-                <CardTitle>Información Personal</CardTitle>
-                <CardDescription>
-                  Ingrese los datos personales del nuevo usuario
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField
-                    control={form.control}
-                    name="firstName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nombre</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="Nombre del usuario"
-                            {...field}
-                            autoComplete="off"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+          autoComplete="off"
+          className="space-y-6"
+        >
+          {/* Personal Information Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Información Personal</CardTitle>
+              <CardDescription>
+                Ingrese los datos personales del nuevo usuario
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <FormField
+                  control={form.control}
+                  name="firstName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nombre</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Nombre del usuario"
+                          {...field}
+                          autoComplete="off"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-                  <FormField
-                    control={form.control}
-                    name="lastName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Apellido</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="Apellido del usuario"
-                            {...field}
-                            autoComplete="off"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                <FormField
+                  control={form.control}
+                  name="lastName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Apellido</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Apellido del usuario"
+                          {...field}
+                          autoComplete="off"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Correo Electrónico</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="correo@ejemplo.com"
-                            {...field}
-                            autoComplete="off"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Correo Electrónico</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="correo@ejemplo.com"
+                          {...field}
+                          autoComplete="off"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-                  <FormField
-                    control={form.control}
-                    name="role_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Rol a asignar</FormLabel>
+                <FormField
+                  control={form.control}
+                  name="role"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Rol</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                      >
                         <FormControl>
-                          <Input
-                            disabled
-                            value="Administrador"
-                            placeholder="Administrador"
-                            autoComplete="off"
-                          />
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccioná un rol" />
+                          </SelectTrigger>
                         </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                        <SelectContent avoidCollisions={false}>
+                          <SelectItem value="admin">Administrador</SelectItem>
+                          <SelectItem value="lector">Lector</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField
-                    control={form.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Contraseña</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="password"
-                            placeholder="Ingrese su contraseña"
-                            {...field}
-                            autoComplete="new-password"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Contraseña</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="password"
+                          placeholder="Ingrese su contraseña"
+                          {...field}
+                          autoComplete="new-password"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-                  <FormField
-                    control={form.control}
-                    name="confirmPassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Confirmar Contraseña</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="password"
-                            placeholder="Reingrese su contraseña"
-                            {...field}
-                            autoComplete="new-password"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <Separator className="my-8" />
+                <FormField
+                  control={form.control}
+                  name="confirmPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Confirmar Contraseña</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="password"
+                          placeholder="Reingrese su contraseña"
+                          {...field}
+                          autoComplete="new-password"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Location Card */}
           <Card>
@@ -298,12 +309,8 @@ export default function RegisterUserPage() {
                         <AddressAutocomplete
                           placeholder="Ingrese la dirección del usuario"
                           value={field.value}
-                          onChange={(value) => {
-                            field.onChange(value);
-                          }}
-                          onPlaceSelect={(place) => {
-                            handlePlaceSelect(place);
-                          }}
+                          onChange={(value) => field.onChange(value)}
+                          onPlaceSelect={(place) => handlePlaceSelect(place)}
                         />
                       </FormControl>
                       <FormMessage />
@@ -312,33 +319,31 @@ export default function RegisterUserPage() {
                 />
               </div>
 
-              <div className="h-[300px] rounded-md overflow-hidden">
+              <div className="h-[300px] rounded-md overflow-hidden border">
                 <CoordinateMap
                   initialLocation={mapCenter}
                   readOnly={true}
                   height="300px"
                 />
               </div>
-
-              <div className="flex flex-col sm:flex-row sm:justify-center gap-4">
-                <Button
-                  type="submit"
-                  className="w-full sm:w-[200px]"
-                  disabled={isLoading}>
-                  <Save className="mr-2 h-4 w-4" />
-                  {isLoading ? "Guardando..." : "Guardar Cambios"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full sm:w-[200px]"
-                  onClick={() => router.back()}
-                  disabled={isLoading}>
-                  Cancelar
-                </Button>
-              </div>
             </CardContent>
           </Card>
+
+          {/* Sticky action footer */}
+          <div className="sticky bottom-0 z-10 bg-background border-t py-3 flex items-center justify-between gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => router.back()}
+              disabled={isLoading}
+            >
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={isLoading}>
+              <Save className="mr-2 h-4 w-4" />
+              {isCreatingUser ? "Creando..." : "Crear usuario"}
+            </Button>
+          </div>
         </form>
       </Form>
     </div>
