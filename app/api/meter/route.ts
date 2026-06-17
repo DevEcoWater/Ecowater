@@ -34,7 +34,9 @@ export async function POST(req: Request) {
         application_name: meter_type === "MECHANICAL" ? null : application_name,
         lat: lat ?? null,
         lng: lng ?? null,
-        status: status ?? "ACTIVE",
+        // Mechanical meters start INACTIVE — they have no LoRa radio and need a user assigned
+        // before an admin can activate them. SMART meters default to ACTIVE.
+        status: status ?? (meter_type === "MECHANICAL" ? "INACTIVE" : "ACTIVE"),
         operational_status: operational_status ?? "OPERATIONAL",
       },
     });

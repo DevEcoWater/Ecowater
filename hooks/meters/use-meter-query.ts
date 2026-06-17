@@ -267,6 +267,30 @@ export const useUpdateMechanicalMeterMutation = () => {
   });
 };
 
+// Update only the status of a meter (mechanical activate/deactivate).
+// Uses PATCH /api/meter/:id — server enforces the "no user → can't activate" guard (409).
+export const useUpdateMeterStatusMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation<{ id: string; status: string }, Error, { id: string; status: string }>({
+    mutationFn: async ({ id, status }) => {
+      const response = await fetch(`/api/meter/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Error al actualizar el estado del medidor");
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["meters"] });
+      queryClient.invalidateQueries({ queryKey: ["meter", data.id] });
+    },
+  });
+};
+
 // Legacy hooks for backward compatibility
 export function useMeter(id: string) {
   return useMeterQuery(id);

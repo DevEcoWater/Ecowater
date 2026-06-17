@@ -128,6 +128,7 @@ export const meterColumns: ColumnDef<MeterDataForTable>[] = [
         device_name: m.device_name ?? "",
         street_address: m.street_address ?? "",
         dev_eui: m.dev_eui ?? "",
+        status: m.status,
       };
       return (
         <div onClick={(e) => e.stopPropagation()}>

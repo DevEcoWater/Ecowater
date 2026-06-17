@@ -18,6 +18,8 @@ import {
   Wifi,
   Battery,
   Gauge,
+  Power,
+  PowerOff,
 } from "lucide-react";
 import { MeterTypeChip } from "@/components/ui/meter-type-chip";
 import MeterCard from "@/components/dashboard/meter-card";
@@ -55,6 +57,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { downloadInvoiceCsv } from "@/lib/export-invoice";
 import { useSession } from "next-auth/react";
 import { useFeaturePacks } from "@/hooks/cooperative/use-feature-packs";
+import { useUpdateMeterStatusMutation } from "@/hooks/meters/use-meter-query";
+import { useToast } from "@/hooks/use-toast";
 import { ValveCommandsCard } from "@/components/medidores/detail/valve-commands-card";
 import { resolveValveDisplayStatus } from "@/types/meters/valve-types";
 import { useMeterZoneQuery } from "@/hooks/zones/use-zones";
@@ -153,6 +157,27 @@ const MeterDashboard = () => {
   });
 
   const isMechanical = meterData?.meter_type === "MECHANICAL";
+
+  const { toast } = useToast();
+  const statusMutation = useUpdateMeterStatusMutation();
+
+  const isMeterActive = meterData?.status === "ACTIVE";
+  const hasMeterUser = !!meterData?.user;
+
+  const handleToggleMeterStatus = async () => {
+    if (!meterData) return;
+    const nextStatus = isMeterActive ? "INACTIVE" : "ACTIVE";
+    try {
+      await statusMutation.mutateAsync({ id: meterData.id, status: nextStatus });
+      toast({ title: nextStatus === "ACTIVE" ? "Medidor activado" : "Medidor desactivado" });
+    } catch (err: any) {
+      toast({
+        title: "No se pudo cambiar el estado",
+        description: err.message,
+        variant: "destructive",
+      });
+    }
+  };
 
   const currentTotal = consumption
     ? consumption.series.reduce((sum, point) => sum + (point.consumo_m3 ?? 0), 0)
@@ -315,6 +340,28 @@ const MeterDashboard = () => {
                     <Download className="w-3 h-3" />
                     {isDownloadingInvoice ? "Generando..." : "Descargar Factura"}
                   </Button>
+
+                  {/* Activate / Deactivate — mechanical meters only */}
+                  {isMechanical && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleToggleMeterStatus}
+                      disabled={
+                        statusMutation.isPending ||
+                        !canOperate ||
+                        (!isMeterActive && !hasMeterUser)
+                      }
+                      title={!hasMeterUser && !isMeterActive ? "Asigná un usuario para activar" : undefined}
+                      className="gap-1.5 text-xs h-7"
+                    >
+                      {isMeterActive ? (
+                        <><PowerOff className="w-3 h-3" />Desactivar</>
+                      ) : (
+                        <><Power className="w-3 h-3" />Activar</>
+                      )}
+                    </Button>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -465,6 +512,31 @@ const MeterDashboard = () => {
                 />
 
                 <Separator orientation="vertical" className="h-5" />
+
+                {/* Activate / Deactivate — mechanical meters only */}
+                {isMechanical && (
+                  <>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleToggleMeterStatus}
+                      disabled={
+                        statusMutation.isPending ||
+                        !canOperate ||
+                        (!isMeterActive && !hasMeterUser)
+                      }
+                      title={!hasMeterUser && !isMeterActive ? "Asigná un usuario para activar" : undefined}
+                      className="gap-1.5"
+                    >
+                      {isMeterActive ? (
+                        <><PowerOff className="w-4 h-4" />Desactivar</>
+                      ) : (
+                        <><Power className="w-4 h-4" />Activar</>
+                      )}
+                    </Button>
+                    <Separator orientation="vertical" className="h-5" />
+                  </>
+                )}
 
                 <Button
                   size="sm"

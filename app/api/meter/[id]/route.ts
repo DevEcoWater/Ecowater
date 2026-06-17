@@ -98,6 +98,45 @@ export async function GET(_: Request, { params }: Context) {
   }
 }
 
+export async function PATCH(
+  req: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const { status } = await req.json();
+    if (!status) {
+      return NextResponse.json({ error: "status is required" }, { status: 400 });
+    }
+
+    const meter = await prisma.meter.findUnique({
+      where: { id: params.id },
+      include: { userMeters: { select: { id: true } } },
+    });
+
+    if (!meter) {
+      return NextResponse.json({ error: "Meter not found" }, { status: 404 });
+    }
+
+    // Guard: mechanical meters can only be ACTIVE when they have an assigned user.
+    if (meter.meter_type === "MECHANICAL" && status === "ACTIVE" && meter.userMeters.length === 0) {
+      return NextResponse.json(
+        { error: "El medidor no tiene usuario asignado. Asigná un usuario antes de activarlo." },
+        { status: 409 }
+      );
+    }
+
+    const updated = await prisma.meter.update({
+      where: { id: params.id },
+      data: { status: status as MeterStatus, updated_at: new Date() },
+    });
+
+    return NextResponse.json(updated);
+  } catch (error) {
+    console.error("[PATCH METER STATUS]", error);
+    return NextResponse.json({ error: "Failed to update meter status" }, { status: 500 });
+  }
+}
+
 export async function PUT(
   req: Request,
   { params }: { params: { id: string } }

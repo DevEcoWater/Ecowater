@@ -43,7 +43,6 @@ export default function EditarMedidorMecanicoPage() {
           dev_eui: meter.dev_eui ?? "",
           lat: meter.lat ?? defaultLocation.lat,
           lng: meter.lng ?? defaultLocation.lng,
-          status: meter.status ?? "ACTIVE",
         }}
       />
     </div>
