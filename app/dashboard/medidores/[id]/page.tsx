@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import dayjs from "dayjs";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import Chip from "@/components/ui/chip";
 import {
@@ -14,9 +15,11 @@ import {
   BarChart3,
   Table,
   Download,
-  Cpu,
-  Wrench,
+  Wifi,
+  Battery,
+  Gauge,
 } from "lucide-react";
+import { MeterTypeChip } from "@/components/ui/meter-type-chip";
 import MeterCard from "@/components/dashboard/meter-card";
 import { Main } from "@/components/layout/panel/main";
 import { useParams } from "next/navigation";
@@ -48,9 +51,12 @@ import {
   PaginationEllipsis,
 } from "@/components/ui/pagination";
 import { downloadReadingsCsv } from "@/lib/export-csv";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { downloadInvoiceCsv } from "@/lib/export-invoice";
+import { useSession } from "next-auth/react";
 import { useFeaturePacks } from "@/hooks/cooperative/use-feature-packs";
 import { ValveCommandsCard } from "@/components/medidores/detail/valve-commands-card";
+import { resolveValveDisplayStatus } from "@/types/meters/valve-types";
 import { useMeterZoneQuery } from "@/hooks/zones/use-zones";
 import Link from "next/link";
 import { Layers } from "lucide-react";
@@ -65,6 +71,9 @@ const MeterDashboard = () => {
     ? { startDate: customRange.startDate, endDate: customRange.endDate }
     : { period: selectedPeriod };
 
+  const { data: session } = useSession();
+  const canOperate = session?.user?.canWrite ?? false;
+
   const { data: packs } = useFeaturePacks();
   const { data: meterData, isLoading: isLoadingMeter } = useMeterQuery(
     id as string
@@ -74,11 +83,19 @@ const MeterDashboard = () => {
   const { data: consumption, isLoading: consumptionLoading } =
     useConsumptionFromMeterData(id as string, consumptionParams);
 
+  const previousConsumptionParams = getPreviousPeriodParams(selectedPeriod, customRange);
+  const { data: previousConsumption } = useConsumptionFromMeterData(
+    id as string,
+    previousConsumptionParams
+  );
+
   const {
     data: readingsData,
     isLoading: readingsLoading,
     page,
     setPage,
+    limit,
+    setLimit,
     totalPages,
     total,
   } = useMeterReadings(
@@ -137,7 +154,30 @@ const MeterDashboard = () => {
 
   const isMechanical = meterData?.meter_type === "MECHANICAL";
 
-  const metrics = isMechanical
+  const currentTotal = consumption
+    ? consumption.series.reduce((sum, point) => sum + (point.consumo_m3 ?? 0), 0)
+    : 0;
+  const previousTotal = previousConsumption
+    ? previousConsumption.series.reduce((sum, point) => sum + (point.consumo_m3 ?? 0), 0)
+    : 0;
+  const consumptionDelta =
+    previousTotal > 0 ? ((currentTotal - previousTotal) / previousTotal) * 100 : null;
+  const consumptionTrend =
+    consumptionDelta !== null
+      ? {
+          value: Math.abs(consumptionDelta),
+          direction: consumptionDelta >= 0 ? ("up" as const) : ("down" as const),
+        }
+      : undefined;
+
+  type MetricItem = {
+    title: string;
+    value: string;
+    icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+    status: string;
+    trend?: { value: number; direction: "up" | "down" };
+  };
+  const metrics: MetricItem[] = isMechanical
     ? [
         {
           title: "Última Lectura",
@@ -154,6 +194,7 @@ const MeterDashboard = () => {
             : "—",
           icon: ChartColumn,
           status: "default",
+          trend: consumptionTrend,
         },
       ]
     : [
@@ -165,7 +206,7 @@ const MeterDashboard = () => {
     },
     {
       title: "Flujo Instantáneo",
-      value: `${meterData?.reading?.instantaneous_flow ?? "—"} m³`,
+      value: `${meterData?.reading?.instantaneous_flow ?? "—"} L/min`,
       icon: ChartColumn,
       status: "default",
     },
@@ -197,6 +238,27 @@ const MeterDashboard = () => {
       [section]: !prev[section],
     }));
   };
+
+  // Health strip derived values
+  const connStatus = meterData.connectivity?.status ?? "OFFLINE";
+  const connColorMap = {
+    ONLINE: { bg: "#dcfce7", text: "#166534" },
+    STALE: { bg: "#fef9c3", text: "#854d0e" },
+    OFFLINE: { bg: "#f3f4f6", text: "#6b7280" },
+  } as const;
+  const connLabels = { ONLINE: "En línea", STALE: "Intermitente", OFFLINE: "Sin señal" };
+  const connColors = connColorMap[connStatus as keyof typeof connColorMap] ?? connColorMap.OFFLINE;
+
+  const valveRaw = meterData.reading?.statuses?.valve_status ?? null;
+  const valveStatus = resolveValveDisplayStatus(valveRaw);
+  const VALVE_STATUS_CONFIG = {
+    OPEN: { label: "Abierta", className: "bg-green-100 text-green-800" },
+    CLOSED: { label: "Cerrada", className: "bg-red-100 text-red-800" },
+    ABNORMAL: { label: "Anormal", className: "bg-orange-100 text-orange-800" },
+    UNKNOWN: { label: "Desconocido", className: "bg-gray-100 text-gray-600" },
+  } as const;
+  const valveStatusCfg = VALVE_STATUS_CONFIG[valveStatus];
+  const batteryLevel = (meterData.reading?.statuses as any)?.battery as number | undefined;
 
   return (
     <>
@@ -231,7 +293,9 @@ const MeterDashboard = () => {
                   <Chip
                     showDot
                     status={
-                      meterData.reading?.statuses?.meter_status || "Desconocido"
+                      isMechanical
+                        ? meterData.status
+                        : meterData.reading?.statuses?.meter_status || "Desconocido"
                     }
                   />
                   <div className="flex items-center justify-end gap-1">
@@ -266,6 +330,7 @@ const MeterDashboard = () => {
                       status={meterData.status}
                       isLoading={false}
                       meterDetail={false}
+                      trend={metric.trend}
                     />
                   ))}
                 </div>
@@ -274,96 +339,203 @@ const MeterDashboard = () => {
           </Card>
         </div>
 
+        {/* Mobile health strip — smart meters only */}
+        {!isMechanical && (
+          <div className="md:hidden flex flex-wrap items-center gap-3 px-4 py-3 bg-muted/40 rounded-xl border text-sm">
+            {/* Connectivity */}
+            <div className="flex items-center gap-1.5">
+              <Wifi className="w-4 h-4 text-muted-foreground" />
+              <span className="text-muted-foreground">Señal:</span>
+              <span
+                className="px-2 py-0.5 rounded-full text-xs font-medium"
+                style={{ backgroundColor: connColors.bg, color: connColors.text }}
+              >
+                {connLabels[connStatus as keyof typeof connLabels]}
+              </span>
+            </div>
+
+            <Separator orientation="vertical" className="h-4" />
+
+            {/* Last seen */}
+            <div className="flex items-center gap-1.5">
+              <Clock className="w-4 h-4 text-muted-foreground" />
+              <span className="text-muted-foreground">Última señal:</span>
+              <span className="font-medium">
+                {meterData.connectivity?.lastSeen
+                  ? formatDateTimeShortAR(meterData.connectivity.lastSeen)
+                  : "—"}
+              </span>
+            </div>
+
+            {/* Battery — only if available */}
+            {batteryLevel != null && (
+              <>
+                <Separator orientation="vertical" className="h-4" />
+                <div className="flex items-center gap-1.5">
+                  <Battery className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-muted-foreground">Batería:</span>
+                  <span className="font-medium">{batteryLevel}%</span>
+                </div>
+              </>
+            )}
+
+            {/* Valve — only if available */}
+            {meterData.reading?.statuses?.valve_status != null && (
+              <>
+                <Separator orientation="vertical" className="h-4" />
+                <div className="flex items-center gap-1.5">
+                  <Gauge className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-muted-foreground">Válvula:</span>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${valveStatusCfg.className}`}>
+                    {valveStatusCfg.label}
+                  </span>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
         {/* Desktop */}
-        <div id="tour-meter-header" className="hidden md:flex items-center justify-between gap-4 bg-white border shadow-sm rounded-xl px-6 py-4">
-          {/* Left: identity */}
-          <div className="flex items-center gap-4 min-w-0">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <p className="text-base font-semibold leading-tight">
-                  {meterData.device_name || `Medidor ${meterData.id.slice(-8)}`}
-                </p>
-                {meterData.meter_type === "MECHANICAL" ? (
-                  <span className="inline-flex items-center gap-1 text-xs bg-amber-100 text-amber-700 rounded-full px-2 py-0.5">
-                    <Wrench className="w-3 h-3" />
-                    Mecánico
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 text-xs bg-blue-100 text-blue-700 rounded-full px-2 py-0.5">
-                    <Cpu className="w-3 h-3" />
-                    Inteligente
-                  </span>
+        <Card id="tour-meter-header" className="hidden md:block">
+          <CardContent className="px-6 py-4">
+            <div className="flex items-center justify-between gap-4">
+              {/* Left: identity */}
+              <div className="flex items-center gap-4 min-w-0">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-base font-semibold leading-tight">
+                      {meterData.device_name || `Medidor ${meterData.id.slice(-8)}`}
+                    </p>
+                    <MeterTypeChip type={meterData.meter_type} />
+                  </div>
+                  <p className="text-xs text-muted-foreground font-mono mt-0.5">
+                    {meterData.meter_type === "MECHANICAL"
+                      ? meterData.street_address ?? "Sin dirección"
+                      : meterData.dev_eui}
+                  </p>
+                </div>
+
+                {meterData.user && (
+                  <>
+                    <Separator orientation="vertical" className="h-8" />
+                    <UserButton userId={meterData.user} />
+                  </>
+                )}
+
+                {meterZone && (
+                  <>
+                    <Separator orientation="vertical" className="h-8" />
+                    <Link
+                      href={`/dashboard/zonas/${meterZone.id}`}
+                      className="flex items-center gap-1.5 text-xs font-medium hover:underline"
+                    >
+                      <span
+                        className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: meterZone.color }}
+                      />
+                      <Layers className="w-3.5 h-3.5 text-muted-foreground" />
+                      {meterZone.name}
+                    </Link>
+                  </>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground font-mono mt-0.5">
-                {meterData.meter_type === "MECHANICAL"
-                  ? meterData.street_address ?? "Sin dirección"
-                  : meterData.dev_eui}
-              </p>
-            </div>
 
-            {meterData.user && (
-              <>
-                <Separator orientation="vertical" className="h-8" />
-                <UserButton userId={meterData.user} />
-              </>
-            )}
+              {/* Right: status + actions */}
+              <div className="flex items-center gap-3 flex-shrink-0">
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Clock size={12} />
+                  <span>{formatDateTimeShortAR(meterData.updated_at)}</span>
+                </div>
 
-            {meterZone && (
-              <>
-                <Separator orientation="vertical" className="h-8" />
-                <Link
-                  href={`/dashboard/zonas/${meterZone.id}`}
-                  className="flex items-center gap-1.5 text-xs font-medium hover:underline"
+                <Separator orientation="vertical" className="h-5" />
+
+                <Chip
+                  showDot
+                  status={
+                    isMechanical
+                      ? meterData.status
+                      : meterData.connectivity?.status === "ONLINE"
+                      ? "ACTIVE"
+                      : meterData.connectivity?.status === "STALE"
+                      ? "INACTIVE"
+                      : meterData.connectivity?.status === "OFFLINE"
+                      ? "INACTIVE"
+                      : "Desconocido"
+                  }
+                />
+
+                <Separator orientation="vertical" className="h-5" />
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleDownloadInvoice}
+                  disabled={isDownloadingInvoice}
+                  className="gap-1.5"
                 >
-                  <span
-                    className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: meterZone.color }}
-                  />
-                  <Layers className="w-3.5 h-3.5 text-muted-foreground" />
-                  {meterZone.name}
-                </Link>
+                  <Download className="w-4 h-4" />
+                  {isDownloadingInvoice ? "Generando..." : "Descargar Factura"}
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Desktop health strip — smart meters only */}
+        {!isMechanical && (
+          <div className="hidden md:flex flex-wrap items-center gap-3 px-4 py-3 bg-muted/40 rounded-xl border text-sm">
+            {/* Connectivity */}
+            <div className="flex items-center gap-1.5">
+              <Wifi className="w-4 h-4 text-muted-foreground" />
+              <span className="text-muted-foreground">Señal:</span>
+              <span
+                className="px-2 py-0.5 rounded-full text-xs font-medium"
+                style={{ backgroundColor: connColors.bg, color: connColors.text }}
+              >
+                {connLabels[connStatus as keyof typeof connLabels]}
+              </span>
+            </div>
+
+            <Separator orientation="vertical" className="h-4" />
+
+            {/* Last seen */}
+            <div className="flex items-center gap-1.5">
+              <Clock className="w-4 h-4 text-muted-foreground" />
+              <span className="text-muted-foreground">Última señal:</span>
+              <span className="font-medium">
+                {meterData.connectivity?.lastSeen
+                  ? formatDateTimeShortAR(meterData.connectivity.lastSeen)
+                  : "—"}
+              </span>
+            </div>
+
+            {/* Battery — only if available */}
+            {batteryLevel != null && (
+              <>
+                <Separator orientation="vertical" className="h-4" />
+                <div className="flex items-center gap-1.5">
+                  <Battery className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-muted-foreground">Batería:</span>
+                  <span className="font-medium">{batteryLevel}%</span>
+                </div>
+              </>
+            )}
+
+            {/* Valve — only if available */}
+            {meterData.reading?.statuses?.valve_status != null && (
+              <>
+                <Separator orientation="vertical" className="h-4" />
+                <div className="flex items-center gap-1.5">
+                  <Gauge className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-muted-foreground">Válvula:</span>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${valveStatusCfg.className}`}>
+                    {valveStatusCfg.label}
+                  </span>
+                </div>
               </>
             )}
           </div>
-
-          {/* Right: status + actions */}
-          <div className="flex items-center gap-3 flex-shrink-0">
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Clock size={12} />
-              <span>{formatDateTimeShortAR(meterData.updated_at)}</span>
-            </div>
-
-            <Separator orientation="vertical" className="h-5" />
-
-            <Chip
-              showDot
-              status={
-                meterData.connectivity?.status === "ONLINE"
-                  ? "ACTIVE"
-                  : meterData.connectivity?.status === "STALE"
-                  ? "INACTIVE"
-                  : meterData.connectivity?.status === "OFFLINE"
-                  ? "INACTIVE"
-                  : "Desconocido"
-              }
-            />
-
-
-            <Separator orientation="vertical" className="h-5" />
-
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleDownloadInvoice}
-              disabled={isDownloadingInvoice}
-              className="gap-1.5"
-            >
-              <Download className="w-4 h-4" />
-              {isDownloadingInvoice ? "Generando..." : "Descargar Factura"}
-            </Button>
-          </div>
-        </div>
+        )}
 
         <div className="md:hidden space-y-4 py-4">
           {/* Collapsible Metrics Section */}
@@ -393,6 +565,7 @@ const MeterDashboard = () => {
                       status={meterData.status}
                       isLoading={false}
                       meterDetail={false}
+                      trend={metric.trend}
                     />
                   ))}
                 </div>
@@ -463,19 +636,29 @@ const MeterDashboard = () => {
                   </TabsContent>
 
                   <TabsContent value="table" className="mt-0">
-                    <div className="flex justify-end mb-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={handleDownloadCsv}
-                        disabled={isDownloading}
-                        className="gap-1.5 text-xs"
-                      >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">Filas:</span>
+                        <Select
+                          value={String(limit)}
+                          onValueChange={(v) => { setLimit(Number(v)); setPage(1); }}
+                        >
+                          <SelectTrigger className="h-8 w-[70px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="10">10</SelectItem>
+                            <SelectItem value="25">25</SelectItem>
+                            <SelectItem value="50">50</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Button size="sm" variant="outline" onClick={handleDownloadCsv} disabled={isDownloading} className="gap-1.5 text-xs">
                         <Download className="w-3.5 h-3.5" />
                         {isDownloading ? "Descargando..." : "Exportar CSV"}
                       </Button>
                     </div>
-                    <div className="overflow-x-auto">
+                    <div className="min-h-[21rem] overflow-y-auto">
                       <ReadingTable
                         data={readingsData}
                         isLoading={readingsLoading}
@@ -576,6 +759,7 @@ const MeterDashboard = () => {
                     status={meterData.status}
                     isLoading={false}
                     meterDetail={false}
+                    trend={metric.trend}
                   />
                 ))}
               </div>
@@ -635,24 +819,36 @@ const MeterDashboard = () => {
                     </TabsContent>
 
                     <TabsContent value="table" className="mt-0">
-                      <div className="flex justify-end mb-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={handleDownloadCsv}
-                          disabled={isDownloading}
-                          className="gap-1.5 text-xs"
-                        >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-muted-foreground">Filas:</span>
+                          <Select
+                            value={String(limit)}
+                            onValueChange={(v) => { setLimit(Number(v)); setPage(1); }}
+                          >
+                            <SelectTrigger className="h-8 w-[70px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="10">10</SelectItem>
+                              <SelectItem value="25">25</SelectItem>
+                              <SelectItem value="50">50</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <Button size="sm" variant="outline" onClick={handleDownloadCsv} disabled={isDownloading} className="gap-1.5 text-xs">
                           <Download className="w-3.5 h-3.5" />
                           {isDownloading ? "Descargando..." : "Exportar CSV"}
                         </Button>
                       </div>
-                      <ReadingTable
-                        data={readingsData}
-                        isLoading={readingsLoading}
-                        error={null}
-                        meterType={meterData?.meter_type}
-                      />
+                      <div className="min-h-[21rem] overflow-y-auto">
+                        <ReadingTable
+                          data={readingsData}
+                          isLoading={readingsLoading}
+                          error={null}
+                          meterType={meterData?.meter_type}
+                        />
+                      </div>
                       <TablePagination
                         page={page}
                         setPage={setPage}
@@ -712,14 +908,15 @@ const MeterDashboard = () => {
 
             </div>
 
-            {/* Valve control — full width row */}
-            {packs?.valve_control && (
+            {/* Valve control — full width row, smart meters only */}
+            {packs?.valve_control && !isMechanical && (
               <div className="col-span-12">
                 <ValveCommandsCard
                   meterId={meterData.id}
                   deviceName={meterData.device_name}
                   currentValveStatus={meterData.reading?.statuses?.valve_status ?? null}
                   lastSeen={meterData.connectivity?.lastSeen ?? null}
+                  canOperate={canOperate}
                 />
               </div>
             )}
@@ -731,6 +928,37 @@ const MeterDashboard = () => {
 };
 
 export default MeterDashboard;
+
+function getPreviousPeriodParams(
+  period: DashboardPeriod,
+  customRange: { startDate: string; endDate: string } | null
+): ConsumptionQueryParams {
+  if (customRange) {
+    const start = dayjs(customRange.startDate);
+    const end = dayjs(customRange.endDate);
+    const duration = end.diff(start, "day");
+    return {
+      startDate: start.subtract(duration, "day").format("YYYY-MM-DD"),
+      endDate: start.subtract(1, "day").format("YYYY-MM-DD"),
+    };
+  }
+  const periodMap: Record<DashboardPeriod, { value: number; unit: "day" | "month" | "year" }> = {
+    "7d": { value: 7, unit: "day" },
+    "30d": { value: 30, unit: "day" },
+    "90d": { value: 90, unit: "day" },
+    "6m": { value: 6, unit: "month" },
+    "1y": { value: 1, unit: "year" },
+  };
+  const { value, unit } = periodMap[period];
+  return {
+    startDate: dayjs()
+      .subtract(value * 2, unit)
+      .format("YYYY-MM-DD"),
+    endDate: dayjs()
+      .subtract(value, unit)
+      .format("YYYY-MM-DD"),
+  };
+}
 
 function getPaginationRange(page: number, totalPages: number): (number | "…")[] {
   if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);

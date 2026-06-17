@@ -57,7 +57,7 @@ export function FilterTabs({
       label: "Mantenimiento",
       count: staticCounts.maintenances,
     },
-    { value: "FAULTY", label: "Fallidos", count: staticCounts.faultys },
+    { value: "FAULTY", label: "Error/Fallas", count: staticCounts.faultys },
   ];
 
   return (

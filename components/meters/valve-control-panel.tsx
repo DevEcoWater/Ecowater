@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Lock } from "lucide-react";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
@@ -33,6 +33,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   useValveCommandMutation,
   useValveHistoryQuery,
+  ValveCommandError,
 } from "@/hooks/meters/use-valve-control";
 import {
   ValveCommandType,
@@ -45,6 +46,7 @@ interface Props {
   deviceName: string;
   currentValveStatus: string | null;
   lastSeen?: string | null;
+  canOperate?: boolean;
 }
 
 const CYCLE_MS = 12 * 60 * 60 * 1000;
@@ -84,11 +86,17 @@ const RESULT_CONFIG: Record<
   FAILED: { label: "Fallido", className: "bg-red-100 text-red-800" },
 };
 
+const MQTT_STATUS_CONFIG = {
+  SUCCESS: { label: "Enviado", className: "bg-green-100 text-green-800 border-green-200" },
+  MQTT_ERROR: { label: "Sin conexión", className: "bg-red-100 text-red-800 border-red-200" },
+} as const;
+
 export function ValveControlPanel({
   meterId,
   deviceName,
   currentValveStatus,
   lastSeen,
+  canOperate = true,
 }: Props) {
   const [pendingCommand, setPendingCommand] =
     useState<ValveCommandType | null>(null);
@@ -157,58 +165,86 @@ export function ValveControlPanel({
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">{deviceName}</p>
           </div>
-          <Badge
-            variant="outline"
-            className={`text-xs font-medium ${statusCfg.className}`}
-          >
-            {statusCfg.label}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge
+              variant="outline"
+              className={`text-xs font-medium ${statusCfg.className}`}
+            >
+              {statusCfg.label}
+            </Badge>
+            {!mutation.isIdle && (() => {
+              const mqttCfg = mutation.error instanceof ValveCommandError
+                ? MQTT_STATUS_CONFIG.MQTT_ERROR
+                : mutation.data?.status === "SUCCESS"
+                ? MQTT_STATUS_CONFIG.SUCCESS
+                : null;
+              return mqttCfg ? (
+                <Badge
+                  variant="outline"
+                  className={`text-xs font-medium ${mqttCfg.className}`}
+                >
+                  {mqttCfg.label}
+                </Badge>
+              ) : null;
+            })()}
+          </div>
         </div>
 
-        <div className="flex items-center justify-between px-5 py-4 border-b">
-          <div>
-            <p className="text-sm font-medium text-foreground">
-              {valveStatus === "OPEN"
-                ? "Válvula abierta"
-                : valveStatus === "CLOSED"
-                ? "Válvula cerrada"
-                : "Estado incierto"}
-            </p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {valveStatus === "OPEN"
-                ? "Tocá para cerrar"
-                : valveStatus === "CLOSED"
-                ? "Tocá para abrir"
-                : "No se puede operar en este estado"}
+        <div className={`relative ${!canOperate ? "opacity-50 pointer-events-none" : ""}`}>
+          <div className="flex items-center justify-between px-5 py-4 border-b">
+            <div>
+              <p className="text-sm font-medium text-foreground">
+                {valveStatus === "OPEN"
+                  ? "Válvula abierta"
+                  : valveStatus === "CLOSED"
+                  ? "Válvula cerrada"
+                  : "Estado incierto"}
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {valveStatus === "OPEN"
+                  ? "Tocá para cerrar"
+                  : valveStatus === "CLOSED"
+                  ? "Tocá para abrir"
+                  : "No se puede operar en este estado"}
+              </p>
+            </div>
+
+            {mutation.isPending ? (
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            ) : (
+              <button
+                role="switch"
+                aria-checked={valveStatus === "OPEN"}
+                disabled={valveStatus === "ABNORMAL" || valveStatus === "UNKNOWN"}
+                onClick={() =>
+                  setPendingCommand(valveStatus === "OPEN" ? "CLOSE" : "OPEN")
+                }
+                className={cn(
+                  "relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                  "disabled:cursor-not-allowed disabled:opacity-40",
+                  valveStatus === "OPEN" ? "bg-green-500" : "bg-gray-300 dark:bg-gray-600"
+                )}
+              >
+                <span
+                  className={cn(
+                    "pointer-events-none block h-4 w-4 rounded-full bg-white shadow-md ring-0 transition-transform duration-200",
+                    valveStatus === "OPEN" ? "translate-x-5" : "translate-x-0.5"
+                  )}
+                />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {!canOperate && (
+          <div className="px-5 py-3 border-b flex items-center gap-2 bg-amber-50 dark:bg-amber-950/20">
+            <Lock className="h-4 w-4 text-amber-600 shrink-0" />
+            <p className="text-xs text-amber-700 dark:text-amber-400">
+              Permiso de escritura no habilitado — contactá a un administrador
             </p>
           </div>
-
-          {mutation.isPending ? (
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-          ) : (
-            <button
-              role="switch"
-              aria-checked={valveStatus === "OPEN"}
-              disabled={valveStatus === "ABNORMAL" || valveStatus === "UNKNOWN"}
-              onClick={() =>
-                setPendingCommand(valveStatus === "OPEN" ? "CLOSE" : "OPEN")
-              }
-              className={cn(
-                "relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                "disabled:cursor-not-allowed disabled:opacity-40",
-                valveStatus === "OPEN" ? "bg-green-500" : "bg-gray-300 dark:bg-gray-600"
-              )}
-            >
-              <span
-                className={cn(
-                  "pointer-events-none block h-4 w-4 rounded-full bg-white shadow-md ring-0 transition-transform duration-200",
-                  valveStatus === "OPEN" ? "translate-x-5" : "translate-x-0.5"
-                )}
-              />
-            </button>
-          )}
-        </div>
+        )}
 
         {lastSentCommand && (
           <div className="px-5 py-3 border-b bg-amber-50 dark:bg-amber-950/20 space-y-2">

@@ -5,9 +5,18 @@ import {
   ValveHistoryResponse,
 } from "@/types/meters/valve-types";
 
+export class ValveCommandError extends Error {
+  readonly status: "MQTT_ERROR";
+  constructor(message: string) {
+    super(message);
+    this.name = "ValveCommandError";
+    this.status = "MQTT_ERROR";
+  }
+}
+
 export function useValveCommandMutation(meterId: string) {
   const qc = useQueryClient();
-  return useMutation<ValveCommandResponse, Error, ValveCommandType>({
+  return useMutation<ValveCommandResponse, Error | ValveCommandError, ValveCommandType>({
     mutationFn: async (command) => {
       const res = await fetch(`/api/meter/${meterId}/valve`, {
         method: "POST",
@@ -15,7 +24,11 @@ export function useValveCommandMutation(meterId: string) {
         body: JSON.stringify({ command }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Error al enviar comando de válvula");
+      if (!res.ok) {
+        const isMqttError = data.status === "MQTT_ERROR";
+        if (isMqttError) throw new ValveCommandError(data.error ?? "Error de conexión MQTT");
+        throw new Error(data.error ?? "Error al enviar comando de válvula");
+      }
       return data;
     },
     onSuccess: () => {

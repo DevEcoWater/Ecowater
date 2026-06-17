@@ -27,9 +27,11 @@ export async function POST(request: Request) {
     );
 
     // 1. Obtener medidores que deberían estar INACTIVE (sin readings en 24h)
+    // Mechanical meters are excluded — their status is managed manually by users.
     const metersToDeactivate = await prisma.meter.findMany({
       where: {
-        status: "ACTIVE", // Solo los que están marcados como activos
+        status: "ACTIVE",
+        meter_type: "SMART",
         readings: {
           none: {
             timestamp: {
@@ -48,7 +50,8 @@ export async function POST(request: Request) {
     // 2. Obtener medidores que deberían estar ACTIVE (con readings recientes)
     const metersToActivate = await prisma.meter.findMany({
       where: {
-        status: "INACTIVE", // Solo los que están marcados como inactivos
+        status: "INACTIVE",
+        meter_type: "SMART",
         readings: {
           some: {
             timestamp: {
@@ -187,10 +190,11 @@ export async function GET() {
         where: { status: "FAULTY" },
       });
 
-      // Medidores que deberían estar inactivos pero están activos
+      // Smart meters that should be inactive but aren't (mechanical excluded)
       const shouldBeInactive = await tx.meter.count({
         where: {
           status: "ACTIVE",
+          meter_type: "SMART",
           readings: {
             none: {
               timestamp: {
@@ -201,10 +205,11 @@ export async function GET() {
         },
       });
 
-      // Medidores que deberían estar activos pero están inactivos
+      // Smart meters that should be active but aren't (mechanical excluded)
       const shouldBeActive = await tx.meter.count({
         where: {
           status: "INACTIVE",
+          meter_type: "SMART",
           readings: {
             some: {
               timestamp: {

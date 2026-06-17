@@ -1,4 +1,5 @@
 import {
+  MapMeter,
   MechanicalMeterFormData,
   MeterFormData,
   MeterReading,
@@ -225,6 +226,43 @@ export const useSubmitManualReadingMutation = (meterId: string) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["meter", meterId] });
       queryClient.invalidateQueries({ queryKey: ["meters"] });
+    },
+  });
+};
+
+/** Fetches all meters that have coordinates — used by the admin map view. */
+export const useMapMetersQuery = () => {
+  return useQuery<MapMeter[], Error>({
+    queryKey: ["meters", "map"],
+    queryFn: async () => {
+      const res = await fetch("/api/meters/map");
+      if (!res.ok) throw new Error("Failed to fetch map meters");
+      return res.json();
+    },
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: false,
+  });
+};
+
+// Update a mechanical meter (device_name, street_address, dev_eui, lat, lng)
+export const useUpdateMechanicalMeterMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation<Meter, Error, { id: string } & MechanicalMeterFormData>({
+    mutationFn: async ({ id, ...data }) => {
+      const response = await fetch(`/api/meter/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Error al actualizar medidor mecánico");
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["meters"] });
+      queryClient.invalidateQueries({ queryKey: ["meter", data.id] });
     },
   });
 };

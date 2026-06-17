@@ -5,9 +5,10 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
-import { publishValveCommand, getValveTopic } from "@/lib/mqtt-client";
-import { saveValveEvent, getValveHistory } from "@/lib/mongo-audit";
 import { z } from "zod";
+
+// mqtt and mongodb are optional infrastructure — loaded dynamically so that a
+// missing package causes a graceful 5xx instead of crashing the route module.
 
 const commandSchema = z.object({
   command: z.enum(["OPEN", "CLOSE"]),
@@ -67,16 +68,20 @@ export async function POST(req: Request, { params }: Context) {
     }
 
     const appId = meter.application_id ?? "2";
+
+    const { getValveTopic, publishValveCommand, MqttBrokerError } = await import("@/lib/mqtt-client");
     const topic = getValveTopic(meter.dev_eui, appId);
 
     let mqttError: string | null = null;
+    let mqttStatus: "SUCCESS" | "MQTT_ERROR" = "SUCCESS";
     try {
       await publishValveCommand(command, meter.dev_eui, appId);
     } catch (err) {
-      mqttError =
-        err instanceof Error ? err.message : "Error desconocido de MQTT";
+      mqttError = err instanceof Error ? err.message : "Error desconocido de MQTT";
+      mqttStatus = err instanceof MqttBrokerError ? "MQTT_ERROR" : "MQTT_ERROR";
     }
 
+    const { saveValveEvent } = await import("@/lib/mongo-audit");
     await saveValveEvent({
       timestamp: new Date(),
       user_id: session?.user?.id ?? "dev-bypass",
@@ -91,13 +96,13 @@ export async function POST(req: Request, { params }: Context) {
 
     if (mqttError) {
       return NextResponse.json(
-        { error: `Fallo al publicar comando MQTT: ${mqttError}`, topic, action: command },
+        { error: `Fallo al publicar comando MQTT: ${mqttError}`, status: "MQTT_ERROR", topic, action: command },
         { status: 502 }
       );
     }
 
     return NextResponse.json(
-      { success: true, topic, action: command },
+      { success: true, status: "SUCCESS", topic, action: command },
       { status: 201 }
     );
   } catch (err) {
@@ -128,6 +133,7 @@ export async function GET(req: Request, { params }: Context) {
       Math.max(1, parseInt(searchParams.get("limit") ?? "10"))
     );
 
+    const { getValveHistory } = await import("@/lib/mongo-audit");
     const result = await getValveHistory(params.id, page, limit);
 
     return NextResponse.json(result);
