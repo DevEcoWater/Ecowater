@@ -23,7 +23,7 @@ export async function PUT(
 ) {
   try {
     const body = await req.json();
-    const { name, color, polygon } = body;
+    const { name, color, polygon, route_order, route_assignments, operator_target } = body;
 
     const zone = await prisma.zone.update({
       where: { id: params.id },
@@ -31,6 +31,9 @@ export async function PUT(
         ...(name !== undefined && { name }),
         ...(color !== undefined && { color }),
         ...(polygon !== undefined && { polygon }),
+        ...(route_order !== undefined && { route_order }),
+        ...(route_assignments !== undefined && { route_assignments }),
+        ...(operator_target !== undefined && { operator_target }),
       },
     });
 

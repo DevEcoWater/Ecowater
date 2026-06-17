@@ -26,6 +26,19 @@ export function useOperariosQuery(page = 1, search = "") {
   });
 }
 
+export function useAllOperariosQuery() {
+  return useQuery<Operario[]>({
+    queryKey: [...OPERARIOS_KEY, "all"],
+    queryFn: async () => {
+      const params = new URLSearchParams({ page: "1", limit: "100" });
+      const res = await fetch(`/api/operarios?${params}`);
+      if (!res.ok) throw new Error("Error al obtener operarios");
+      const json = await res.json();
+      return json.data as Operario[];
+    },
+  });
+}
+
 export function useOperarioQuery(id: string | null) {
   return useQuery<Operario>({
     queryKey: [...OPERARIOS_KEY, id],

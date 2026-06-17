@@ -8,6 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import Chip, { ChipStatus } from "@/components/ui/chip";
 import { Separator } from "@/components/ui/separator";
 import {
   Layers,
@@ -20,6 +21,7 @@ import {
   MapPin,
 } from "lucide-react";
 import { useOperarioQuery, useOperarioReadingsQuery } from "@/hooks/operarios/use-operarios";
+import { formatDateTimeShortAR } from "@/lib/utils";
 import ZoneAssignment from "./zone-assignment";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -45,9 +47,9 @@ const ZONE_STATUS_LABEL: Record<string, string> = {
 };
 
 const ZONE_STATUS_CLASS: Record<string, string> = {
-  ACTIVE: "bg-green-100 text-green-700",
-  UPCOMING: "bg-yellow-100 text-yellow-700",
-  INACTIVE: "bg-gray-100 text-gray-500",
+  ACTIVE: "bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300",
+  UPCOMING: "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-300",
+  INACTIVE: "bg-gray-100 text-gray-500 dark:bg-muted dark:text-muted-foreground",
 };
 
 export default function OperarioDetail({ id }: OperarioDetailProps) {
@@ -81,10 +83,7 @@ export default function OperarioDetail({ id }: OperarioDetailProps) {
                 <h2 className="text-xl font-semibold">
                   {data.firstName} {data.lastName}
                 </h2>
-                <Badge variant={data.status === "ACTIVE" ? "default" : "secondary"}>
-                  <UserCheck className="h-3 w-3 mr-1" />
-                  {data.status === "ACTIVE" ? "Activo" : "Inactivo"}
-                </Badge>
+                <Chip status={data.status as ChipStatus} />
                 <Badge variant="outline">Operario</Badge>
               </div>
               <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-1">
@@ -163,7 +162,7 @@ export default function OperarioDetail({ id }: OperarioDetailProps) {
                   {zone.status && (
                     <span
                       className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                        ZONE_STATUS_CLASS[zone.status] ?? "bg-gray-100 text-gray-500"
+                        ZONE_STATUS_CLASS[zone.status] ?? "bg-gray-100 text-gray-500 dark:bg-muted dark:text-muted-foreground"
                       }`}
                     >
                       {ZONE_STATUS_LABEL[zone.status] ?? zone.status}
@@ -226,7 +225,7 @@ export default function OperarioDetail({ id }: OperarioDetailProps) {
                         {r.consumption != null ? r.consumption.toFixed(2) : "—"}
                       </td>
                       <td className="py-2.5 pr-4 whitespace-nowrap text-muted-foreground">
-                        {dayjs(r.timestamp).tz(AR_TZ).format("DD/MM/YY HH:mm")}
+                        {formatDateTimeShortAR(r.timestamp)}
                       </td>
                       <td className="py-2.5 text-muted-foreground max-w-[200px] truncate">
                         {r.observations ?? "—"}

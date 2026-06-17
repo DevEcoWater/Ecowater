@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { useZonesQuery } from "@/hooks/zones/use-zones";
 import { Zone } from "@/types/zones/zone-types";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -20,6 +22,7 @@ import { formatDateAR } from "@/lib/utils";
 export function ZonesList() {
   const { data: zones, isLoading } = useZonesQuery();
   const router = useRouter();
+  const [search, setSearch] = useState("");
 
   if (isLoading) {
     return (
@@ -31,9 +34,19 @@ export function ZonesList() {
     );
   }
 
+  const filteredZones = (zones ?? []).filter((zone) =>
+    zone.name.toLowerCase().includes(search.trim().toLowerCase())
+  );
+
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex justify-end">
+      <div className="flex justify-between gap-4">
+        <Input
+          placeholder="Buscar por nombre..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full md:w-[280px]"
+        />
         <Button asChild variant="outline" size="sm">
           <Link href="/dashboard/mapa">
             <MapIcon className="w-4 h-4 mr-2" />
@@ -57,6 +70,11 @@ export function ZonesList() {
             para dibujar una zona.
           </p>
         </div>
+      ) : filteredZones.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 gap-2 text-muted-foreground">
+          <MapIcon className="w-10 h-10" />
+          <p className="text-sm">No se encontraron zonas con ese nombre.</p>
+        </div>
       ) : (
         <Table>
           <TableHeader>
@@ -69,7 +87,7 @@ export function ZonesList() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {zones.map((zone: Zone) => (
+            {filteredZones.map((zone: Zone) => (
               <TableRow key={zone.id}>
                 <TableCell>
                   <div
