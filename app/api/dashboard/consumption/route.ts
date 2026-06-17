@@ -259,13 +259,15 @@ const getCachedConsumptionData = unstable_cache(
             AND m.meter_type = 'MECHANICAL'
         ),
         all_consumo AS (
-          SELECT meter_id, bucket_local, consumo_diario FROM consumo_smart
+          SELECT meter_id, bucket_local, consumo_diario, 'SMART' AS mtype FROM consumo_smart
           UNION ALL
-          SELECT meter_id, bucket_local, consumo_diario FROM consumo_mech
+          SELECT meter_id, bucket_local, consumo_diario, 'MECHANICAL' AS mtype FROM consumo_mech
         )
         SELECT
           CASE WHEN $1='month' THEN TO_CHAR(bucket_local,'YYYY-MM')
                ELSE TO_CHAR(bucket_local,'YYYY-MM-DD') END AS fecha,
+          CAST(ROUND(COALESCE(SUM(consumo_diario) FILTER (WHERE mtype='SMART'),0)::numeric,2) AS double precision) AS consumo_smart_m3,
+          CAST(ROUND(COALESCE(SUM(consumo_diario) FILTER (WHERE mtype='MECHANICAL'),0)::numeric,2) AS double precision) AS consumo_mech_m3,
           CAST(ROUND(SUM(consumo_diario)::numeric,2) AS double precision) AS consumo_m3,
           COUNT(DISTINCT meter_id)::int AS medidores_activos
         FROM all_consumo
@@ -352,6 +354,8 @@ const getCachedConsumptionData = unstable_cache(
       fecha: r.fecha,
       consumo_m3: Number(r.consumo_m3 ?? 0),
       medidores_activos: Number(r.medidores_activos ?? 0),
+      ...(r.consumo_smart_m3 != null && { consumo_smart_m3: Number(r.consumo_smart_m3) }),
+      ...(r.consumo_mech_m3  != null && { consumo_mech_m3:  Number(r.consumo_mech_m3)  }),
     }));
 
     let previousTotal: number | undefined;

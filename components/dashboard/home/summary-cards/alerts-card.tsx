@@ -20,8 +20,8 @@ export function AlertsCard({ activeAlerts }: AlertsCardProps) {
   return (
     <Link href="/dashboard/medidores" className="h-full block">
       <Card className="p-6 border-0 shadow-sm bg-white dark:bg-card cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 border-l-4 border-l-amber-500 h-full">
-        <CardContent className="p-0">
-          <div className="flex items-center justify-between">
+        <CardContent className="p-0 h-full flex flex-col justify-center gap-3">
+          <div className="flex items-start justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600 dark:text-muted-foreground">Alertas Activas</p>
               <p style={{ color: color }} className="text-3xl font-bold mt-2">
@@ -33,7 +33,7 @@ export function AlertsCard({ activeAlerts }: AlertsCardProps) {
             </div>
             <div
               style={{ backgroundColor: backgroundColor }}
-              className="p-3 rounded-lg"
+              className="p-3 rounded-lg shrink-0"
             >
               <TriangleAlert style={{ color: color }} className="w-8 h-8" />
             </div>

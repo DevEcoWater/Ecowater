@@ -73,7 +73,7 @@ export const AlarmTrendsChart = React.memo(function AlarmTrendsChart({ data, per
             </div>
           ) : (
           <div className="h-[24rem]">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" debounce={250}>
                 <LineChart
                   data={data!.series.map((d) => ({
                     ...d,

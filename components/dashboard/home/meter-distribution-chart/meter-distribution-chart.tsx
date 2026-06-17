@@ -82,7 +82,7 @@ export const MeterDistributionChart = React.memo(function MeterDistributionChart
           <div className="flex gap-4 items-center">
             {/* Donut chart */}
             <div className="h-52 w-44 shrink-0">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" debounce={250}>
                 <PieChart>
                   <Pie
                     data={chartData}

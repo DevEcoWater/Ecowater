@@ -27,6 +27,8 @@ export interface ConsumptionData {
     fecha: string; // "2025-01-15"
     consumo_m3: number; // 2.45 (m³)
     medidores_activos: number; // 3
+    consumo_smart_m3?: number; // present when meterId = "all"
+    consumo_mech_m3?: number;  // present when meterId = "all"
   }>;
   previousTotal?: number; // Total del período anterior (para comparación)
 }
