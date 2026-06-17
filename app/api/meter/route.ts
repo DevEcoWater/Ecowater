@@ -140,7 +140,11 @@ export async function GET(req: Request) {
       const isActive =
         isValidTimestamp && lastReading && lastReading.timestamp >= last24Hours;
 
-      const connectivityStatus = isActive
+      // Mechanical meters have no LoRa radio — connectivity is always N/A.
+      const isMechanical = meter.meter_type === "MECHANICAL";
+      const connectivityStatus = isMechanical
+        ? "N/A"
+        : isActive
         ? "ONLINE"
         : lastReading
         ? "STALE"
@@ -167,21 +171,22 @@ export async function GET(req: Request) {
             : null,
           connectivity: {
             status: connectivityStatus,
-            lastSeen: lastReading?.timestamp || null,
-            signalQuality: isActive ? "EXCELLENT" : "UNKNOWN",
+            lastSeen: isMechanical ? null : (lastReading?.timestamp || null),
+            signalQuality: isMechanical ? "UNKNOWN" : isActive ? "EXCELLENT" : "UNKNOWN",
           },
           dataFreshness: {
-            isRecent: isActive,
+            isRecent: isMechanical ? false : isActive,
             age: hoursSinceLastReading
               ? `${hoursSinceLastReading}h atrás`
               : "Desconocido",
+            // Mechanical meters don't auto-report — stale data is expected, not a warning.
             warning:
-              !isActive && lastReading
+              !isMechanical && !isActive && lastReading
                 ? "Medidor sin actividad reciente"
                 : null,
           },
           // Mecánicos usan estado real de BD; inteligentes usan conectividad
-          status: (meter.meter_type === "MECHANICAL" ? meter.status : chipStatus) as MeterStatus,
+          status: (isMechanical ? meter.status : chipStatus) as MeterStatus,
         };
       }
 
@@ -210,19 +215,20 @@ export async function GET(req: Request) {
           : null,
         connectivity: {
           status: connectivityStatus,
-          lastSeen: lastReading?.timestamp || null,
-          signalQuality: isActive ? "EXCELLENT" : "UNKNOWN",
+          lastSeen: isMechanical ? null : (lastReading?.timestamp || null),
+          signalQuality: isMechanical ? "UNKNOWN" : isActive ? "EXCELLENT" : "UNKNOWN",
         },
         dataFreshness: {
-          isRecent: isActive,
+          isRecent: isMechanical ? false : isActive,
           age: hoursSinceLastReading
             ? `${hoursSinceLastReading}h atrás`
             : "Desconocido",
+          // Mechanical meters don't auto-report — stale data is expected, not a warning.
           warning:
-            !isActive && lastReading ? "Medidor sin actividad reciente" : null,
+            !isMechanical && !isActive && lastReading ? "Medidor sin actividad reciente" : null,
         },
-        // Usar estado de conectividad en lugar del estado de BD
-        status: chipStatus as MeterStatus,
+        // Mecánicos usan estado real de BD; inteligentes usan conectividad
+        status: (isMechanical ? meter.status : chipStatus) as MeterStatus,
       };
     });
 
