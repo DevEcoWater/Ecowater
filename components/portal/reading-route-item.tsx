@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Clock, CheckCircle2, MapPin } from "lucide-react";
+import { Clock, CheckCircle2, MapPin, ChevronRight } from "lucide-react";
 import { ReadingRouteItem } from "@/types/operarios/operario-types";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
@@ -25,6 +25,13 @@ export function ReadingRouteItemCard({ item, zoneId }: ReadingRouteItemProps) {
       onClick={() => router.push(`/portal/zonas/${zoneId}/medidores/${item.id}`)}
       className="w-full bg-white rounded-xl border border-gray-200 shadow-sm p-4 min-h-[72px] flex items-center gap-4 text-left hover:bg-gray-50 active:bg-gray-100 transition-colors"
     >
+      {/* Route order badge */}
+      {item.order != null && (
+        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-xs font-bold shrink-0">
+          {item.order}
+        </span>
+      )}
+
       {/* Content */}
       <div className="flex-1 min-w-0">
         <p className="font-semibold text-gray-900 text-base">
@@ -63,6 +70,7 @@ export function ReadingRouteItemCard({ item, zoneId }: ReadingRouteItemProps) {
           </>
         )}
       </div>
+      <ChevronRight className="w-4 h-4 text-gray-400 shrink-0 ml-1" />
     </button>
   );
 }
