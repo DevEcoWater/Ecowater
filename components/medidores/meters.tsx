@@ -93,7 +93,7 @@ const Meters = () => {
 
         {/* Right: type filter group + CTA */}
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex items-center rounded-md border overflow-hidden">
+          <div id="tour-meters-type-filter" className="flex items-center rounded-md border overflow-hidden">
             {TYPE_OPTIONS.map((opt) => (
               <button
                 key={opt.value}

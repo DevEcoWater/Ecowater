@@ -399,7 +399,7 @@ export function ZoneDetail({ id }: ZoneDetailProps) {
       </div>
 
       {/* ── Card: Medidores ───────────────────────────────────────────────── */}
-      <Card className="border-0 shadow-sm bg-white dark:bg-card">
+      <Card id="tour-zone-meters" className="border-0 shadow-sm bg-white dark:bg-card">
         <CardHeader className="px-6 pt-6 pb-2">
           <CardTitle className="text-lg flex items-center gap-2">
             <Gauge className="h-4 w-4 text-blue-500" />
@@ -483,7 +483,9 @@ export function ZoneDetail({ id }: ZoneDetailProps) {
       </Card>
 
       {/* ── Card: Operarios ───────────────────────────────────────────────── */}
-      <ZoneOperatorSection zoneId={id} />
+      <div id="tour-zone-operators">
+        <ZoneOperatorSection zoneId={id} />
+      </div>
 
     </div>
   );

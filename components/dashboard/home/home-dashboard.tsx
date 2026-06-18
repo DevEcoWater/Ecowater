@@ -151,28 +151,30 @@ export function HomeDashboard() {
               <DropletIcon className="w-3.5 h-3.5" />
               <span>Consumo</span>
             </TabsTrigger>
-            <TabsTrigger value="alarmas" className="flex items-center gap-1.5 cursor-pointer">
+            <TabsTrigger id="tour-tab-alarmas" value="alarmas" className="flex items-center gap-1.5 cursor-pointer">
               <Bell className="w-3.5 h-3.5" />
               <span>Alarmas</span>
             </TabsTrigger>
-            <TabsTrigger value="medidores" className="flex items-center gap-1.5 cursor-pointer">
+            <TabsTrigger id="tour-tab-medidores" value="medidores" className="flex items-center gap-1.5 cursor-pointer">
               <Gauge className="w-3.5 h-3.5" />
               <span>Medidores</span>
             </TabsTrigger>
           </TabsList>
 
-          <DateRangeSelector
-            selectedPeriod={selectedPeriod}
-            customRange={customRange}
-            onPeriodSelect={(period) => {
-              setSelectedPeriod(period);
-              setCustomRange(null);
-            }}
-            onRangeApply={(startDate, endDate) =>
-              setCustomRange({ startDate, endDate })
-            }
-            onRangeClear={() => setCustomRange(null)}
-          />
+          <div id="tour-date-range-selector">
+            <DateRangeSelector
+              selectedPeriod={selectedPeriod}
+              customRange={customRange}
+              onPeriodSelect={(period) => {
+                setSelectedPeriod(period);
+                setCustomRange(null);
+              }}
+              onRangeApply={(startDate, endDate) =>
+                setCustomRange({ startDate, endDate })
+              }
+              onRangeClear={() => setCustomRange(null)}
+            />
+          </div>
         </div>
 
         {/* ── Tab: Consumo ── */}
