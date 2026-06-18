@@ -1,11 +1,9 @@
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
-import relativeTime from "dayjs/plugin/relativeTime";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
-dayjs.extend(relativeTime);
 
 /**
  * Converts a Unix timestamp (in seconds) to Argentina timezone ISO string
@@ -42,9 +40,25 @@ export const convertTimestampToUTC = (timestamp: number): string => {
   return dayjs(timestamp * 1000).toISOString();
 };
 
-export const formatReadingAge = (
+export function formatReadingAge(
   timestamp: Date | string | null | undefined
-): string => {
+): string {
   if (!timestamp) return "Sin lecturas";
-  return dayjs(timestamp).fromNow();
-};
+  const date = new Date(timestamp as string);
+  if (isNaN(date.getTime())) return "Sin lecturas";
+
+  const diffMs = Date.now() - date.getTime();
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffH = Math.floor(diffMin / 60);
+  const diffD = Math.floor(diffH / 24);
+  const diffM = Math.floor(diffD / 30.44);
+  const diffY = Math.floor(diffD / 365.25);
+
+  if (diffSec < 60) return "hace unos segundos";
+  if (diffMin < 60) return diffMin === 1 ? "hace 1 minuto" : `hace ${diffMin} minutos`;
+  if (diffH < 24) return diffH === 1 ? "hace 1 hora" : `hace ${diffH} horas`;
+  if (diffD < 30) return diffD === 1 ? "hace 1 día" : `hace ${diffD} días`;
+  if (diffM < 12) return diffM === 1 ? "hace 1 mes" : `hace ${diffM} meses`;
+  return diffY === 1 ? "hace 1 año" : `hace ${diffY} años`;
+}
