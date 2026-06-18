@@ -17,6 +17,7 @@ interface SummaryCardsProps {
   period: string;
   smartTotal?: number;
   mechTotal?: number;
+  onShowAlarms?: () => void;
 }
 
 const containerVariants = {
@@ -37,7 +38,7 @@ const cardVariants = {
   },
 };
 
-export const SummaryCards = React.memo(function SummaryCards({ stats, consumptionTotal, previousTotal, period, smartTotal, mechTotal }: SummaryCardsProps) {
+export const SummaryCards = React.memo(function SummaryCards({ stats, consumptionTotal, previousTotal, period, smartTotal, mechTotal, onShowAlarms }: SummaryCardsProps) {
   const { data: urgencies } = useUrgencies({
     includeInactive: true,
     limit: 100,
@@ -85,10 +86,10 @@ export const SummaryCards = React.memo(function SummaryCards({ stats, consumptio
         />
       </motion.div>
       <motion.div variants={cardVariants} className="h-full">
-        <AlertsCard activeAlerts={totalAlerts} />
+        <AlertsCard activeAlerts={totalAlerts} onShowAlarms={onShowAlarms} />
       </motion.div>
       <motion.div variants={cardVariants} className="h-full">
-        <ErrorsCard totalErrors={totalErrors} />
+        <ErrorsCard totalErrors={totalErrors} onShowAlarms={onShowAlarms} />
       </motion.div>
     </motion.div>
   );

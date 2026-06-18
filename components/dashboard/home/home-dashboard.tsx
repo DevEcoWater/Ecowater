@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { SummaryCards } from "./summary-cards/summary-cards";
 import { ConsumptionChart } from "./consumption-chart/consumption-chart";
 import { DateRangeSelector } from "./date-range-selector";
@@ -40,6 +40,16 @@ export function HomeDashboard() {
   const consumptionParams: ConsumptionQueryParams = customRange
     ? { startDate: customRange.startDate, endDate: customRange.endDate }
     : { period: selectedPeriod };
+
+  const [activeTab, setActiveTab] = useState("consumo");
+  const tabsSectionRef = useRef<HTMLDivElement>(null);
+
+  const showAlarms = () => {
+    setActiveTab("alarmas");
+    setTimeout(() => {
+      tabsSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 0);
+  };
 
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
   const { data: consumption, isLoading: consumptionLoading } =
@@ -126,11 +136,13 @@ export function HomeDashboard() {
           period={periodLabel}
           smartTotal={smartTotal}
           mechTotal={mechTotal}
+          onShowAlarms={showAlarms}
         />
       </section>
 
       {/* ── Tabs: Consumo / Alarmas / Medidores ── */}
-      <Tabs defaultValue="consumo" className="space-y-4">
+      <div ref={tabsSectionRef}>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
 
         {/* Cabecera: selector de período + tabs */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -189,6 +201,7 @@ export function HomeDashboard() {
         </TabsContent>
 
       </Tabs>
+      </div>
 
     </div>
   );

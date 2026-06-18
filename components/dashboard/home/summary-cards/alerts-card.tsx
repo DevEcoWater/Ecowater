@@ -2,13 +2,13 @@ import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { TriangleAlert } from "lucide-react";
 import { getStatusColor } from "@/utils/getStatusColor";
-import Link from "next/link";
 
 interface AlertsCardProps {
   activeAlerts: number;
+  onShowAlarms?: () => void;
 }
 
-export function AlertsCard({ activeAlerts }: AlertsCardProps) {
+export function AlertsCard({ activeAlerts, onShowAlarms }: AlertsCardProps) {
   const getAlertText = (count: number) => {
     if (count === 0) return "Sin alertas";
     if (count < 5) return "Pocas alertas";
@@ -18,7 +18,13 @@ export function AlertsCard({ activeAlerts }: AlertsCardProps) {
   const { color, backgroundColor } = getStatusColor("PENDING");
 
   return (
-    <Link href="/dashboard/medidores" className="h-full block">
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onShowAlarms}
+      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onShowAlarms?.()}
+      className="h-full block"
+    >
       <Card className="p-6 border-0 shadow-sm bg-white dark:bg-card cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 border-l-4 border-l-amber-500 h-full">
         <CardContent className="p-0 h-full flex flex-col justify-center gap-3">
           <div className="flex items-start justify-between">
@@ -40,6 +46,6 @@ export function AlertsCard({ activeAlerts }: AlertsCardProps) {
           </div>
         </CardContent>
       </Card>
-    </Link>
+    </div>
   );
 }

@@ -2,13 +2,13 @@ import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
 import { getStatusColor } from "@/utils/getStatusColor";
-import Link from "next/link";
 
 interface ErrorsCardProps {
   totalErrors: number;
+  onShowAlarms?: () => void;
 }
 
-export function ErrorsCard({ totalErrors }: ErrorsCardProps) {
+export function ErrorsCard({ totalErrors, onShowAlarms }: ErrorsCardProps) {
   const { color, backgroundColor } = getStatusColor("FAULTY");
   const getErrorText = (count: number) => {
     if (count === 0) return "Sin errores";
@@ -17,7 +17,13 @@ export function ErrorsCard({ totalErrors }: ErrorsCardProps) {
   };
 
   return (
-    <Link href="/dashboard/medidores" className="h-full block">
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onShowAlarms}
+      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onShowAlarms?.()}
+      className="h-full block"
+    >
       <Card className="p-6 border-0 shadow-sm bg-white dark:bg-card cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 border-l-4 border-l-red-500 h-full">
         <CardContent className="p-0 h-full flex flex-col justify-center gap-3">
           <div className="flex items-start justify-between">
@@ -39,6 +45,6 @@ export function ErrorsCard({ totalErrors }: ErrorsCardProps) {
           </div>
         </CardContent>
       </Card>
-    </Link>
+    </div>
   );
 }
