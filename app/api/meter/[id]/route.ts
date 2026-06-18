@@ -55,11 +55,6 @@ export async function GET(_: Request, { params }: Context) {
       : lastReading
       ? "STALE"
       : "OFFLINE";
-    const hoursSinceLastReading = lastReading
-      ? Math.floor(
-          (now.getTime() - lastReading.timestamp.getTime()) / (1000 * 60 * 60)
-        )
-      : null;
 
     // ✅ Flatten user relation
     const userMeter = meter.userMeters[0] || null;
@@ -77,9 +72,6 @@ export async function GET(_: Request, { params }: Context) {
       },
       dataFreshness: {
         isRecent: isActive,
-        age: hoursSinceLastReading
-          ? `${hoursSinceLastReading}h atrás`
-          : "Desconocido",
         warning:
           !isActive && lastReading ? "Medidor sin actividad reciente" : null,
       },

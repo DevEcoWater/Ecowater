@@ -5,6 +5,7 @@ import Chip from "../ui/chip";
 import { MeterActions } from "./meter-actions";
 import { MeterDataForTable } from "@/types/meters/meter-types";
 import { formatDateTimeShortAR } from "@/lib/utils";
+import { formatReadingAge } from "@/utils/timestampConverter";
 import { MeterTypeChip } from "@/components/ui/meter-type-chip";
 
 export const meterColumns: ColumnDef<MeterDataForTable>[] = [
@@ -74,7 +75,7 @@ export const meterColumns: ColumnDef<MeterDataForTable>[] = [
     header: "Actividad",
     cell: ({ row }) => {
       const m = row.original as any;
-      const age = m.dataFreshness?.age ?? "—";
+      const age = formatReadingAge(m.lastReading?.timestamp);
       const warning = m.dataFreshness?.warning ?? null;
       return (
         <div className="flex flex-col gap-0.5">

@@ -15,7 +15,6 @@ export interface MeterDataForTable extends Omit<Meter, ""> {
   };
   dataFreshness?: {
     isRecent: boolean;
-    age: string;
     warning: string | null;
   };
 }
@@ -31,7 +30,6 @@ export interface MeterReading extends Meter {
   };
   dataFreshness?: {
     isRecent: boolean;
-    age: string;
     warning: string | null;
   };
 }

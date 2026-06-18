@@ -6,6 +6,7 @@ import { MeterTypeChip } from "@/components/ui/meter-type-chip";
 import Chip from "@/components/ui/chip";
 import { MeterActions } from "./meter-actions";
 import { formatDateTimeShortAR } from "@/lib/utils";
+import { formatReadingAge } from "@/utils/timestampConverter";
 import { MeterStatus } from "@prisma/client";
 
 interface MeterCardProps {
@@ -82,16 +83,14 @@ export function MeterCard({ meter, onClick }: MeterCardProps) {
       </div>
 
       {/* Activity row */}
-      {m.dataFreshness?.age && (
-        <div className="mt-2 flex items-center justify-between gap-2">
-          <span className="text-xs text-muted-foreground">
-            {m.dataFreshness.age}
-          </span>
-          {m.dataFreshness.warning && (
-            <span className="text-xs text-amber-600">{m.dataFreshness.warning}</span>
-          )}
-        </div>
-      )}
+      <div className="mt-2 flex items-center justify-between gap-2">
+        <span className="text-xs text-muted-foreground">
+          {formatReadingAge(m.lastReading?.timestamp)}
+        </span>
+        {m.dataFreshness?.warning && (
+          <span className="text-xs text-amber-600">{m.dataFreshness.warning}</span>
+        )}
+      </div>
     </div>
   );
 }

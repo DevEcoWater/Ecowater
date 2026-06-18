@@ -1,9 +1,11 @@
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
+import relativeTime from "dayjs/plugin/relativeTime";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
+dayjs.extend(relativeTime);
 
 /**
  * Converts a Unix timestamp (in seconds) to Argentina timezone ISO string
@@ -38,4 +40,11 @@ export const convertTimestampToTimezone = (
  */
 export const convertTimestampToUTC = (timestamp: number): string => {
   return dayjs(timestamp * 1000).toISOString();
+};
+
+export const formatReadingAge = (
+  timestamp: Date | string | null | undefined
+): string => {
+  if (!timestamp) return "Sin lecturas";
+  return dayjs(timestamp).fromNow();
 };

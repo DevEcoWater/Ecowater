@@ -151,12 +151,6 @@ export async function GET(req: Request) {
         : lastReading
         ? "STALE"
         : "OFFLINE";
-      const hoursSinceLastReading = lastReading
-        ? Math.floor(
-            (now.getTime() - lastReading.timestamp.getTime()) / (1000 * 60 * 60)
-          )
-        : null;
-
       const chipStatus = computeChipStatus(meter.meter_type, meter.status, lastReading);
 
       if (!userMeter) {
@@ -178,9 +172,6 @@ export async function GET(req: Request) {
           },
           dataFreshness: {
             isRecent: isMechanical ? false : isActive,
-            age: hoursSinceLastReading
-              ? `${hoursSinceLastReading}h atrás`
-              : "Desconocido",
             // Mechanical meters don't auto-report — stale data is expected, not a warning.
             warning:
               !isMechanical && !isActive && lastReading
@@ -222,9 +213,6 @@ export async function GET(req: Request) {
         },
         dataFreshness: {
           isRecent: isMechanical ? false : isActive,
-          age: hoursSinceLastReading
-            ? `${hoursSinceLastReading}h atrás`
-            : "Desconocido",
           // Mechanical meters don't auto-report — stale data is expected, not a warning.
           warning:
             !isMechanical && !isActive && lastReading ? "Medidor sin actividad reciente" : null,
