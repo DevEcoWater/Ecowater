@@ -1,9 +1,12 @@
-name: ecowater
+# Project name = CLIENT_SLUG (set COMPOSE_PROJECT_NAME in .env.production).
+# Each client gets its own slug (e.g. "aquacoop-norte") so container/volume
+# names are scoped per client on the same host, if ever needed.
+# Safe on separate VPS — the default slug "ecowater" keeps backward compat.
 
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: ecowater-postgres
+    container_name: ${CLIENT_SLUG:-ecowater}-postgres
     restart: unless-stopped
     env_file:
       - ../env/.env.production
@@ -19,11 +22,11 @@ services:
       timeout: 5s
       retries: 10
     networks:
-      - ecowater_net
+      - client_net
 
   mqtt:
     image: eclipse-mosquitto:2
-    container_name: ecowater-mqtt
+    container_name: ${CLIENT_SLUG:-ecowater}-mqtt
     restart: unless-stopped
     ports:
       - "1883:1883"
@@ -35,16 +38,16 @@ services:
       - ../mqtt/data:/mosquitto/data
       - ../mqtt/log:/mosquitto/log
     networks:
-      - ecowater_net
+      - client_net
 
   app:
-    container_name: ecowater-app
+    container_name: ${CLIENT_SLUG:-ecowater}-app
     restart: unless-stopped
     build:
       context: ../..
       dockerfile: deploy/docker/Dockerfile
       args:
-        NEXT_PUBLIC_NAME: ${NEXT_PUBLIC_NAME}
+        # NEXT_PUBLIC_NAME removed — brand name is committed in config/client.config.ts
         NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
         NEXT_PUBLIC_FIREBASE_API_KEY: ${NEXT_PUBLIC_FIREBASE_API_KEY}
         NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN}
@@ -71,11 +74,11 @@ services:
       retries: 5
       start_period: 30s
     networks:
-      - ecowater_net
+      - client_net
 
 volumes:
   postgres_data:
 
 networks:
-  ecowater_net:
+  client_net:
     driver: bridge

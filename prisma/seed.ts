@@ -1,64 +1,60 @@
 import { PrismaClient } from "@prisma/client";
+// Relative import (not @/ alias) so tsx can resolve it without Next.js config
+import { clientConfig } from "../config/client.config";
 
 const prisma = new PrismaClient();
 
 async function main() {
-  // Sembrar roles
-  await prisma.role.upsert({
-    where: { role_name: "admin" },
-    update: {},
-    create: {
-      role_name: "admin",
-    },
-  });
+  // ──────────────────────────────────────────────
+  // Roles — idempotent upsert
+  // ──────────────────────────────────────────────
+  const roles = ["admin", "supervisor", "user", "operario", "lector"] as const;
+  for (const role_name of roles) {
+    await prisma.role.upsert({
+      where: { role_name },
+      update: {},
+      create: { role_name },
+    });
+  }
 
-  await prisma.role.upsert({
-    where: { role_name: "supervisor" },
-    update: {},
-    create: {
-      role_name: "supervisor",
-    },
-  });
+  // ──────────────────────────────────────────────
+  // Cooperative — idempotent upsert via name
+  // Values come from env vars first, then fall back to clientConfig defaults.
+  // Set COOP_NAME, COOP_LOCATION, COOP_CONTACT, COOP_PHONE in .env.production
+  // (or .env.local for dev) to customize per client on seed.
+  // ──────────────────────────────────────────────
+  const coopName     = process.env.COOP_NAME     ?? clientConfig.brand.name;
+  const coopLocation = process.env.COOP_LOCATION ?? "Ciudad Principal";
+  const coopContact  = process.env.COOP_CONTACT  ?? "Administrador";
+  const coopPhone    = process.env.COOP_PHONE    ?? "+1234567890";
 
-  await prisma.role.upsert({
-    where: { role_name: "user" },
-    update: {},
-    create: {
-      role_name: "user",
-    },
-  });
-
-  await prisma.role.upsert({
-    where: { role_name: "operario" },
-    update: {},
-    create: {
-      role_name: "operario",
-    },
-  });
-
-  await prisma.role.upsert({
-    where: { role_name: "lector" },
-    update: {},
-    create: {
-      role_name: "lector",
-    },
-  });
-
-  // Opción 1: Usar create directamente si sabes que la base de datos está vacía
-  try {
-    await prisma.cooperative.create({
+  const existing = await prisma.cooperative.findFirst();
+  if (existing) {
+    await prisma.cooperative.update({
+      where: { id: existing.id },
       data: {
-        name: "Cooperativa Principal",
-        location: "Ciudad Principal",
-        contact_person: "Administrador",
-        phone_number: "+1234567890",
-        status: "ACTIVE",
+        name:           coopName,
+        location:       coopLocation,
+        contact_person: coopContact,
+        phone_number:   coopPhone,
+        status:         "ACTIVE",
       },
     });
-  } catch (error) {
-    // Si ya existe, ignorar el error
-    console.log("La cooperativa ya existe o hubo un error al crearla:", error);
+    console.log(`[seed] Cooperative updated: ${coopName}`);
+  } else {
+    await prisma.cooperative.create({
+      data: {
+        name:           coopName,
+        location:       coopLocation,
+        contact_person: coopContact,
+        phone_number:   coopPhone,
+        status:         "ACTIVE",
+      },
+    });
+    console.log(`[seed] Cooperative created: ${coopName}`);
   }
+
+  console.log("[seed] Done.");
 }
 
 main()

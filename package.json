@@ -22,7 +22,8 @@
     "dotenv": "npx dotenv -e .env.local --",
     "cron:update-meters": "curl -X POST http://localhost:3000/api/cron/update-meter-status",
     "cron:check-status": "curl -X GET http://localhost:3000/api/cron/update-meter-status",
-    "cron:run:vps": "bash deploy/scripts/run-meter-cron.sh"
+    "cron:run:vps": "bash deploy/scripts/run-meter-cron.sh",
+    "create-admin": "npx dotenv -e .env.local -- tsx prisma/create-admin.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
