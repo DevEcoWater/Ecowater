@@ -47,8 +47,9 @@ import AddressAutocomplete from "@/components/ui/address-autocomplete";
 import CoordinateMap from "@/components/ui/coordinateMap";
 import { UpdateUserFormValues } from "@/types/users/user-types";
 import { useSession } from "next-auth/react";
+import { clientConfig } from "@/config/client.config";
 
-const defaultLocation = { lat: -34.9035949, lng: -58.0373327 };
+const defaultLocation = clientConfig.geo.defaultLocation;
 
 // Define form schema with Zod
 const formSchema = z.object({

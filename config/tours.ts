@@ -1,4 +1,5 @@
 import { Tour } from "nextstepjs";
+import { clientConfig } from "@/config/client.config";
 
 export const tours: Tour[] = [
   {
@@ -6,7 +7,7 @@ export const tours: Tour[] = [
     steps: [
       {
         icon: "👋",
-        title: "¡Bienvenidos a EcoWater!",
+        title: `¡Bienvenidos a ${clientConfig.brand.name}!`,
         content:
           "Te guiamos por las principales secciones del panel de control. Podés saltar el tour en cualquier momento.",
         side: "bottom",

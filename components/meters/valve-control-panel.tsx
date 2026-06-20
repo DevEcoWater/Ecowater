@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
+import { clientConfig } from "@/config/client.config";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -289,7 +290,7 @@ export function ValveControlPanel({
                         {item.user_email}
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground text-right whitespace-nowrap">
-                        {dayjs(item.timestamp).tz("America/Argentina/Buenos_Aires").format("DD/MM HH:mm")}
+                        {dayjs(item.timestamp).tz(clientConfig.locale.timezone).format("DD/MM HH:mm")}
                       </TableCell>
                     </TableRow>
                   );

@@ -3,37 +3,17 @@ import {
   LayoutDashboard,
   MapIcon,
   GaugeCircleIcon,
-  Settings,
   Wrench,
   Users,
   Layers,
   HardHat,
   Home,
+  CreditCard,
 } from "lucide-react";
-import { AudioWaveform, Command, GalleryVerticalEnd } from "lucide-react";
-
-const TEAMS = [
-  {
-    name: "Shadcn Admin",
-    logo: Command,
-    plan: "Vite + ShadcnUI",
-  },
-  {
-    name: "Acme Inc",
-    logo: GalleryVerticalEnd,
-    plan: "Enterprise",
-  },
-  {
-    name: "Acme Corp.",
-    logo: AudioWaveform,
-    plan: "Startup",
-  },
-];
 
 export function getSidebarData(role?: string): SidebarData {
   if (role === "operario") {
     return {
-      teams: TEAMS,
       navGroups: [
         {
           title: "Portal Operario",
@@ -48,7 +28,6 @@ export function getSidebarData(role?: string): SidebarData {
 
   if (role === "lector") {
     return {
-      teams: TEAMS,
       navGroups: [
         {
           title: "Dashboard",
@@ -64,7 +43,6 @@ export function getSidebarData(role?: string): SidebarData {
   const isAdminOrSupervisor = role === "admin" || role === "supervisor";
 
   return {
-    teams: TEAMS,
     navGroups: [
       {
         title: "Dashboard",
@@ -80,8 +58,9 @@ export function getSidebarData(role?: string): SidebarData {
         ],
       },
       {
-        title: "Otros",
+        title: "Gestión",
         items: [
+          { title: "Planes", url: "/dashboard/planes", icon: CreditCard },
           { title: "Cooperativa", url: "/dashboard/otros/cooperativa", icon: Wrench },
         ],
       },
