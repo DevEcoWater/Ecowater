@@ -30,8 +30,9 @@ import {
 import { Separator } from "@/components/ui/separator";
 import CoordinateMap from "@/components/ui/coordinateMap";
 import AddressAutocomplete from "@/components/ui/address-autocomplete";
+import { clientConfig } from "@/config/client.config";
 
-const defaultLocation = { lat: -34.9035949, lng: -58.0373327 };
+const defaultLocation = clientConfig.geo.defaultLocation;
 
 const formSchema = z
   .object({

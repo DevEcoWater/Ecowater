@@ -1,20 +1,24 @@
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
+import { clientConfig } from "@/config/client.config";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
 /**
- * Converts a Unix timestamp (in seconds) to Argentina timezone ISO string
+ * Converts a Unix timestamp (in seconds) to the client's configured timezone.
  * @param timestamp - Unix timestamp in seconds
- * @returns ISO string in Argentina timezone (UTC-3)
+ * @returns ISO string in the client timezone (from clientConfig.locale.timezone)
  */
-export const convertTimestampToArgentinaTime = (timestamp: number): string => {
+export const convertTimestampToLocalTime = (timestamp: number): string => {
   return dayjs(timestamp * 1000)
-    .tz("America/Argentina/Buenos_Aires")
+    .tz(clientConfig.locale.timezone)
     .format("YYYY-MM-DDTHH:mm:ss.SSSZ");
 };
+
+/** @deprecated Use convertTimestampToLocalTime instead */
+export const convertTimestampToArgentinaTime = convertTimestampToLocalTime;
 
 /**
  * Converts a Unix timestamp (in seconds) to a specific timezone ISO string

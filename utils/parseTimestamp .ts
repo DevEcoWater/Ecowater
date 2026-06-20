@@ -1,9 +1,11 @@
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
+import { clientConfig } from "@/config/client.config";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
+
 export const parseTimestamp = (timestamp: string): string => {
   if (timestamp.length < 14) {
     throw new Error(
@@ -23,14 +25,17 @@ export const parseTimestamp = (timestamp: string): string => {
 
   const formattedInput = `${fullYear}-${MM}-${dd} ${HH}:${mm}:${ss}`;
 
-  // Interpreta como Argentina local y convierte a UTC ISO para que Prisma lo almacene correctamente.
-  // Sin esto, el string sin zona se guardaba como UTC y al mostrar con UTC-3 aparecía 3h antes.
+  // Interpreta como timezone local del cliente y convierte a UTC ISO para que Prisma lo almacene correctamente.
+  // Sin esto, el string sin zona se guardaba como UTC y al mostrar aparecía desfasado.
   return dayjs
-    .tz(formattedInput, "America/Argentina/Buenos_Aires")
+    .tz(formattedInput, clientConfig.locale.timezone)
     .toISOString();
 };
 
-export const parseUnixTimeToArgentina = (unixTime: number): string => {
+export const parseUnixTimeToLocal = (unixTime: number): string => {
   const date = new Date(unixTime * 1000);
-  return dayjs(date).tz("America/Argentina/Buenos_Aires").format();
+  return dayjs(date).tz(clientConfig.locale.timezone).format();
 };
+
+/** @deprecated Use parseUnixTimeToLocal instead */
+export const parseUnixTimeToArgentina = parseUnixTimeToLocal;

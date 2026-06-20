@@ -26,8 +26,9 @@ import CoordinateMap from "@/components/ui/coordinateMap";
 import { UserInfoSkeleton } from "./user-skeleton";
 import { AssignMeterModal } from "@/components/modals/assign-meter-modal";
 import { useToast } from "@/hooks/use-toast";
+import { clientConfig } from "@/config/client.config";
 
-const defaultLocation = { lat: -34.9035949, lng: -58.0373327 };
+const defaultLocation = clientConfig.geo.defaultLocation;
 
 export default function UserDetailPage() {
   const params = useParams();

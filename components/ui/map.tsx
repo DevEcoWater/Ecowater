@@ -7,6 +7,7 @@ import React, {
   useRef,
 } from "react";
 import { GoogleMap, Marker, InfoWindow, DrawingManager, Polygon } from "@react-google-maps/api";
+import { clientConfig } from "@/config/client.config";
 import { Skeleton } from "./skeleton";
 import { chipConfig } from "@/utils/getChipColor";
 import Chip from "./chip";
@@ -53,10 +54,7 @@ const containerStyle = {
   height: "calc(100svh - 220px)", // 64px fixed header + ~101px page-header/separator/padding
 };
 
-const center = {
-  lat: -34.90813431153549,
-  lng: -58.03651143251905,
-};
+const center = clientConfig.geo.mapCenter;
 
 function Map() {
   const { data, isLoading, error } = useMeters();
@@ -404,10 +402,10 @@ function Map() {
       maxZoom: 18,
       restriction: {
         latLngBounds: {
-          north: -34.9035949 + 0.05,
-          south: -34.9035949 - 0.05,
-          east: -58.0373327 + 0.05,
-          west: -58.0373327 - 0.05,
+          north: clientConfig.geo.mapCenter.lat + clientConfig.geo.mapBounds.radiusDeg,
+          south: clientConfig.geo.mapCenter.lat - clientConfig.geo.mapBounds.radiusDeg,
+          east: clientConfig.geo.mapCenter.lng + clientConfig.geo.mapBounds.radiusDeg,
+          west: clientConfig.geo.mapCenter.lng - clientConfig.geo.mapBounds.radiusDeg,
         },
         strictBounds: true,
       },
