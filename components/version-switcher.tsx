@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, ChevronsUpDown, GalleryVerticalEnd } from "lucide-react";
+import { Check, ChevronsUpDown } from "lucide-react";
 
 import {
   DropdownMenu,
@@ -15,6 +15,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import Image from "next/image";
+import { clientConfig } from "@/config/client.config";
 
 export function VersionSwitcher({
   versions,
@@ -35,11 +36,11 @@ export function VersionSwitcher({
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-black text-sidebar-primary-foreground">
-                <Image width={25} height={25} src="/eco-water.svg" alt="Logo" />
+                <Image width={25} height={25} src={clientConfig.brand.logo} alt="Logo" />
               </div>
               <div className="flex flex-col gap-0.5 leading-none">
                 <span className="font-semibold">
-                  {process.env.NEXT_PUBLIC_NAME}
+                  {clientConfig.brand.name}
                 </span>
                 <span className="">v{selectedVersion} </span>
               </div>

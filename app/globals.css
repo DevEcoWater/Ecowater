@@ -4,6 +4,14 @@
 
 @layer base {
   :root {
+    /* Brand accent — change this to re-skin the app for a new client */
+    --brand-accent: #2463EB;
+    /* Status palette */
+    --color-success: #22BB33;
+    --color-warning: #f0ad4e;
+    --color-error: #bb2124;
+    --color-tertiary: #2463EB1A;
+
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;

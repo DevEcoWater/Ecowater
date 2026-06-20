@@ -23,9 +23,9 @@ const config = withUt({
   			border: 'hsl(var(--border))',
   			input: 'hsl(var(--input))',
   			ring: 'hsl(var(--ring))',
-  			sucess: '#22BB33',
-  			warning: '#f0ad4e',
-  			error: '#bb2124',
+  			sucess: 'var(--color-success)',
+  			warning: 'var(--color-warning)',
+  			error: 'var(--color-error)',
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
   			primary: {
@@ -36,7 +36,7 @@ const config = withUt({
   				DEFAULT: 'hsl(var(--secondary))',
   				foreground: 'hsl(var(--secondary-foreground))'
   			},
-  			tertiary: '#2463EB1A',
+  			tertiary: 'var(--color-tertiary)',
   			destructive: {
   				DEFAULT: 'hsl(var(--destructive))',
   				foreground: 'hsl(var(--destructive-foreground))'

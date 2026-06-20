@@ -2,6 +2,7 @@ import * as React from "react";
 import type { Metadata, Viewport } from "next";
 import { Poppins } from "next/font/google";
 import Providers from "@/components/providers/common/providers";
+import { clientConfig } from "@/config/client.config";
 
 export const viewport = {
   width: "device-width",
@@ -19,18 +20,18 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "Eco Water",
+  title: clientConfig.brand.name,
   description: "",
   icons: {
-    icon: "/icon.svg",
-    shortcut: "/icon.svg",
-    apple: "/icon.svg",
+    icon: clientConfig.brand.favicon,
+    shortcut: clientConfig.brand.favicon,
+    apple: clientConfig.brand.favicon,
   },
 };
 
 export default function Layout({ children }: LayoutProps): React.JSX.Element {
   return (
-    <html lang="es">
+    <html lang={clientConfig.locale.lang}>
       <body className={poppins.className}>
         <Providers>{children}</Providers>
       </body>
