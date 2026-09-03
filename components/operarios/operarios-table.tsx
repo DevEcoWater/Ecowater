@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import Chip, { ChipStatus } from "@/components/ui/chip";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -37,6 +37,11 @@ import { useOperariosQuery } from "@/hooks/operarios/use-operarios";
 export default function OperariosTable() {
   const router = useRouter();
   const [page, setPage] = useState(1);
+
+  const goToPage = (p: number) => {
+    setPage(p);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
   const [search, setSearch] = useState("");
   const [inputValue, setInputValue] = useState("");
 
@@ -184,9 +189,7 @@ export default function OperariosTable() {
                   {op.email}
                 </TableCell>
                 <TableCell>
-                  <Badge variant={op.status === "ACTIVE" ? "default" : "secondary"}>
-                    {op.status === "ACTIVE" ? "Activo" : "Inactivo"}
-                  </Badge>
+                  <Chip status={op.status as ChipStatus} />
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1">
@@ -209,14 +212,14 @@ export default function OperariosTable() {
             <PaginationContent>
               <PaginationItem>
                 <PaginationPrevious
-                  onClick={() => setPage(Math.max(1, page - 1))}
+                  onClick={() => goToPage(Math.max(1, page - 1))}
                   className={page <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
                 />
               </PaginationItem>
               {Array.from({ length: totalPages }, (_, i) => (
                 <PaginationItem key={i + 1}>
                   <PaginationLink
-                    onClick={() => setPage(i + 1)}
+                    onClick={() => goToPage(i + 1)}
                     isActive={page === i + 1}
                     className="cursor-pointer"
                   >
@@ -226,7 +229,7 @@ export default function OperariosTable() {
               ))}
               <PaginationItem>
                 <PaginationNext
-                  onClick={() => setPage(Math.min(totalPages, page + 1))}
+                  onClick={() => goToPage(Math.min(totalPages, page + 1))}
                   className={page >= totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
                 />
               </PaginationItem>

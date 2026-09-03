@@ -23,8 +23,8 @@ export function MetersCard({ totalMeters, onlineMeters }: MetersCardProps) {
   return (
     <Link href="/dashboard/medidores" className="h-full block">
       <Card className="p-6 border-0 shadow-sm bg-white dark:bg-card cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 border-l-4 border-l-green-500 h-full">
-        <CardContent className="p-0">
-          <div className="flex items-center justify-between">
+        <CardContent className="p-0 h-full flex flex-col justify-center gap-3">
+          <div className="flex items-start justify-between">
             <div className="flex-1">
               <p className="text-sm font-medium text-gray-600 dark:text-muted-foreground">
                 Medidores en línea
@@ -47,7 +47,7 @@ export function MetersCard({ totalMeters, onlineMeters }: MetersCardProps) {
                 </span>
               </div>
             </div>
-            <div style={{ backgroundColor: bg }} className="p-3 rounded-lg ml-4">
+            <div style={{ backgroundColor: bg }} className="p-3 rounded-lg ml-4 shrink-0">
               <Gauge style={{ color }} className="w-8 h-8" />
             </div>
           </div>

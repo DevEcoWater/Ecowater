@@ -1,42 +1,100 @@
 # Ecowater — Sprint Technical Notes
-**Fecha:** 2026-06-06  
+**Fecha auditoría:** 2026-06-06 | **Última actualización:** 2026-06-15  
 **Propósito:** Revisión técnica del backlog contra el código real. Para cada tarea: qué hay, qué falta, dónde tocar.  
 **No contiene** suposiciones — cada observación fue verificada contra el repo.
 
 ---
 
-## Estado rápido por tarea
+## Checklist de sprint
 
-| # | Tarea | Prioridad | Estado real |
+> Leyenda: ✅ hecho | ⚠️ parcial | ❌ pendiente | 🔒 bloqueado | 🚫 no entra en sprint
+
+### P0 — Críticas
+
+- [x] ✅ **#1 Dashboard freeze** — `refetchOnWindowFocus: false` en los 4 hooks + `keepPreviousData`. Hecho en PR #58.
+- [x] ✅ **#2 Integración control de válvula** — Ya implementado en `main` (ED-88, PR #54). Cerrar card.
+- [ ] 🔒 **#3 Integración facturación (Darío)** — Sin modelo Prisma ni API. Bloqueado hasta definición con Darío.
+- [x] ✅ **#4 Cooperativa: dato anterior en actualización** — Fix `isDirty` + `reset` post-save. Hecho en PR #58.
+
+### P1 — Alto impacto funcional
+
+- [ ] ❌ **#5 ED-87 — Fix Gateway parser** — Bug real en `parseFlowHex`. Necesita payload real con hex A–F para reproducir.
+- [x] ✅ **#6 Normalizar timestamps a horario AR** — Completo. `operario-detail.tsx` migrado a `formatDateTimeShortAR`. Todos los componentes identificados migrados.
+- [x] ✅ **#7 ED-88 — Estado MQTT en panel de válvula** — `MqttBrokerError` typed class, `ValveCommandStatus` type, `status` field en respuesta del endpoint, `ValveCommandError` en hook, badge de conexión en `ValveControlPanel`.
+- [x] ⚠️ **#8 Medidores: filtros de estado** — Relabel "Fallidos" → "Error/Fallas" hecho en `filter-tabs.tsx`. El estado `DISCONNECTED` separado requiere decisión del equipo + migración del enum `MeterStatus`; queda pendiente.
+- [ ] ❌ **#9 Map: pines superpuestos / clustering** — Clustering existe con `radius: 150, zoomLevel < 14`. Calibración in-situ — ajustar `radius`/`zoom` con medidores reales en pantalla. No es un cambio de código.
+- [x] ✅ **#10 Map: restringir bounds al área de servicio** — `restrictionBounds` dinámico: prioridad medidores → cooperativa → fallback hardcodeado. Reset también actualizado.
+- [x] ✅ **#11 Map: layout controles / zoom / Street View** — `zoomControl` en RIGHT_BOTTOM, `mapTypeControl/streetViewControl/fullscreenControl` deshabilitados para deconflictar con panel custom.
+- [ ] 🔒 **#12 Zonas: columnas de facturación** — Bloqueado por #3 (sin modelo de facturación).
+- [x] ✅ **#M Medidores mecánicos: validación de lectura** — Implementado: `.refine()` en schema Zod del form + validación en backend antes de `prisma.reading.create`.
+
+### P2 — Mejoras importantes
+
+- [ ] ❌ **#13 Help/Video en PageRenderer** — No existe `PageRenderer` en el codebase. Clarificar con equipo.
+- [x] ✅ **#14 Map: botón "Agrupar"** — Funciona como checkbox. Si el backlog pide botón, es cosmético.
+- [x] ✅ **#15 Map: toggle POI** — Label es "Ocultar POI" (checked = ocultar), semánticamente correcto. Sin cambio necesario.
+- [x] ✅ **#16 Map: filtro por tipo de medidor** — Segmented button Todos/Smart/Mecánicos en panel Controles. Client-side, compone con filtros de estado existentes.
+- [x] ✅ **#17 Map: búsqueda por medidor/usuario/dirección** — Input de búsqueda en panel Controles. Filtra en vivo por `device_name`, `dev_eui`, `street_address`. Nota: búsqueda por usuario no disponible en el mapa (payload `/api/meters/map` no incluye nombre de usuario).
+- [x] ✅ **#18 Medidores: más datos en búsqueda** — Columnas: valor última lectura, actividad (frescura), conectividad (ONLINE/STALE/OFFLINE), EUI. Fix también del bug latente que descartaba matches de búsqueda por dev_eui/nombre.
+- [x] ✅ **#19 Zonas: filtro por nombre** — Ya estaba implementado en `zones-list.tsx`. Cerrar card.
+- [x] ✅ **#20 ED-86 — Usuarios: filtrar por rol** — Select "Todos los roles / Admin / Lector / Operario". Param `role` en `pagination.ts`, API, hook y UI.
+- [x] ✅ **#21 Zonas: toast de eliminación con undo** — Delete diferido 6s: remove optimista del cache → toast con "Deshacer" → DELETE real al vencer el timer. Sin migración de schema.
+- [x] ✅ **#22 Logout: redirección** — Ya resuelto con `signOut({ callbackUrl: "/auth/login" })`. Cerrar card.
+- [x] ✅ **#23 Portal operarios: OcrScanButton** — Google Cloud Vision integrado. Captura foto con cámara trasera → base64 → `documentTextDetection` → extrae dígitos del medidor → prellena el campo con validación inmediata. Requiere env var `GOOGLE_APPLICATION_CREDENTIALS_JSON` (service account JSON como string).
+- [x] ✅ **#24 Portal operarios: validación lectura < anterior** — Implementado: `.refine()` en schema Zod + validación en backend. Ver #M.
+- [ ] ❌ **#25–27 Lecturas: edición admin con auditoría** — Feature de cero. Sin modelo `ReadingAudit`.
+
+### P3 — No entran en sprint
+
+- [ ] 🚫 **#28 Mapa: licencia / marca de agua** — Google Maps incluye atribución por defecto. Verificar si hay algo puntual.
+- [ ] 🚫 **#29 ED-84 — Demo online** — Épica. No romper en sprint.
+- [ ] 🚫 **#30 Canal de facturación propio** — Épica futura.
+- [ ] 🚫 **#31 Playwright QA** — Sin test runner configurado.
+- [ ] 🚫 **#32 Tag v1.0** — Post-estabilización P0/P1.
+
+### Tech Debt
+
+- [x] ✅ **Prisma singleton** — `lib/prisma.ts` creado, 33 archivos migrados de `new PrismaClient()` a import compartido. Hecho en PR #58.
+- [x] ✅ **Edición de medidor mecánico en página completa** — Reemplaza el modal angosto por ruta dedicada `/dashboard/medidores/mecanicos/[id]/editar` que reutiliza el form de alta (mapa, autocomplete de dirección, detección geométrica de zona, coordenadas). Nuevo hook `useUpdateMechanicalMeterMutation` en `hooks/meters/use-meter-query.ts`.
+- [x] ✅ **Chips de estado en operarios** — `operarios-table` y `operario-detail` reutilizan `<Chip>` de medidores para activo/inactivo en vez de `<Badge>` hardcodeado.
+- [x] ✅ **Normalización de ancho de forms del dashboard** — Todos los forms de alta/edición a `max-w-5xl mx-auto py-6` (usuarios nuevo, editar usuario, operario nuevo). Eliminada la ruta duplicada muerta `app/dashboard/usuarios/new/`.
+
+---
+
+## Estado rápido por tarea (tabla de referencia)
+
+| # | Tarea | Prioridad | Estado |
 |---|---|---|---|
-| 1 | Dashboard freeze | P0 | Causa real identificada — no es freeze, es skeleton por `refetchOnWindowFocus` |
-| 2 | Integración control de válvula | P0 | **Ya implementado** en `main` (ED-88 mergeado) |
-| 3 | Integración facturación (Darío) | P0 | Sin modelo Prisma ni API — bloqueante de definición |
-| 4 | Cooperativa: actualización con dato anterior | P0 | Bug confirmado en `form.reset()` + `invalidateQueries` |
-| 5 | ED-87 — Fix Gateway parser | P1 | Bug real confirmado en `parseFlowHex` |
-| 6 | Normalizar timestamps | P1 | Problema real — 3+ componentes usan `dayjs()` sin `.tz()` |
-| 7 | ED-88 — MQTT en panel del medidor | P1 | UI de válvula existe; falta indicador de estado MQTT |
-| 8 | Medidores: filtros de estado / Error/Fallas | P1 | Filtros existen; "Fallidos (FAULTY)" ya está — revisar label y OperationalStatus |
-| 9 | Map: pines superpuestos / clustering | P1 | Clustering implementado — revisar umbral `zoomLevel < 14` |
-| 10 | Map: restringir bounds al área de servicio | P1 | Bounds **hardcodeados** a coord fija — no dinámicos |
-| 11 | Map: layout controles / zoom / Street View | P1 | No hay customización de controles Google Maps |
-| 12 | Zonas: columnas de facturación | P1 | Bloqueado — sin modelo de facturación |
-| 13 | Help/Video en PageRenderer | P2 | No implementado en absoluto |
-| 14 | Map: botón "Agrupar" | P2 | Es un checkbox, no botón — funciona para toggle clustering |
-| 15 | Map: toggle POI | P2 | Implementado ("Off POI" checkbox) — revisar label |
-| 16 | Map: filtro por tipo de medidor | P2 | No existe en el mapa (sí en `/medidores`) |
-| 17 | Map: búsqueda por medidor/usuario/dirección | P2 | No implementada en el mapa |
-| 18 | Medidores: más datos en resultado de búsqueda | P2 | Definir qué campos agregar a la tabla |
-| 19 | Zonas: filtro por nombre | P2 | No existe — tabla sin filtro de texto |
-| 20 | ED-86 — Usuarios: filtrar por rol | P2 | Solo filtros de estado — sin filtro de rol |
-| 21 | Zonas: toast de eliminación con undo | P2 | No implementado — sin feedback de eliminación |
-| 22 | Logout: corregir redirección | P2 | **Ya resuelto** — `signOut({ callbackUrl: "/auth/login" })` |
-| 23–27 | Portal operarios (ED-83) | P2 | OcrScanButton roto; sin validación lectura < anterior |
-| 28 | Mapa: licencia / marca de agua | P3 | Identificar proveedor |
-| 29 | ED-84 — Demo online | P3 | Épica — no entra en sprint |
-| 30 | Canal de facturación propio | P3 | Épica — no entra en sprint |
-| 31 | Playwright QA | P3 | No configurado |
-| 32 | Tag v1.0 | P3 | Cosmético — post-estabilización |
+| 1 | Dashboard freeze | P0 | ✅ Resuelto — PR #58 |
+| 2 | Integración control de válvula | P0 | ✅ En `main` (ED-88) — cerrar card |
+| 3 | Integración facturación (Darío) | P0 | 🔒 Bloqueado — sin definición |
+| 4 | Cooperativa: actualización con dato anterior | P0 | ✅ Resuelto — PR #58 |
+| 5 | ED-87 — Fix Gateway parser | P1 | ❌ Pendiente — necesita payload real |
+| 6 | Normalizar timestamps | P1 | ✅ Resuelto — `operario-detail` migrado, todos los componentes completados |
+| 7 | ED-88 — MQTT en panel del medidor | P1 | ✅ Resuelto — typed errors, status field, badge de conexión |
+| 8 | Medidores: filtros de estado / Error/Fallas | P1 | ⚠️ Parcial — relabel hecho; DISCONNECTED requiere migración del enum |
+| 9 | Map: pines superpuestos / clustering | P1 | ❌ Calibración in-situ con medidores reales — no es cambio de código |
+| 10 | Map: restringir bounds al área de servicio | P1 | ✅ Resuelto — `restrictionBounds` dinámico |
+| 11 | Map: layout controles / zoom / Street View | P1 | ✅ Resuelto — controles nativos configurados |
+| 12 | Zonas: columnas de facturación | P1 | 🔒 Bloqueado — sin modelo facturación |
+| M | Medidores mecánicos: validación lectura | P1 | ✅ Resuelto — Zod refine + validación backend |
+| 13 | Help/Video en PageRenderer | P2 | ❌ Pendiente — clarificar con equipo |
+| 14 | Map: botón "Agrupar" | P2 | ✅ Funciona como checkbox |
+| 15 | Map: toggle POI | P2 | ✅ Resuelto |
+| 16 | Map: filtro por tipo de medidor | P2 | ✅ Resuelto |
+| 17 | Map: búsqueda por medidor/usuario/dirección | P2 | ✅ Resuelto (búsqueda por usuario no disponible en mapa) |
+| 18 | Medidores: más datos en resultado de búsqueda | P2 | ✅ Resuelto |
+| 19 | Zonas: filtro por nombre | P2 | ✅ Resuelto |
+| 20 | ED-86 — Usuarios: filtrar por rol | P2 | ✅ Resuelto |
+| 21 | Zonas: toast de eliminación con undo | P2 | ✅ Resuelto |
+| 22 | Logout: corregir redirección | P2 | ✅ Ya resuelto — cerrar card |
+| 23–24 | Portal operarios (ED-83): OCR + validación lectura | P2 | ✅ Resuelto |
+| 25–27 | Lecturas: edición admin con auditoría | P2 | ❌ Feature de cero — sin modelo ReadingAudit |
+| 28 | Mapa: licencia / marca de agua | P3 | 🚫 No entra |
+| 29 | ED-84 — Demo online | P3 | 🚫 Épica |
+| 30 | Canal de facturación propio | P3 | 🚫 Épica |
+| 31 | Playwright QA | P3 | 🚫 No configurado |
+| 32 | Tag v1.0 | P3 | 🚫 Post-estabilización |
 
 ---
 
@@ -214,7 +272,9 @@ La UI del panel de válvula (`components/meters/valve-control-panel.tsx`) no mue
 
 ### 8. Medidores: filtros de estado
 
-**Estado parcial — ya existe "Fallidos".**
+**⚠️ PARCIAL (2026-06-15).** Relabel "Fallidos" → "Error/Fallas" aplicado en `components/medidores/filter-tabs.tsx` (solo el `label` visible; el `value: "FAULTY"` y la lógica de filtrado no cambiaron). La parte de estado `DISCONNECTED` separado queda pendiente de decisión del equipo + migración del enum.
+
+**Estado anterior — ya existía "Fallidos".**
 
 **Filtros actuales en `components/medidores/filter-tabs.tsx`:**
 - Total / Activos (ACTIVE) / Inactivos (INACTIVE) / Mantenimiento (MAINTENANCE) / **Fallidos (FAULTY)**
@@ -330,13 +390,17 @@ Buscar con el equipo qué es exactamente `PageRenderer` en este contexto. No hay
 
 ### 15. Map: toggle POI
 
+**✅ RESUELTO (2026-06-13).** Label actualizado a "Ocultar POI" con semántica correcta (checked = ocultar POI). `components/ui/map.tsx`.
+
 **Implementado** como checkbox "Off POI" (`components/ui/map.tsx:678`). El label es confuso — debería ser "Mostrar POI" o "Points of Interest" con estado on/off claro.
 
 ---
 
 ### 19. Zonas: filtro por nombre
 
-**No existe.** `components/zonas/zones-list.tsx` — tabla con columnas Color, Nombre, Medidores, Creada, Acciones. Sin input de búsqueda.
+**✅ RESUELTO (2026-06-13).** Input de búsqueda implementado en `components/zonas/zones-list.tsx:25–38`. Filtra en cliente por `zone.name.toLowerCase().includes(search)`.
+
+~~**No existe.**~~ `components/zonas/zones-list.tsx` — tabla con columnas Color, Nombre, Medidores, Creada, Acciones. Sin input de búsqueda.
 
 Agregar un input controlado que filtre `zones` por `zone.name.toLowerCase().includes(search)` en el cliente. Simple, bajo riesgo.
 
@@ -344,7 +408,9 @@ Agregar un input controlado que filtre `zones` por `zone.name.toLowerCase().incl
 
 ### 20. ED-86 — Usuarios: filtrar por rol
 
-**No existe filtro de rol.** `components/usuarios/filter-tabs.tsx` solo tiene tabs de estado (`activo`, `inactivo`, `pendiente`, `bloqueado`).
+**✅ RESUELTO (2026-06-13).** Select "Todos los roles / Admin / Lector / Operario" implementado. Param `role` propagado en hook (`hooks/users/use-user-query.ts`), API (`app/api/user/route.ts`) y UI (`components/usuarios/filter-tabs.tsx`).
+
+~~**No existe filtro de rol.**~~ `components/usuarios/filter-tabs.tsx` solo tiene tabs de estado (`activo`, `inactivo`, `pendiente`, `bloqueado`).
 
 Los roles disponibles se obtienen de `userRoles[0]?.role.role_name`. Para agregar el filtro:
 1. Agregar param `role` a `useUsersQuery` → `hooks/users/use-user-query.ts`
@@ -355,7 +421,9 @@ Los roles disponibles se obtienen de `userRoles[0]?.role.role_name`. Para agrega
 
 ### 21. Zonas: toast de eliminación con undo
 
-**No implementado.** No hay feedback de eliminación en zonas. Implementar con `sonner` o el toast del proyecto — verificar qué librería de toasts usa el proyecto (`components/ui/`).
+**✅ RESUELTO (2026-06-13).** Delete diferido 6s en `components/zonas/zone-detail.tsx:134–169`: remove optimista del cache → toast con botón "Deshacer" → DELETE real al vencer el timer (`useDeleteZoneMutation`). Sin migración de schema.
+
+~~**No implementado.** No hay feedback de eliminación en zonas.~~ Implementar con `sonner` o el toast del proyecto — verificar qué librería de toasts usa el proyecto (`components/ui/`).
 
 ---
 
@@ -369,19 +437,11 @@ Redirige a `/auth/login`. Cerrar esta card.
 
 ---
 
-### 23–26. Portal Operarios (ED-83)
+### 23–24. Portal Operarios (ED-83) — OCR + validación lectura
 
-**Dos issues reales confirmados:**
-
-**A. OcrScanButton roto** — `components/portal/ocr-scan-button.tsx` es un `<Button>` con ícono de cámara pero **sin `onClick` y sin `<input type="file" capture="environment">`**. No hace nada al presionarlo.
-
-**B. Sin validación de lectura < anterior** — `components/portal/manual-reading-form.tsx` — el schema Zod solo valida que el valor sea número. No compara con `lastReadingValue`. Agregar un `.refine()`:
-```ts
-.refine(
-  (val) => !lastReadingValue || Number(val) >= lastReadingValue,
-  { message: "La lectura no puede ser menor a la lectura anterior" }
-)
-```
+**✅ RESUELTO (2026-06-13).**
+- **A. OcrScanButton** — `components/portal/ocr-scan-button.tsx` conectado con `useOcrMutation`, `<input type="file" capture="environment">` y ref. Llama a `POST /api/meter/[id]/ocr` (backend ya existía).
+- **B. Validación lectura < anterior** — `.refine()` en schema Zod del form + validación equivalente en `app/api/meter/[id]/readings/route.ts` antes de `prisma.reading.create`.
 
 **C. Ocultar lectura previa post-submit** — lógica de estado post-confirmación. Verificar si hay estado en el form o en la query después de submit exitoso.
 
@@ -456,6 +516,109 @@ Luego en cada route: reemplazar `const prisma = new PrismaClient()` por `import 
 
 ---
 
+## Medidores mecánicos — auditoría (2026-06-08)
+
+El flujo de medidores mecánicos existe y funciona para el caso normal. Auditado contra `app/api/operarios/`, `hooks/portal/use-portal.ts`, `components/portal/`.
+
+**Flujo verificado:**
+1. Operario entra al portal → `/api/operarios/zones` lista sus zonas (contando medidores `MECHANICAL`).
+2. Elige zona → `/api/operarios/zones/[zoneId]/reading-route` → filtra medidores `MECHANICAL` **dentro del polígono** (point-in-polygon), marca "leído hoy / no leído".
+3. Carga el valor → `POST /api/meter/[id]/readings` con `instantaneous_flow`, `observations`, `photo_url`, `submitted_by`.
+4. Backend crea `Reading` con `status: "VALID"` y registra quién lo cargó.
+
+**Issues encontrados:**
+
+**A. Sin validación de lectura < anterior (CRÍTICO — data corrupta silenciosa)**
+- **Archivo:** `app/api/meter/[id]/readings/route.ts` — lee `previousReading` y calcula `prevValue` pero **no rechaza** si el valor nuevo es menor.
+- **Archivo:** `components/portal/manual-reading-form.tsx` — schema Zod solo valida tipo número.
+- **Fix:** Agregar `.refine()` en el schema Zod del form:
+  ```ts
+  .refine(
+    (val) => !lastReadingValue || Number(val) >= lastReadingValue,
+    { message: "La lectura no puede ser menor a la lectura anterior" }
+  )
+  ```
+  Y validación equivalente en el backend antes de `prisma.reading.create`.
+
+**B. OcrScanButton desconectado**
+- `components/portal/ocr-scan-button.tsx` — `<Button>` sin `onClick` ni `<input type="file" capture="environment">`. No hace nada.
+- Backend `/api/meter/[id]/ocr/route.ts` **existe** pero el botón del front no lo llama.
+- Fix: conectar el button a un `<input type="file" capture="environment">` y llamar a `useOcrMutation` del hook que ya existe en `hooks/portal/use-portal.ts`.
+
+**C. Semántica `instantaneous_flow` = `cumulative_flow`**
+- El backend guarda el mismo valor en ambos campos: `cumulative_flow: String(instantaneous_flow)`.
+- Para un medidor mecánico la lectura ES el acumulado — conceptualmente correcto.
+- No es un bug funcional, pero genera confusión de modelo. A documentar o separar en una futura migración.
+
+**D. Hora en `reading-route-item` — ya resuelto en PR #58**
+- `components/portal/reading-route-item.tsx` ahora convierte a `America/Argentina/Buenos_Aires` con `.tz(AR_TZ)`.
+
+---
+
+## Bug — Card "Alertas Activas" muestra medidores inactivos en vez de alertas reales
+
+### Síntoma
+La card **"Alertas Activas"** del home muestra **13** cuando en realidad hay **3** alertas reales.
+La misma card en la página de Cooperativa tiene el mismo problema.
+
+### Causa raíz
+`app/api/dashboard/stats/route.ts:313`:
+```ts
+totalAlerts = inactiveMeters;
+```
+`inactiveMeters` (líneas ~302-309) cuenta medidores con `status = INACTIVE` **o** `ACTIVE` sin lecturas
+en las últimas 24h. El campo dice "alertas" pero contiene **medidores inactivos**. Según
+`docs/ECOSISTEMA_FINAL_MEJORADO.md:108-109` esto fue un cambio deliberado en algún punto
+(*"Después: totalAlerts = inactiveMeters (correcto)"*) que quedó con la semántica invertida.
+
+### Fuente correcta de alertas
+`/api/urgencies` + `utils/alertMapper.ts` (`mapStatusToAlerts`):
+| Severidad | Alarmas |
+|-----------|---------|
+| CRITICAL  | `empty_pipe_alarm`, `reverse_flow_alarm` |
+| HIGH      | válvula anómala, `over_range_alarm`, `water_temp_alarm` |
+| MEDIUM    | válvula cerrada, `battery_low`, `ee_alarm` |
+| LOW       | `INACTIVE_METER` (bucket `inactive` separado, solo cuando `includeInactive: true`) |
+
+**Decisión ya confirmada:** la card debe mostrar `critical + high + medium + low` (excluyendo el bucket de inactivos). Eso da **3**.
+
+### Consumidores del campo bugueado
+1. `components/dashboard/home/summary-cards/summary-cards.tsx:79`
+   `<AlertsCard activeAlerts={stats.alerts.totalAlerts} />` — el caso reportado.
+   ⚠️ Este componente **ya** trae `useUrgencies({ includeInactive: true, limit: 100 })` y calcula
+   `totalErrors = critical.length + high.length` para `ErrorsCard`. Tiene la data real disponible.
+2. `components/cooperativa/cooperative-overview-cards.tsx:59`
+   card "Alertas activas" que usa solo `useDashboardStats()` (sin urgencias).
+
+### Opciones de fix
+
+**Opción 1 — Solo home (mínimo, recomendada para el síntoma inmediato)**
+En `summary-cards.tsx` derivar el conteo de `urgencies` ya cargado:
+```ts
+const totalAlerts =
+  (urgencies?.alerts.critical.length ?? 0) +
+  (urgencies?.alerts.high.length ?? 0) +
+  (urgencies?.alerts.medium.length ?? 0) +
+  (urgencies?.alerts.low.length ?? 0);
+```
+Y pasar `totalAlerts` a `<AlertsCard>`. Cero fetch extra. La card de cooperativa queda desactualizada.
+
+**Opción 2 — Home + cooperativa**
+Igual que opción 1, más agregar `useUrgencies` en `cooperative-overview-cards.tsx`.
+Suma 1 fetch extra en la página de cooperativa.
+
+**Opción 3 — Fix en la raíz (deuda técnica)**
+Redefinir `alerts.totalAlerts` en `/api/dashboard/stats` para que calcule alertas reales (desde
+urgencias o replicando la lógica de `alertMapper.ts`). Renombrar el conteo de inactivos a algo como
+`inactiveCount`. Arregla ambas cards de una y deja el campo bien nombrado, pero:
+- Suma carga de query a un endpoint sensible (ver item #1 del sprint — "Dashboard freeze").
+- Duplica la lógica que `/api/urgencies` ya hace.
+- Requiere actualizar todos los consumidores del campo.
+
+**Recomendación:** opción 1 para el fix inmediato; opción 3 como deuda técnica cuando se refactorice el endpoint de stats.
+
+---
+
 ## Dependencias y orden de ejecución sugerido
 
 ```
@@ -488,4 +651,6 @@ Luego en cada route: reemplazar `const prisma = new PrismaClient()` por `import 
 3. **Filtros de medidores:** ¿"Fallidos (FAULTY)" es suficiente o necesitan un estado `DISCONNECTED` separado?
 4. **Map bounds:** ¿Las coordenadas de la cooperativa están en `Cooperative.address`? ¿O hay un campo de bbox/área de servicio?
 5. **PageRenderer / Help/Video:** ¿En qué branch o feature vive esto? No existe en `main`.
-6. **ED-83 OCR:** ¿El OCR tiene una implementación pendiente o hay un provider de OCR configurado? El botón no hace nada.
+6. **ED-83 OCR:** ¿Hay un provider de OCR configurado o es una feature pendiente de implementar? El backend `/api/meter/[id]/ocr` existe pero el botón del front no lo llama.
+7. **Medidores mecánicos:** ¿Hay casos donde la lectura puede bajar legítimamente (cambio de medidor, reinicio)? Esto define si la validación `>= anterior` debe ser hard-block o solo warning.
+8. **Card "Alertas Activas":** ¿Arrancamos con la opción 1 (fix solo en el home, cero fetch extra) o esperamos a la opción 3 (fix en la raíz del endpoint de stats)? Ver sección "Bug — Card Alertas Activas" para el análisis completo.

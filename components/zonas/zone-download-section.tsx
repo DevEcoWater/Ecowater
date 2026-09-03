@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Download, Pencil, Check, X, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import { useToast } from "@/hooks/use-toast";
 import {
   useZoneDownloads,
@@ -32,6 +40,8 @@ import {
 import { downloadZoneCsv } from "@/lib/export-csv";
 import { formatDateInputAR, formatDateTimeShortAR } from "@/lib/utils";
 import { ZoneMeter } from "@/types/zones/zone-types";
+
+const PAGE_SIZE = 8;
 
 function toDateInput(isoString: string): string {
   return isoString.slice(0, 10);
@@ -56,6 +66,16 @@ export function ZoneDownloadSection({
   const { data: downloads, isLoading } = useZoneDownloads(zoneId);
   const createDownload = useCreateZoneDownload(zoneId);
   const updateDownload = useUpdateZoneDownload(zoneId);
+
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const totalPages = Math.ceil((downloads?.length ?? 0) / PAGE_SIZE);
+  const pagedDownloads = downloads?.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  // Reset to page 1 when the list length changes (new download recorded)
+  useEffect(() => {
+    setPage(1);
+  }, [downloads?.length]);
 
   // Download dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -120,7 +140,7 @@ export function ZoneDownloadSection({
   };
 
   return (
-    <div>
+    <div className="p-6">
       <div className="flex items-center justify-between rounded-md border p-3 mb-4">
         <div className="text-xs text-muted-foreground">
           CSV del periodo {formatDateInputAR(periodStart)} {"->"}{" "}
@@ -165,7 +185,7 @@ export function ZoneDownloadSection({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {downloads.map((d) =>
+            {(pagedDownloads ?? []).map((d) =>
               editingId === d.id ? (
                 <TableRow key={d.id}>
                   <TableCell className="text-sm text-muted-foreground">
@@ -246,6 +266,45 @@ export function ZoneDownloadSection({
             )}
           </TableBody>
         </Table>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex justify-center mt-4">
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  className={
+                    page <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"
+                  }
+                />
+              </PaginationItem>
+              {Array.from({ length: totalPages }).map((_, i) => (
+                <PaginationItem key={i + 1}>
+                  <PaginationLink
+                    isActive={page === i + 1}
+                    onClick={() => setPage(i + 1)}
+                    className="cursor-pointer"
+                  >
+                    {i + 1}
+                  </PaginationLink>
+                </PaginationItem>
+              ))}
+              <PaginationItem>
+                <PaginationNext
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  className={
+                    page >= totalPages
+                      ? "pointer-events-none opacity-50"
+                      : "cursor-pointer"
+                  }
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
       )}
 
       {/* Download dialog */}

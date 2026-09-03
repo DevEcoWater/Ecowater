@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
 import { z } from "zod";
@@ -11,7 +11,6 @@ const schema = z.object({ canWrite: z.boolean() });
 type Context = { params: { id: string } };
 
 export async function PATCH(req: Request, { params }: Context) {
-  const prisma = new PrismaClient();
   try {
     const session = await getServerSession(authOptions);
 

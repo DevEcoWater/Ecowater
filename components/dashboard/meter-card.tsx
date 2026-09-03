@@ -4,6 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import type { MeterStatus } from "@prisma/client";
 import type { ChipStatus } from "@/components/ui/chip";
+import { TrendingUp, TrendingDown } from "lucide-react";
 
 interface MeterCardProps {
   title: string;
@@ -12,6 +13,10 @@ interface MeterCardProps {
   isLoading: boolean;
   status: MeterStatus;
   meterDetail?: boolean;
+  trend?: {
+    value: number;
+    direction: "up" | "down";
+  };
 }
 
 const MeterCard: React.FC<MeterCardProps> = ({
@@ -21,6 +26,7 @@ const MeterCard: React.FC<MeterCardProps> = ({
   status,
   isLoading,
   meterDetail,
+  trend,
 }) => {
   const statusToStyleMap: Record<ChipStatus, keyof typeof chipConfig> = {
     ACTIVE: "ACTIVE",
@@ -51,6 +57,14 @@ const MeterCard: React.FC<MeterCardProps> = ({
             <>
               <p className="text-sm text-muted-foreground truncate">{title}</p>
               <h3 className="font-semibold text-lg">{value}</h3>
+              {trend && (
+                <div className={`flex items-center gap-0.5 text-xs font-medium mt-0.5 ${
+                  trend.direction === "up" ? "text-amber-600" : "text-green-600"
+                }`}>
+                  {trend.direction === "up" ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                  <span>{trend.direction === "up" ? "+" : ""}{trend.value.toFixed(1)}% vs período anterior</span>
+                </div>
+              )}
             </>
           )}
         </div>

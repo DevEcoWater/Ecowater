@@ -1,4 +1,5 @@
 import {
+  MapMeter,
   MechanicalMeterFormData,
   MeterFormData,
   MeterReading,
@@ -6,7 +7,7 @@ import {
   PaginatedMeterResponse,
 } from "@/types/meters/meter-types";
 import { Meter } from "@prisma/client";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 // Function to fetch all meters with pagination
 export const useMetersQuery = (
@@ -33,7 +34,9 @@ export const useMetersQuery = (
       return response.json();
     },
     retry: 3,
-    refetchInterval: 10000,
+    refetchInterval: 30000,
+    refetchOnWindowFocus: false,
+    placeholderData: keepPreviousData,
   });
 };
 
@@ -223,6 +226,67 @@ export const useSubmitManualReadingMutation = (meterId: string) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["meter", meterId] });
       queryClient.invalidateQueries({ queryKey: ["meters"] });
+    },
+  });
+};
+
+/** Fetches all meters that have coordinates — used by the admin map view. */
+export const useMapMetersQuery = () => {
+  return useQuery<MapMeter[], Error>({
+    queryKey: ["meters", "map"],
+    queryFn: async () => {
+      const res = await fetch("/api/meters/map");
+      if (!res.ok) throw new Error("Failed to fetch map meters");
+      return res.json();
+    },
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: false,
+  });
+};
+
+// Update a mechanical meter (device_name, street_address, dev_eui, lat, lng)
+export const useUpdateMechanicalMeterMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation<Meter, Error, { id: string } & MechanicalMeterFormData>({
+    mutationFn: async ({ id, ...data }) => {
+      const response = await fetch(`/api/meter/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Error al actualizar medidor mecánico");
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["meters"] });
+      queryClient.invalidateQueries({ queryKey: ["meter", data.id] });
+    },
+  });
+};
+
+// Update only the status of a meter (mechanical activate/deactivate).
+// Uses PATCH /api/meter/:id — server enforces the "no user → can't activate" guard (409).
+export const useUpdateMeterStatusMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation<{ id: string; status: string }, Error, { id: string; status: string }>({
+    mutationFn: async ({ id, status }) => {
+      const response = await fetch(`/api/meter/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Error al actualizar el estado del medidor");
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["meters"] });
+      queryClient.invalidateQueries({ queryKey: ["meter", data.id] });
     },
   });
 };

@@ -11,7 +11,9 @@ export interface UseUsersReturn {
   error: Error | null;
   searchQuery: string;
   filterState: string;
+  roleFilter: string;
   setFilterState: (filter: string) => void;
+  setRoleFilter: (role: string) => void;
   setSearchQuery: (query: string) => void;
   resetFilters: () => void;
   page: number;
@@ -24,18 +26,25 @@ export interface UseUsersReturn {
 export const useUsers = (): UseUsersReturn => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterState, setFilterState] = useState("total");
+  const [roleFilter, setRoleFilter] = useState("");
   const [page, setPage] = useState(1);
 
-  const { data: queryData, isLoading, error } = useUsersQuery(page, 10, searchQuery, filterState);
+  const { data: queryData, isLoading, error } = useUsersQuery(page, 10, searchQuery, filterState, roleFilter);
 
   const resetFilters = () => {
     setFilterState("total");
     setSearchQuery("");
+    setRoleFilter("");
     setPage(1);
   };
 
   const handleSetFilterState = (filter: string) => {
     setFilterState(filter);
+    setPage(1);
+  };
+
+  const handleSetRoleFilter = (role: string) => {
+    setRoleFilter(role);
     setPage(1);
   };
 
@@ -49,7 +58,9 @@ export const useUsers = (): UseUsersReturn => {
     isLoading,
     error: error as Error | null,
     filterState,
+    roleFilter,
     setFilterState: handleSetFilterState,
+    setRoleFilter: handleSetRoleFilter,
     searchQuery,
     setSearchQuery: handleSetSearchQuery,
     resetFilters,

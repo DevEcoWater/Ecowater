@@ -1,8 +1,7 @@
 // app/api/user/[id]/route.ts
-import { PrismaClient, UserStatus } from "@prisma/client";
+import { UserStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 type Context = {
   params: {

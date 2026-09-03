@@ -1,20 +1,21 @@
 // app/api/user/route.ts
 import { NextResponse } from "next/server";
 import { getPaginationParams } from "../../../utils/pagination";
-import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { parseUserStatus } from "@/utils/parseUserStatus";
 import { PaginatedUserResponse } from "@/types/users/user-types";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 export async function GET(req: Request) {
   try {
-    const { page, limit, search, status } = getPaginationParams({
+    const { page, limit, search, status, role } = getPaginationParams({
       url: req.url,
     });
 
     const where: any = {};
+
+    // Operators have their own dedicated page (/dashboard/operarios); exclude them here
+    where.NOT = { userRoles: { some: { role: { role_name: "operario" } } } };
 
     if (search) {
       where.OR = [
@@ -25,6 +26,10 @@ export async function GET(req: Request) {
 
     if (status && status !== "total") {
       where.status = parseUserStatus(status);
+    }
+
+    if (role) {
+      where.userRoles = { some: { role: { role_name: role } } };
     }
 
     const [rawUsers, total] = await Promise.all([
@@ -91,9 +96,28 @@ export async function POST(req: Request) {
       lastName,
       email,
       password,
-      role_id,
+      role,
       address: { data, lat, lng, shortData },
     } = body;
+
+    // Server-side role whitelist — prevents privilege escalation via direct API calls
+    const ALLOWED_ROLES = ["admin", "lector"] as const;
+    if (!role || !ALLOWED_ROLES.includes(role)) {
+      return NextResponse.json(
+        { error: "Rol inválido. Los valores permitidos son: admin, lector." },
+        { status: 400 }
+      );
+    }
+
+    const roleRecord = await prisma.role.findUnique({
+      where: { role_name: role },
+    });
+    if (!roleRecord) {
+      return NextResponse.json(
+        { error: `El rol "${role}" no existe en la base de datos.` },
+        { status: 400 }
+      );
+    }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -120,7 +144,7 @@ export async function POST(req: Request) {
       await tx.userRole.create({
         data: {
           user_id: user.id,
-          role_id,
+          role_id: roleRecord.id,
         },
       });
 

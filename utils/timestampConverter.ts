@@ -39,3 +39,26 @@ export const convertTimestampToTimezone = (
 export const convertTimestampToUTC = (timestamp: number): string => {
   return dayjs(timestamp * 1000).toISOString();
 };
+
+export function formatReadingAge(
+  timestamp: Date | string | null | undefined
+): string {
+  if (!timestamp) return "Sin lecturas";
+  const date = new Date(timestamp as string);
+  if (isNaN(date.getTime())) return "Sin lecturas";
+
+  const diffMs = Date.now() - date.getTime();
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffH = Math.floor(diffMin / 60);
+  const diffD = Math.floor(diffH / 24);
+  const diffM = Math.floor(diffD / 30.44);
+  const diffY = Math.floor(diffD / 365.25);
+
+  if (diffSec < 60) return "hace unos segundos";
+  if (diffMin < 60) return diffMin === 1 ? "hace 1 minuto" : `hace ${diffMin} minutos`;
+  if (diffH < 24) return diffH === 1 ? "hace 1 hora" : `hace ${diffH} horas`;
+  if (diffD < 30) return diffD === 1 ? "hace 1 día" : `hace ${diffD} días`;
+  if (diffM < 12) return diffM === 1 ? "hace 1 mes" : `hace ${diffM} meses`;
+  return diffY === 1 ? "hace 1 año" : `hace ${diffY} años`;
+}

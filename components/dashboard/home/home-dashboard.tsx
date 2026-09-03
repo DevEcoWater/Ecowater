@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { SummaryCards } from "./summary-cards/summary-cards";
 import { ConsumptionChart } from "./consumption-chart/consumption-chart";
 import { DateRangeSelector } from "./date-range-selector";
@@ -14,6 +14,7 @@ import { useUrgencies } from "@/hooks/dashboard/use-urgencies";
 import { useMeterDistribution } from "@/hooks/dashboard/use-meter-distribution";
 import { useAlarmTrends } from "@/hooks/dashboard/use-alarm-trends";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AlertCircle, Bell, DropletIcon, Gauge, Signal, Thermometer } from "lucide-react";
 import { UrgenciesSection } from "./urgencies/urgencies-section";
 import { MeterDistributionChart } from "./meter-distribution-chart/meter-distribution-chart";
@@ -29,40 +30,6 @@ const PERIOD_LABELS: Record<DashboardPeriod, string> = {
   "1y": "1 año",
 };
 
-function SectionHeader({
-  icon: Icon,
-  title,
-  color = "gray",
-  children,
-}: {
-  icon: React.ElementType;
-  title: string;
-  color?: "blue" | "red" | "green" | "gray";
-  children?: React.ReactNode;
-}) {
-  const colorMap = {
-    blue:  { bg: "bg-blue-100",  icon: "text-blue-600",  bar: "bg-blue-500"  },
-    red:   { bg: "bg-red-100",   icon: "text-red-500",   bar: "bg-red-500"   },
-    green: { bg: "bg-green-100", icon: "text-green-600", bar: "bg-green-500" },
-    gray:  { bg: "bg-muted",     icon: "text-muted-foreground", bar: "bg-muted-foreground" },
-  };
-  const c = colorMap[color];
-
-  return (
-    <div className="flex items-center justify-between gap-3 mb-4">
-      <div className="flex items-center gap-2">
-        <div className={`p-1.5 rounded-md ${c.bg}`}>
-          <Icon className={`w-4 h-4 ${c.icon}`} />
-        </div>
-        <h2 className="text-sm font-semibold text-foreground tracking-wide uppercase">
-          {title}
-        </h2>
-      </div>
-      {children}
-    </div>
-  );
-}
-
 export function HomeDashboard() {
   const [selectedPeriod, setSelectedPeriod] = useState<DashboardPeriod>("30d");
   const [customRange, setCustomRange] = useState<{
@@ -74,6 +41,16 @@ export function HomeDashboard() {
     ? { startDate: customRange.startDate, endDate: customRange.endDate }
     : { period: selectedPeriod };
 
+  const [activeTab, setActiveTab] = useState("consumo");
+  const tabsSectionRef = useRef<HTMLDivElement>(null);
+
+  const showAlarms = () => {
+    setActiveTab("alarmas");
+    setTimeout(() => {
+      tabsSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 0);
+  };
+
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
   const { data: consumption, isLoading: consumptionLoading } =
     useConsumptionData(consumptionParams);
@@ -84,6 +61,10 @@ export function HomeDashboard() {
   const consumptionTotal =
     consumption?.series.reduce((sum, item) => sum + item.consumo_m3, 0) ?? 0;
   const previousTotal = consumption?.previousTotal;
+  const smartTotal =
+    consumption?.series.reduce((sum, s) => sum + (s.consumo_smart_m3 ?? 0), 0) ?? 0;
+  const mechTotal =
+    consumption?.series.reduce((sum, s) => sum + (s.consumo_mech_m3  ?? 0), 0) ?? 0;
 
   const periodLabel = customRange
     ? `${dayjs(customRange.startDate).format("DD/MM/YY")} - ${dayjs(customRange.endDate).format("DD/MM/YY")}`
@@ -110,7 +91,7 @@ export function HomeDashboard() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
 
       {/* ── Barra de estado: live + señal + temp ── */}
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -146,56 +127,83 @@ export function HomeDashboard() {
         <SyncPanel initialTimestamp={stats?.meta?.timestamp ?? null} />
       </div>
 
-      {/* ── Sección: Resumen ── */}
+      {/* ── Resumen ── */}
       <section id="tour-summary-cards">
         <SummaryCards
           stats={stats}
           consumptionTotal={consumptionTotal}
           previousTotal={previousTotal}
           period={periodLabel}
+          smartTotal={smartTotal}
+          mechTotal={mechTotal}
+          onShowAlarms={showAlarms}
         />
       </section>
 
-      {/* ── Sección: Consumo ── */}
-      <section id="tour-consumption-chart">
-        <SectionHeader icon={DropletIcon} title="Consumo" color="blue">
-          <DateRangeSelector
-            selectedPeriod={selectedPeriod}
-            customRange={customRange}
-            onPeriodSelect={(period) => {
-              setSelectedPeriod(period);
-              setCustomRange(null);
-            }}
-            onRangeApply={(startDate, endDate) =>
-              setCustomRange({ startDate, endDate })
-            }
-            onRangeClear={() => setCustomRange(null)}
-          />
-        </SectionHeader>
-        <ConsumptionChart data={consumption} />
-      </section>
+      {/* ── Tabs: Consumo / Alarmas / Medidores ── */}
+      <div ref={tabsSectionRef}>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
 
-      {/* ── Sección: Alarmas ── */}
-      <section id="tour-alarm-trends">
-        <SectionHeader icon={Bell} title="Alarmas" color="red" />
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <AlarmTrendsChart data={alarmTrends} period={periodLabel} />
-          </div>
-          <div id="tour-urgencies-section">
-            <UrgenciesSection urgencies={urgencies} />
+        {/* Cabecera: selector de período + tabs */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <TabsList className="w-fit">
+            <TabsTrigger value="consumo" className="flex items-center gap-1.5 cursor-pointer">
+              <DropletIcon className="w-3.5 h-3.5" />
+              <span>Consumo</span>
+            </TabsTrigger>
+            <TabsTrigger id="tour-tab-alarmas" value="alarmas" className="flex items-center gap-1.5 cursor-pointer">
+              <Bell className="w-3.5 h-3.5" />
+              <span>Alarmas</span>
+            </TabsTrigger>
+            <TabsTrigger id="tour-tab-medidores" value="medidores" className="flex items-center gap-1.5 cursor-pointer">
+              <Gauge className="w-3.5 h-3.5" />
+              <span>Medidores</span>
+            </TabsTrigger>
+          </TabsList>
+
+          <div id="tour-date-range-selector">
+            <DateRangeSelector
+              selectedPeriod={selectedPeriod}
+              customRange={customRange}
+              onPeriodSelect={(period) => {
+                setSelectedPeriod(period);
+                setCustomRange(null);
+              }}
+              onRangeApply={(startDate, endDate) =>
+                setCustomRange({ startDate, endDate })
+              }
+              onRangeClear={() => setCustomRange(null)}
+            />
           </div>
         </div>
-      </section>
 
-      {/* ── Sección: Medidores ── */}
-      <section id="tour-meter-distribution-chart">
-        <SectionHeader icon={Gauge} title="Medidores" color="green" />
-        <MeterDistributionChart
-          meters={meterDistribution?.meters ?? []}
-          period={periodLabel}
-        />
-      </section>
+        {/* ── Tab: Consumo ── */}
+        <TabsContent value="consumo" id="tour-consumption-chart">
+          <ConsumptionChart data={consumption} />
+        </TabsContent>
+
+        {/* ── Tab: Alarmas ── */}
+        <TabsContent value="alarmas" id="tour-alarm-trends">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <AlarmTrendsChart data={alarmTrends} period={periodLabel} />
+            </div>
+            <div id="tour-urgencies-section">
+              <UrgenciesSection urgencies={urgencies} />
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* ── Tab: Medidores ── */}
+        <TabsContent value="medidores" id="tour-meter-distribution-chart">
+          <MeterDistributionChart
+            meters={meterDistribution?.meters ?? []}
+            period={periodLabel}
+          />
+        </TabsContent>
+
+      </Tabs>
+      </div>
 
     </div>
   );

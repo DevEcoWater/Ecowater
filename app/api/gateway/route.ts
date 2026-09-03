@@ -9,10 +9,8 @@ import { parseTemperature } from "@/utils/parseTemperature";
 import {
   parseTimestamp,
 } from "@/utils/parseTimestamp ";
-import { PrismaClient } from "@prisma/client";
 import { convertTimestampToArgentinaTime } from "@/utils/timestampConverter";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 export async function POST(request: Request) {
   try {
