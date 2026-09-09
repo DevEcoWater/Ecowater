@@ -62,6 +62,11 @@ Hierarchy: `Cooperative` → `User` (1:1 `Address`, roles via `UserRole`/`Role`)
 
 The valve `POST` checks session + `ADMIN` role + `canWrite` (`app/api/meter/[id]/valve/route.ts:25-37`), but `VALVE_BYPASS_AUTH=true` skips all three outside production and still publishes to whatever `MQTT_BROKER_URL` points at — see the local-env gotcha below.
 
+### Per-client config layer (multicliente, merged in PR #59)
+`config/client.config.ts` is the single source of truth for everything that varies per client and is committed to the repo — the repo *is* the client. It holds `brand` (name, logo, logoMark, favicon), `theme.accentHex`, `locale` (lang, timezone, currency), `geo` (map center/bounds, default location) and feature toggles. Secrets and rotating keys stay in env; the file's header comment lists every hardcoded location it replaced.
+
+Precedence when rendering branding: the cooperative's own row in the DB wins (`Cooperative.name`, `logo_url`), and `clientConfig.brand.*` is the fallback — so a deploy works before any cooperative is seeded. `scripts/create-client.mjs` scaffolds a new per-client repo and `prisma/create-admin.ts` bootstraps a fresh instance's admin user.
+
 ## Frontend conventions
 - UI is Radix primitives + Tailwind in a shadcn-style component layer under `components/` (`components/ui/` for primitives). `cn()` in `lib/utils.ts` merges classes.
 - Data fetching uses `@tanstack/react-query`; feature hooks live in `hooks/<domain>/`. Forms use `react-hook-form` + `zod`. Server mutations use `next-safe-action` via `actionClient` in `lib/safe-action.ts`. Light client state uses `zustand`.
