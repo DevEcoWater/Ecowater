@@ -29,8 +29,12 @@ yarn-error.log*
 
 # local env files
 .env*.local
+env.local
 deploy/env/.env.production
 deploy/backups/
+
+# local board/data exports (Trello, etc.) — root level only
+/*_export.json
 
 # vercel
 .vercel
