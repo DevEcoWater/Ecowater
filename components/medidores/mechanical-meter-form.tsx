@@ -31,9 +31,10 @@ import {
   useUpdateMechanicalMeterMutation,
 } from "@/hooks/meters/use-meter-query";
 import { useZonesQuery } from "@/hooks/zones/use-zones";
+import { clientConfig } from "@/config/client.config";
 import { pointInPolygon, PolygonPoint } from "@/lib/point-in-polygon";
 
-const defaultLocation = { lat: -34.9035949, lng: -58.0373327 };
+const defaultLocation = clientConfig.geo.defaultLocation;
 
 const formSchema = z.object({
   device_name: z.string().min(1, "El nombre es obligatorio"),

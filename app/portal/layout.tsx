@@ -14,11 +14,12 @@ import { AuthGuard } from "@/components/auth/auth-guard";
 import { TourProvider } from "@/components/layout/panel/tour-provider";
 import { PageTransition } from "@/components/layout/panel/page-transition";
 import { configureDayjs } from "@/utils/configureDayjs";
+import { clientConfig } from "@/config/client.config";
 
 configureDayjs();
 
 export const metadata = {
-  title: "Portal Operario - EcoWater",
+  title: `Portal Operario - ${clientConfig.brand.name}`,
 };
 
 export default function PortalLayout({

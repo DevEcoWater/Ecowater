@@ -8,15 +8,15 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarRail,
 } from "@/components/ui/sidebar";
 import { NavGroup } from "./sidebar/nav-group";
 import { getSidebarData } from "@/lib/sidebar-data";
 import { useCooperative } from "@/hooks/cooperative/user-cooperative";
 import { Skeleton } from "./ui/skeleton";
-import Cosego from "./cooperative/cosego.svg";
+import Image from "next/image";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useSession } from "next-auth/react";
+import { clientConfig } from "@/config/client.config";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { data: cooperative } = useCooperative();
@@ -55,14 +55,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <SidebarMenuItem>
               <SidebarMenuButton asChild className="flex items-center gap-2">
                 <span className="text-base font-semibold flex items-center gap-2">
-                  {(cooperative as any)?.logo_url ? (
+                  {cooperative?.logo_url ? (
                     <img
-                      src={(cooperative as any).logo_url}
-                      alt={cooperative!.name}
+                      src={cooperative.logo_url}
+                      alt={cooperative.name}
                       className="h-6 w-6 rounded object-contain shrink-0"
                     />
                   ) : (
-                    <Cosego />
+                    <Image
+                      src={clientConfig.brand.logoMark}
+                      alt={clientConfig.brand.name}
+                      width={24}
+                      height={24}
+                    />
                   )}
                   {open &&
                     (cooperative ? (

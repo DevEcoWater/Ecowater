@@ -7,6 +7,7 @@ import React, {
   useRef,
 } from "react";
 import { GoogleMap, Marker, InfoWindow, DrawingManager, Polygon } from "@react-google-maps/api";
+import { clientConfig } from "@/config/client.config";
 import { Skeleton } from "./skeleton";
 import { chipConfig } from "@/utils/getChipColor";
 import Chip from "./chip";
@@ -58,10 +59,7 @@ const containerStyle = {
   height: "calc(100svh - 265px)",
 };
 
-const center = {
-  lat: -34.90813431153549,
-  lng: -58.03651143251905,
-};
+const center = clientConfig.geo.mapCenter;
 
 function Map() {
   const { data, isLoading, error } = useMapMetersQuery();
@@ -417,12 +415,12 @@ function Map() {
         west:  cooperativePosition.lng - RESTRICTION_PADDING,
       };
     }
-    // Priority 3: hardcoded fallback (current behavior)
+    // Priority 3: per-client fallback from client.config
     return {
-      north: -34.9035949 + RESTRICTION_PADDING,
-      south: -34.9035949 - RESTRICTION_PADDING,
-      east:  -58.0373327 + RESTRICTION_PADDING,
-      west:  -58.0373327 - RESTRICTION_PADDING,
+      north: clientConfig.geo.mapCenter.lat + clientConfig.geo.mapBounds.radiusDeg,
+      south: clientConfig.geo.mapCenter.lat - clientConfig.geo.mapBounds.radiusDeg,
+      east:  clientConfig.geo.mapCenter.lng + clientConfig.geo.mapBounds.radiusDeg,
+      west:  clientConfig.geo.mapCenter.lng - clientConfig.geo.mapBounds.radiusDeg,
     };
   }, [bounds, cooperativePosition]);
 

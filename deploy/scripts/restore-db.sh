@@ -19,8 +19,11 @@ set -a
 source "$ENV_FILE"
 set +a
 
-echo "[restore] Restoring $BACKUP_FILE ..."
-gunzip -c "$BACKUP_FILE" | docker exec -i -e PGPASSWORD="$POSTGRES_PASSWORD" ecowater-postgres \
+# CLIENT_SLUG is set in .env.production; defaults to "ecowater" for the base instance
+POSTGRES_CONTAINER="${CLIENT_SLUG:-ecowater}-postgres"
+
+echo "[restore] Restoring $BACKUP_FILE into ${POSTGRES_CONTAINER}..."
+gunzip -c "$BACKUP_FILE" | docker exec -i -e PGPASSWORD="$POSTGRES_PASSWORD" "$POSTGRES_CONTAINER" \
   psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"
 
 echo "[restore] Restore completed."
