@@ -1,18 +1,21 @@
-import { MongoClient, Db, ObjectId } from "mongodb";
+// mongodb is optional infrastructure — imported dynamically so that the module
+// loads cleanly even when the package is not installed (e.g. dev without Mongo).
 
 const DB_NAME = process.env.MONGO_AUDIT_DB ?? "ecowateraudit";
 const COLLECTION = "valve_events";
 
 declare global {
   // eslint-disable-next-line no-var
-  var _mongoAuditClient: MongoClient | undefined;
+  var _mongoAuditClient: import("mongodb").MongoClient | undefined;
 }
 
-async function getDb(): Promise<Db> {
+async function getDb(): Promise<import("mongodb").Db> {
   const uri = process.env.MONGO_AUDIT_URI;
   if (!uri) throw new Error("MONGO_AUDIT_URI no configurado");
 
   if (!global._mongoAuditClient) {
+    // webpackIgnore: mongodb is in serverExternalPackages — skip static analysis
+    const { MongoClient } = await import(/* webpackIgnore: true */ "mongodb");
     global._mongoAuditClient = new MongoClient(uri);
     await global._mongoAuditClient.connect();
   }
@@ -20,7 +23,7 @@ async function getDb(): Promise<Db> {
 }
 
 export interface ValveEvent {
-  _id?: ObjectId;
+  _id?: import("mongodb").ObjectId;
   timestamp: Date;
   user_id: string;
   user_email: string;

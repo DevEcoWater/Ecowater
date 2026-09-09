@@ -1,12 +1,17 @@
 "use client";
 
 import { useState, useCallback, useMemo, type ReactNode } from "react";
-import { PageHeaderContext, defaultPageHeader } from "./page-header-context";
+import { usePathname } from "next/navigation";
+import { PageHeaderContext } from "./page-header-context";
+import { getPageHeaderFromPath } from "@/components/dashboard/page-header/page-header-route";
 
 export function PageHeaderProvider({ children }: { children: ReactNode }) {
-  const [title, setTitle] = useState(defaultPageHeader.title);
-  const [description, setDescription] = useState(defaultPageHeader.description);
-  const [tourName, setTourName] = useState<string | null>(null);
+  const pathname = usePathname();
+  const initial = getPageHeaderFromPath(pathname);
+
+  const [title, setTitle] = useState(initial.title);
+  const [description, setDescription] = useState(initial.description);
+  const [tourName, setTourName] = useState<string | null>(initial.tourName ?? null);
 
   const setPageHeader = useCallback(
     (newTitle: string, newDescription: string, newTourName?: string | null) => {

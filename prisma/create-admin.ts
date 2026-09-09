@@ -61,8 +61,8 @@ async function main() {
       data: {
         data:      "Dirección de administrador",
         shortData: "Admin",
-        lat:       0,
-        lng:       0,
+        lat:       "0",
+        lng:       "0",
       },
     });
 

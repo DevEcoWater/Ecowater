@@ -11,13 +11,21 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  Legend,
   ResponsiveContainer,
 } from "recharts";
+
 import dayjs from "dayjs";
-import "dayjs/locale/es"; // 👈 importar el locale
+import "dayjs/locale/es";
 import { getStatusColor } from "@/utils/getStatusColor";
 import { MeterStatus } from "@prisma/client";
 dayjs.locale("es");
+
+const CHART_COLORS = {
+  smart: "#3b82f6",
+  mech:  "#f59e0b",
+  total: "#3b82f6",
+} as const;
 
 interface ConsumptionChartProps {
   data: ConsumptionData;
@@ -26,6 +34,10 @@ interface ConsumptionChartProps {
 
 export const ConsumptionChart = React.memo(function ConsumptionChart({ data, meterStatus }: ConsumptionChartProps) {
   const { color } = getStatusColor(meterStatus as MeterStatus);
+
+  const hasSplit =
+    data.series.some((s) => (s.consumo_smart_m3 ?? 0) > 0) &&
+    data.series.some((s) => (s.consumo_mech_m3  ?? 0) > 0);
 
   const groupBy: "day" | "week" | "month" = (() => {
     if (data.groupBy) return data.groupBy as "day" | "week" | "month";
@@ -45,50 +57,55 @@ export const ConsumptionChart = React.memo(function ConsumptionChart({ data, met
   const formatChartData = (series: ConsumptionData["series"]) => {
     // --- DÍAS: solo días con datos ---
     if (groupBy === "day") {
-      return series.map((item) => {
-        return {
-          date: item.fecha,
-          label:
-            data.period === "30d"
-              ? dayjs(item.fecha).format("DD")
-              : dayjs(item.fecha).format("ddd DD MMM"),
-          totalFlow: item.consumo_m3,
-        };
-      });
+      return series.map((item) => ({
+        date: item.fecha,
+        label:
+          data.period === "30d"
+            ? dayjs(item.fecha).format("DD")
+            : dayjs(item.fecha).format("ddd DD MMM"),
+        totalFlow: item.consumo_m3,
+        smart: item.consumo_smart_m3 ?? 0,
+        mech:  item.consumo_mech_m3  ?? 0,
+      }));
     }
 
     if (groupBy === "week" && data.period === "90d") {
-      const end = dayjs(data.endDate); // 2025-10-03
-      const start = end.subtract(90, "day"); // últimos 90 días
-      const monthMap = new Map<string, number>();
+      const end = dayjs(data.endDate);
+      const start = end.subtract(90, "day");
+      const monthMap = new Map<string, { total: number; smart: number; mech: number }>();
 
-      // Agrupamos cada día por mes
       series.forEach((item) => {
         const date = dayjs(item.fecha);
         if (date.isBefore(start) || date.isAfter(end)) return;
         const monthKey = date.format("YYYY-MM");
-        monthMap.set(monthKey, (monthMap.get(monthKey) || 0) + item.consumo_m3);
+        const cur = monthMap.get(monthKey) ?? { total: 0, smart: 0, mech: 0 };
+        monthMap.set(monthKey, {
+          total: cur.total + item.consumo_m3,
+          smart: cur.smart + (item.consumo_smart_m3 ?? 0),
+          mech:  cur.mech  + (item.consumo_mech_m3  ?? 0),
+        });
       });
 
-      // Ordenamos por mes y devolvemos
       return Array.from(monthMap.entries())
         .sort(([a], [b]) => dayjs(a + "-01").diff(dayjs(b + "-01")))
-        .map(([monthKey, totalFlow]) => ({
+        .map(([monthKey, { total, smart, mech }]) => ({
           date: monthKey,
           label: dayjs(monthKey + "-01").format("MMM YYYY"),
-          totalFlow,
+          totalFlow: total,
+          smart,
+          mech,
         }));
     }
 
     // --- MESES (1y) ---
     if (groupBy === "month") {
-      return series.map((item) => {
-        return {
-          date: item.fecha,
-          label: dayjs(item.fecha).format("MMMM/YYYY"),
-          totalFlow: item.consumo_m3,
-        };
-      });
+      return series.map((item) => ({
+        date: item.fecha,
+        label: dayjs(item.fecha).format("MMMM/YYYY"),
+        totalFlow: item.consumo_m3,
+        smart: item.consumo_smart_m3 ?? 0,
+        mech:  item.consumo_mech_m3  ?? 0,
+      }));
     }
 
     return [];
@@ -126,8 +143,8 @@ export const ConsumptionChart = React.memo(function ConsumptionChart({ data, met
         </CardHeader>
         <CardContent>
           <div className="h-[21rem]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={formatChartData(data.series)}>
+            <ResponsiveContainer width="100%" height="100%" debounce={250}>
+              <BarChart data={formatChartData(data.series)} barCategoryGap="20%" barGap={3}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" fontSize={12} />
                 <YAxis
@@ -149,16 +166,50 @@ export const ConsumptionChart = React.memo(function ConsumptionChart({ data, met
                     borderColor: "hsl(var(--border))",
                     color: "hsl(var(--popover-foreground))",
                   }}
-                  formatter={(value: number) => [`${value} m³`, "Consumo"]}
+                  formatter={(value: number, name: string) => {
+                    if (name === "smart") return [`${value} m³`, "Inteligentes"];
+                    if (name === "mech")  return [`${value} m³`, "Mecánicos"];
+                    return [`${value} m³`, "Consumo"];
+                  }}
                   labelFormatter={(label) => `Fecha: ${label}`}
                 />
-                <Bar
-                  dataKey="totalFlow"
-                  fill={meterStatus ? color : "#3b82f6"}
-                  radius={[4, 4, 0, 0]}
-                  name="Flujo Acumulado"
-                  isAnimationActive={false}
-                />
+                {hasSplit ? (
+                  <>
+                    <Legend
+                      iconType="circle"
+                      iconSize={8}
+                      formatter={(value) =>
+                        value === "smart" ? (
+                          <span className="text-xs text-muted-foreground">Inteligentes</span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">Mecánicos</span>
+                        )
+                      }
+                    />
+                    <Bar
+                      dataKey="smart"
+                      fill={CHART_COLORS.smart}
+                      radius={[4, 4, 0, 0]}
+                      name="smart"
+                      isAnimationActive={false}
+                    />
+                    <Bar
+                      dataKey="mech"
+                      fill={CHART_COLORS.mech}
+                      radius={[4, 4, 0, 0]}
+                      name="mech"
+                      isAnimationActive={false}
+                    />
+                  </>
+                ) : (
+                  <Bar
+                    dataKey="totalFlow"
+                    fill={meterStatus ? color : CHART_COLORS.total}
+                    radius={[4, 4, 0, 0]}
+                    name="Flujo Acumulado"
+                    isAnimationActive={false}
+                  />
+                )}
               </BarChart>
             </ResponsiveContainer>
           </div>

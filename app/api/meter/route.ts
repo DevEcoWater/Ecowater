@@ -1,11 +1,11 @@
 // app/api/meter/route.ts
 import { NextResponse } from "next/server";
 import { getPaginationParams } from "../../../utils/pagination";
-import { MeterStatus, MeterType, PrismaClient } from "@prisma/client";
+import { MeterStatus, MeterType } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
+import { computeChipStatus } from "@/utils/meterConnectivity";
 
 export const dynamic = "force-dynamic";
-
-const prisma = new PrismaClient();
 
 export async function POST(req: Request) {
   try {
@@ -34,7 +34,9 @@ export async function POST(req: Request) {
         application_name: meter_type === "MECHANICAL" ? null : application_name,
         lat: lat ?? null,
         lng: lng ?? null,
-        status: status ?? "ACTIVE",
+        // Mechanical meters start INACTIVE — they have no LoRa radio and need a user assigned
+        // before an admin can activate them. SMART meters default to ACTIVE.
+        status: status ?? (meter_type === "MECHANICAL" ? "INACTIVE" : "ACTIVE"),
         operational_status: operational_status ?? "OPERATIONAL",
       },
     });
@@ -95,8 +97,12 @@ export async function GET(req: Request) {
       where.meter_type = typeFilter as MeterType;
     }
 
-    // query meters + total with filters
-    const [rawMeters, total] = await Promise.all([
+    // Counts query excludes the status filter so all tab badges remain visible
+    // regardless of the active status filter (search + type still apply).
+    const { status: _statusFilter, ...whereForCounts } = where;
+
+    // query meters + total + per-status counts in parallel
+    const [rawMeters, total, statusGroups] = await Promise.all([
       prisma.meter.findMany({
         where,
         skip: (page - 1) * limit,
@@ -115,13 +121,18 @@ export async function GET(req: Request) {
         orderBy: { created_at: "desc" },
       }),
       prisma.meter.count({ where }),
+      prisma.meter.groupBy({
+        by: ["status"],
+        where: whereForCounts,
+        _count: true,
+      }),
     ]);
 
     const meters = rawMeters.map(({ userMeters, readings, ...meter }) => {
       const userMeter = userMeters[0];
       const lastReading = readings[0];
 
-      // Calcular estado de conectividad basado en la última lectura
+      // Connectivity status and chip status via shared helper
       const now = new Date();
       const last24Hours = new Date(now.getTime() - 24 * 60 * 60 * 1000);
       const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
@@ -131,42 +142,44 @@ export async function GET(req: Request) {
       const isActive =
         isValidTimestamp && lastReading && lastReading.timestamp >= last24Hours;
 
-      const connectivityStatus = isActive
+      // Mechanical meters have no LoRa radio — connectivity is always N/A.
+      const isMechanical = meter.meter_type === "MECHANICAL";
+      const connectivityStatus = isMechanical
+        ? "N/A"
+        : isActive
         ? "ONLINE"
         : lastReading
         ? "STALE"
         : "OFFLINE";
-      const hoursSinceLastReading = lastReading
-        ? Math.floor(
-            (now.getTime() - lastReading.timestamp.getTime()) / (1000 * 60 * 60)
-          )
-        : null;
-
-      // Mapear estado de conectividad a estado de chip
-      const chipStatus =
-        connectivityStatus === "ONLINE" ? "ACTIVE" : "INACTIVE";
+      const chipStatus = computeChipStatus(meter.meter_type, meter.status, lastReading);
 
       if (!userMeter) {
         return {
           ...meter,
           userMeter: null,
+          lastReading: lastReading
+            ? {
+                value: lastReading.instantaneous_flow,
+                cumulative: lastReading.cumulative_flow,
+                consumption: lastReading.consumption,
+                timestamp: lastReading.timestamp,
+              }
+            : null,
           connectivity: {
             status: connectivityStatus,
-            lastSeen: lastReading?.timestamp || null,
-            signalQuality: isActive ? "EXCELLENT" : "UNKNOWN",
+            lastSeen: isMechanical ? null : (lastReading?.timestamp || null),
+            signalQuality: isMechanical ? "UNKNOWN" : isActive ? "EXCELLENT" : "UNKNOWN",
           },
           dataFreshness: {
-            isRecent: isActive,
-            age: hoursSinceLastReading
-              ? `${hoursSinceLastReading}h atrás`
-              : "Desconocido",
+            isRecent: isMechanical ? false : isActive,
+            // Mechanical meters don't auto-report — stale data is expected, not a warning.
             warning:
-              !isActive && lastReading
+              !isMechanical && !isActive && lastReading
                 ? "Medidor sin actividad reciente"
                 : null,
           },
           // Mecánicos usan estado real de BD; inteligentes usan conectividad
-          status: (meter.meter_type === "MECHANICAL" ? meter.status : chipStatus) as MeterStatus,
+          status: (isMechanical ? meter.status : chipStatus) as MeterStatus,
         };
       }
 
@@ -185,54 +198,40 @@ export async function GET(req: Request) {
           shortData,
           userName,
         },
+        lastReading: lastReading
+          ? {
+              value: lastReading.instantaneous_flow,
+              cumulative: lastReading.cumulative_flow,
+              consumption: lastReading.consumption,
+              timestamp: lastReading.timestamp,
+            }
+          : null,
         connectivity: {
           status: connectivityStatus,
-          lastSeen: lastReading?.timestamp || null,
-          signalQuality: isActive ? "EXCELLENT" : "UNKNOWN",
+          lastSeen: isMechanical ? null : (lastReading?.timestamp || null),
+          signalQuality: isMechanical ? "UNKNOWN" : isActive ? "EXCELLENT" : "UNKNOWN",
         },
         dataFreshness: {
-          isRecent: isActive,
-          age: hoursSinceLastReading
-            ? `${hoursSinceLastReading}h atrás`
-            : "Desconocido",
+          isRecent: isMechanical ? false : isActive,
+          // Mechanical meters don't auto-report — stale data is expected, not a warning.
           warning:
-            !isActive && lastReading ? "Medidor sin actividad reciente" : null,
+            !isMechanical && !isActive && lastReading ? "Medidor sin actividad reciente" : null,
         },
-        // Usar estado de conectividad en lugar del estado de BD
-        status: chipStatus as MeterStatus,
+        // Mecánicos usan estado real de BD; inteligentes usan conectividad
+        status: (isMechanical ? meter.status : chipStatus) as MeterStatus,
       };
     });
 
-    let filteredMeters = meters;
-    if (search) {
-      filteredMeters = filteredMeters.filter((meter) =>
-        meter.device_name.toLowerCase().includes(search.toLowerCase())
-      );
-    }
-
-    if (status && status !== "total") {
-      const normalizedStatus = status.toUpperCase() as MeterStatus;
-      filteredMeters = filteredMeters.filter((meter) => {
-        if (meter.meter_type === "MECHANICAL") {
-          // Mecánicos solo aparecen en Mantenimiento/Fallidos, nunca en Activos/Inactivos
-          if (normalizedStatus === "ACTIVE" || normalizedStatus === "INACTIVE") return false;
-          return meter.status === normalizedStatus;
-        }
-        return meter.status === normalizedStatus;
-      });
-    }
-
-    // Calcular conteos basados en conectividad real (excluye mecánicos)
-    const smartMeters = meters.filter((m) => m.meter_type !== "MECHANICAL");
+    // Build counts from DB groupBy — correct totals across all pages,
+    // both SMART and MECHANICAL meters included by their DB status column.
+    const countByStatus: Partial<Record<MeterStatus, number>> = Object.fromEntries(
+      statusGroups.map((g) => [g.status, g._count])
+    );
     const counts = {
-      actives: smartMeters.filter((m) => m.connectivity?.status === "ONLINE").length,
-      inactives: smartMeters.filter(
-        (m) =>
-          m.connectivity?.status === "STALE" ||
-          m.connectivity?.status === "OFFLINE"
-      ).length,
-      maintenances: meters.filter((m) => m.status === "MAINTENANCE").length,
-      faultys: meters.filter((m) => m.status === "FAULTY").length,
+      actives: countByStatus["ACTIVE"] ?? 0,
+      inactives: countByStatus["INACTIVE"] ?? 0,
+      maintenances: countByStatus["MAINTENANCE"] ?? 0,
+      faultys: countByStatus["FAULTY"] ?? 0,
     };
 
     return NextResponse.json({

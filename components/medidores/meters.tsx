@@ -7,6 +7,7 @@ import { Input } from "../ui/input";
 import { useUserFilters } from "@/hooks/users/use-users-filters";
 import { FilterTabs } from "./filter-tabs";
 import { MeterTable as MeterTableComponent } from "./meter-table";
+import { MeterSummaryCards } from "./meter-summary-cards";
 import {
   Pagination,
   PaginationContent,
@@ -44,90 +45,97 @@ const Meters = () => {
     total,
   } = useMeters({ typeFilter: typeFilter === "ALL" ? undefined : typeFilter });
 
+  const goToPage = (p: number) => {
+    setPage(p);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const { inputValue, setInputValue, handleSearch, handleFilterChange } =
     useUserFilters({
       onSearch: setSearchQuery,
       onFilterChange: setFilterState,
     });
 
+  const handleResetFilters = () => {
+    resetFilters();
+    setTypeFilter("ALL");
+    setInputValue("");
+  };
+
   return (
-    <section className="w-full h-full py-10">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-col gap-4 md:gap-6 md:flex-col w-full">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between w-full gap-4">
-            <div id="tour-meters-search" className="flex items-center flex-wrap gap-2">
-              <div className="flex w-full md:w-[350px]">
-                <Input
-                  placeholder="Filtrar por código o nombre del cliente"
-                  value={inputValue}
-                  onChange={(event) => setInputValue(event.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleSearch();
-                  }}
-                  className="rounded-r-none focus:outline-none"
-                />
-                <Button
-                  onClick={handleSearch}
-                  className="rounded-l-none h-10"
-                  type="submit"
-                >
-                  <Search className="h-4 w-4" />
-                </Button>
-              </div>
-              <Button
-                onClick={() => {
-                  resetFilters(); // resetea API: page, filterState y searchQuery
-                  setInputValue(""); // resetea input visual
-                }}
-                variant="outline"
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Limpiar
-              </Button>
-            </div>
-          </div>
+    <section className="w-full h-full py-6 space-y-6">
+      {/* KPI summary cards */}
+      <MeterSummaryCards />
 
-          {/* Type filter tabs */}
-          <div className="flex items-center gap-2">
-            {TYPE_OPTIONS.map((opt) => (
-              <Button
-                key={opt.value}
-                variant={typeFilter === opt.value ? "default" : "outline"}
-                size="sm"
-                onClick={() => { setTypeFilter(opt.value); setPage(1); }}
-              >
-                {opt.value === "SMART" && <Cpu className="h-3 w-3 mr-1" />}
-                {opt.value === "MECHANICAL" && <Wrench className="h-3 w-3 mr-1" />}
-                {opt.label}
-              </Button>
-            ))}
-            {typeFilter === "MECHANICAL" && (
-              <Button
-                size="sm"
-                className="ml-auto"
-                onClick={() => router.push("/dashboard/medidores/mecanicos/nuevo")}
-              >
-                <CirclePlus className="h-4 w-4 mr-2" />
-                Nuevo medidor mecánico
-              </Button>
-            )}
-          </div>
-
-          {/* Second row: Filter Tabs */}
-          <div id="tour-meters-filter-tabs" className="flex items-center justify-center w-full mb-4">
-            <FilterTabs
-              onFilterChange={(value) => {
-                if (filterState !== value) {
-                  handleFilterChange(value);
-                }
+      {/* Toolbar */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        {/* Left: search + clear */}
+        <div id="tour-meters-search" className="flex items-center gap-2">
+          <div className="flex w-full sm:w-[320px]">
+            <Input
+              placeholder="Código o nombre del cliente"
+              value={inputValue}
+              onChange={(event) => setInputValue(event.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleSearch();
               }}
-              defaultValue={filterState}
-              total={total}
-              counts={counts}
+              className="rounded-r-none focus:outline-none"
             />
+            <Button onClick={handleSearch} className="rounded-l-none h-10" type="submit">
+              <Search className="h-4 w-4" />
+            </Button>
           </div>
+          <Button onClick={handleResetFilters} variant="outline" size="default">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Limpiar
+          </Button>
+        </div>
+
+        {/* Right: type filter group + CTA */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div id="tour-meters-type-filter" className="flex items-center rounded-md border overflow-hidden">
+            {TYPE_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => { setTypeFilter(opt.value); setPage(1); }}
+                className={`flex items-center gap-1 px-3 py-1.5 text-sm transition-colors ${
+                  typeFilter === opt.value
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-background text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                {opt.value === "SMART" && <Cpu className="h-3 w-3" />}
+                {opt.value === "MECHANICAL" && <Wrench className="h-3 w-3" />}
+                {opt.label}
+              </button>
+            ))}
+          </div>
+
+          <Button
+            size="sm"
+            onClick={() => router.push("/dashboard/medidores/mecanicos/nuevo")}
+          >
+            <CirclePlus className="h-4 w-4 mr-2" />
+            Nuevo medidor mecánico
+          </Button>
         </div>
       </div>
+
+      {/* Status filter tabs */}
+      <div id="tour-meters-filter-tabs">
+        <FilterTabs
+          onFilterChange={(value) => {
+            if (filterState !== value) {
+              handleFilterChange(value);
+            }
+          }}
+          defaultValue={filterState}
+          total={total}
+          counts={counts}
+        />
+      </div>
+
+      {/* Table / card list */}
       <div id="tour-meters-table">
         <MeterTableComponent
           data={data || []}
@@ -136,24 +144,22 @@ const Meters = () => {
         />
       </div>
 
-      {/* Add pagination */}
+      {/* Pagination */}
       {!isLoading && data && totalPages > 1 && (
-        <div className="mt-4 flex justify-center">
+        <div className="flex justify-center">
           <Pagination>
             <PaginationContent>
               <PaginationItem>
                 <PaginationPrevious
-                  onClick={() => setPage(Math.max(1, page - 1))}
+                  onClick={() => goToPage(Math.max(1, page - 1))}
                   className={
-                    page <= 1
-                      ? "pointer-events-none opacity-50"
-                      : "cursor-pointer"
+                    page <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"
                   }
                 />
               </PaginationItem>
 
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                let pageNum;
+                let pageNum: number;
                 if (totalPages <= 5) {
                   pageNum = i + 1;
                 } else if (page <= 3) {
@@ -167,7 +173,7 @@ const Meters = () => {
                 return (
                   <PaginationItem key={pageNum}>
                     <PaginationLink
-                      onClick={() => setPage(pageNum)}
+                      onClick={() => goToPage(pageNum)}
                       isActive={page === pageNum}
                       className="cursor-pointer"
                     >
@@ -179,7 +185,7 @@ const Meters = () => {
 
               <PaginationItem>
                 <PaginationNext
-                  onClick={() => setPage(Math.min(totalPages, page + 1))}
+                  onClick={() => goToPage(Math.min(totalPages, page + 1))}
                   className={
                     page >= totalPages
                       ? "pointer-events-none opacity-50"

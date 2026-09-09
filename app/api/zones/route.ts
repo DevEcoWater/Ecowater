@@ -1,10 +1,8 @@
-import { PrismaClient } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { pointInPolygon, PolygonPoint } from "@/lib/point-in-polygon";
+import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
-
-const prisma = new PrismaClient();
 
 export async function GET() {
   try {

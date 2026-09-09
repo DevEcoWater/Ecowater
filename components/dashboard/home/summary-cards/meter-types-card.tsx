@@ -14,8 +14,8 @@ export function MeterTypesCard({ smart, mechanical }: MeterTypesCardProps) {
   return (
     <Link href="/dashboard/medidores" className="h-full block">
       <Card className="p-6 border-0 shadow-sm bg-white dark:bg-card cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 border-l-4 border-l-purple-500 h-full">
-        <CardContent className="p-0 h-full flex flex-col justify-between">
-          <p className="text-sm font-medium text-gray-600 dark:text-muted-foreground mb-3">
+        <CardContent className="p-0 h-full flex flex-col justify-center gap-3">
+          <p className="text-sm font-medium text-gray-600 dark:text-muted-foreground">
             Tipos de medidor
           </p>
           <div className="flex flex-col gap-2">

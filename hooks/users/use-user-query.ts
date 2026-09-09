@@ -10,12 +10,12 @@ import type {
 } from "@/types/users/user-types";
 
 // Get All Users
-export function useUsersQuery(page = 1, limit = 10, search, filter) {
+export function useUsersQuery(page = 1, limit = 10, search, filter, role = "") {
   return useQuery<PaginatedUserResponse, Error>({
-    queryKey: ["users", page, limit, search, filter],
+    queryKey: ["users", page, limit, search, filter, role],
     queryFn: async () => {
       const response = await fetch(
-        `/api/user?search=${search}&status=${filter}&page=${page}&limit=${limit}`
+        `/api/user?search=${search}&status=${filter}&role=${role}&page=${page}&limit=${limit}`
       );
       if (!response.ok) {
         throw new Error("Failed to fetch users");

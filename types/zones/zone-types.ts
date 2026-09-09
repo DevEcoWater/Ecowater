@@ -14,6 +14,9 @@ export interface Zone {
   created_at: string;
   updated_at: string;
   meter_count?: number;
+  route_order?: string[] | null;
+  route_assignments?: Record<string, string> | null;
+  operator_target?: number | null;
 }
 
 export interface ZoneMeter {

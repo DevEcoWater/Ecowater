@@ -17,7 +17,7 @@ export const tours: Tour[] = [
         icon: "📊",
         title: "Resumen del Sistema",
         content:
-          "Las tarjetas muestran el consumo total del período, medidores activos en línea, alertas detectadas y errores del sistema.",
+          "Las cinco tarjetas muestran: consumo total del período (inteligentes y mecánicos), medidores en línea, distribución por tipo (inteligentes vs. mecánicos), alertas activas y errores. Las tarjetas de Alertas y Errores abren directamente la pestaña Alarmas de abajo.",
         selector: "#tour-summary-cards",
         side: "bottom",
         showSkip: true,
@@ -26,7 +26,7 @@ export const tours: Tour[] = [
         icon: "📅",
         title: "Selector de Período",
         content:
-          "Filtrá los datos por período predefinido (1 semana hasta 1 año) o elegí un rango personalizado desde el calendario.",
+          "Filtrá los datos por período predefinido (1 semana hasta 1 año) o elegí un rango personalizado desde el calendario. Todos los gráficos se actualizan automáticamente.",
         selector: "#tour-date-range-selector",
         side: "bottom",
         showSkip: true,
@@ -35,36 +35,27 @@ export const tours: Tour[] = [
         icon: "📈",
         title: "Gráfico de Consumo",
         content:
-          "Análisis de consumo de agua agrupado por día o mes según el período seleccionado. Cada barra representa el consumo registrado por todos los medidores activos.",
+          "Análisis de consumo de agua agrupado por día o mes según el período seleccionado. Las barras representan el consumo total registrado por todos los medidores activos.",
         selector: "#tour-consumption-chart",
         side: "top",
         showSkip: true,
       },
       {
         icon: "🚨",
-        title: "Urgencias Detectadas",
+        title: "Pestaña Alarmas",
         content:
-          "Alertas en tiempo real: alarmas de los medidores (flujo reverso, tubería vacía, batería baja) y medidores sin actividad reciente.",
-        selector: "#tour-urgencies-section",
-        side: "left",
-        showSkip: true,
-      },
-      {
-        icon: "🔔",
-        title: "Tendencia de Alarmas",
-        content:
-          "Visualizá la evolución de alarmas registradas por los medidores: flujo inverso, tubería vacía, batería baja, temperatura y fuera de rango. Útil para anticipar mantenimientos y detectar anomalías.",
-        selector: "#tour-alarm-trends",
-        side: "top",
+          "Al activar esta pestaña verás la tendencia de alarmas en el tiempo (flujo inverso, tubería vacía, batería baja, temperatura, fuera de rango) y el panel de urgencias activas clasificadas por criticidad. Útil para anticipar mantenimientos.",
+        selector: "#tour-tab-alarmas",
+        side: "bottom",
         showSkip: true,
       },
       {
         icon: "🍩",
-        title: "Distribución por Medidor",
+        title: "Pestaña Medidores",
         content:
-          "El gráfico muestra qué porcentaje del consumo total corresponde a cada medidor en el período seleccionado. Los 5 más activos se muestran individualmente.",
-        selector: "#tour-meter-distribution-chart",
-        side: "top",
+          "Al activar esta pestaña verás la distribución del consumo por medidor: qué porcentaje del total corresponde a cada dispositivo en el período seleccionado. Los 5 con mayor consumo se muestran individualmente.",
+        selector: "#tour-tab-medidores",
+        side: "bottom",
         showSkip: true,
       },
     ],
@@ -76,16 +67,25 @@ export const tours: Tour[] = [
         icon: "📡",
         title: "¡Bienvenido a Gestión de Medidores!",
         content:
-          "Desde acá podés visualizar, filtrar y gestionar todos los medidores del sistema.",
+          "Desde acá podés visualizar, filtrar y gestionar todos los medidores del sistema: tanto los inteligentes (LoRa) como los mecánicos (lectura manual).",
         side: "bottom",
         showSkip: true,
       },
       {
         icon: "🔍",
-        title: "Búsqueda y Filtros",
+        title: "Búsqueda",
         content:
-          "Buscá medidores por código o nombre del cliente. Usá el botón Limpiar para restablecer los filtros aplicados.",
+          "Buscá medidores por código de dispositivo o nombre del cliente. Usá el botón Limpiar para restablecer todos los filtros aplicados.",
         selector: "#tour-meters-search",
+        side: "bottom",
+        showSkip: true,
+      },
+      {
+        icon: "🔀",
+        title: "Filtro por Tipo",
+        content:
+          "Filtrá entre medidores Inteligentes (comunicación LoRa automática) y Mecánicos (requieren lectura manual del operario). El botón «Nuevo medidor mecánico» te permite registrar uno nuevo de tipo manual.",
+        selector: "#tour-meters-type-filter",
         side: "bottom",
         showSkip: true,
       },
@@ -93,7 +93,7 @@ export const tours: Tour[] = [
         icon: "🏷️",
         title: "Filtro por Estado",
         content:
-          "Filtrá los medidores por su estado: Todos, Activos, Inactivos, En mantenimiento o Defectuosos. Los contadores muestran cuántos hay en cada categoría.",
+          "Filtrá por estado operacional: Total, Activos, Inactivos, Mantenimiento o Error/Fallas. Los contadores de cada pestaña muestran cuántos medidores hay en esa categoría.",
         selector: "#tour-meters-filter-tabs",
         side: "bottom",
         showSkip: true,
@@ -102,7 +102,7 @@ export const tours: Tour[] = [
         icon: "📋",
         title: "Tabla de Medidores",
         content:
-          "Cada fila muestra el código del medidor, el cliente asignado, la conectividad y el estado operacional. Hacé clic en una fila para ver el detalle completo.",
+          "Cada fila muestra el tipo (chip inteligente/mecánico), cliente asignado, dirección, estado, última lectura, Actividad (hace cuánto llegó la última lectura) y conectividad (los mecánicos muestran «—» porque no usan LoRa). Hacé clic en una fila para ver el detalle completo.",
         selector: "#tour-meters-table",
         side: "top",
         showSkip: true,
@@ -116,7 +116,7 @@ export const tours: Tour[] = [
         icon: "🔬",
         title: "Detalle del Medidor",
         content:
-          "Esta vista muestra toda la información en tiempo real de un medidor individual.",
+          "Esta vista muestra toda la información de un medidor individual. El contenido varía según el tipo: los medidores inteligentes tienen métricas LoRa y control de válvula; los mecánicos tienen un control de estado manual.",
         side: "bottom",
         showSkip: true,
       },
@@ -124,7 +124,7 @@ export const tours: Tour[] = [
         icon: "📌",
         title: "Información del Medidor",
         content:
-          "Identificador, DEV EUI, cliente asignado y estado de conectividad actual del dispositivo.",
+          "Identificador, DEV EUI (o código manual), cliente asignado y estado operacional. En medidores mecánicos aparece un botón Activar/Desactivar para cambiar el estado entre Activo e Inactivo manualmente.",
         selector: "#tour-meter-header",
         side: "bottom",
         showSkip: true,
@@ -133,7 +133,7 @@ export const tours: Tour[] = [
         icon: "💧",
         title: "Métricas Principales",
         content:
-          "Flujo acumulado, instantáneo, reverso y temperatura del agua según la última lectura recibida.",
+          "Los medidores inteligentes muestran flujo acumulado, instantáneo, reverso y temperatura. Los mecánicos muestran únicamente la última lectura registrada y el consumo calculado para el período.",
         selector: "#tour-meter-metrics",
         side: "bottom",
         showSkip: true,
@@ -151,7 +151,7 @@ export const tours: Tour[] = [
         icon: "🔌",
         title: "Estado del Dispositivo",
         content:
-          "Conectividad, estado de la válvula, nivel de batería y estado operacional del medidor.",
+          "Disponible solo en medidores inteligentes: muestra la conectividad LoRa, el estado de la válvula (abierta/cerrada), el nivel de batería y el estado operacional del dispositivo.",
         selector: "#tour-meter-status",
         side: "left",
         showSkip: true,
@@ -160,7 +160,7 @@ export const tours: Tour[] = [
         icon: "🚨",
         title: "Urgencias Detectadas",
         content:
-          "Alarmas activas del medidor: flujo reverso, tubería vacía, temperatura, batería baja y otros eventos críticos.",
+          "Alarmas activas del medidor: flujo reverso, tubería vacía, temperatura fuera de rango, batería baja y otros eventos críticos registrados por el dispositivo.",
         selector: "#tour-meter-alerts",
         side: "left",
         showSkip: true,
@@ -174,7 +174,7 @@ export const tours: Tour[] = [
         icon: "👥",
         title: "¡Bienvenido a Gestión de Usuarios!",
         content:
-          "Desde acá podés administrar todos los clientes del sistema, asignar medidores y gestionar sus estados.",
+          "Desde acá podés administrar todos los clientes del sistema, asignarles medidores y gestionar sus estados de cuenta.",
         side: "bottom",
         showSkip: true,
       },
@@ -191,7 +191,7 @@ export const tours: Tour[] = [
         icon: "➕",
         title: "Crear Usuario",
         content:
-          "Registrá un nuevo cliente completando sus datos personales, dirección y estado de cuenta.",
+          "Registrá un nuevo cliente completando sus datos personales, dirección y estado de cuenta inicial.",
         selector: "#tour-users-create",
         side: "bottom",
         showSkip: true,
@@ -200,7 +200,7 @@ export const tours: Tour[] = [
         icon: "🏷️",
         title: "Filtro por Estado",
         content:
-          "Filtrá por estado de cuenta: Activos, Inactivos, Pendientes o Bloqueados. Los contadores muestran cuántos hay en cada categoría.",
+          "Filtrá por estado de cuenta: Activos, Inactivos, Pendientes o Bloqueados. Los contadores de cada pestaña muestran cuántos usuarios hay en esa categoría.",
         selector: "#tour-users-filter-tabs",
         side: "bottom",
         showSkip: true,
@@ -209,7 +209,7 @@ export const tours: Tour[] = [
         icon: "📋",
         title: "Tabla de Usuarios",
         content:
-          "Cada fila muestra el nombre, email, estado y medidor asignado. Hacé clic en un usuario para ver su detalle completo.",
+          "Cada fila muestra el nombre, email, estado de cuenta y medidor asignado. Hacé clic en un usuario para ver su detalle completo.",
         selector: "#tour-users-table",
         side: "top",
         showSkip: true,
@@ -223,7 +223,7 @@ export const tours: Tour[] = [
         icon: "👤",
         title: "Detalle del Usuario",
         content:
-          "Esta vista muestra toda la información del cliente seleccionado.",
+          "Esta vista muestra toda la información del cliente seleccionado: datos personales, dirección, medidor asociado y roles.",
         side: "bottom",
         showSkip: true,
       },
@@ -240,7 +240,7 @@ export const tours: Tour[] = [
         icon: "🛡️",
         title: "Roles y Estado",
         content:
-          "Rol asignado al usuario y estado actual de su cuenta (Activo, Inactivo, Pendiente o Bloqueado).",
+          "Rol asignado al usuario (administrador, operario o lector) y estado actual de su cuenta (Activo, Inactivo, Pendiente o Bloqueado).",
         selector: "#tour-user-roles",
         side: "top",
         showSkip: true,
@@ -249,7 +249,7 @@ export const tours: Tour[] = [
         icon: "📡",
         title: "Medidor Asociado",
         content:
-          "Medidor asignado al usuario con su estado. Podés cambiarlo o asignar uno nuevo desde acá.",
+          "Medidor asignado al usuario con su tipo y estado. Podés cambiarlo o asignar uno nuevo desde acá.",
         selector: "#tour-user-meter",
         side: "top",
         showSkip: true,
@@ -263,7 +263,7 @@ export const tours: Tour[] = [
         icon: "👷",
         title: "¡Bienvenido al Portal!",
         content:
-          "Este es tu espacio de trabajo. Desde acá accedés a tus zonas asignadas y registrás las lecturas del día.",
+          "Este es tu espacio de trabajo. Desde acá accedés a tus zonas asignadas y registrás las lecturas manuales del día.",
         side: "bottom",
         showSkip: true,
       },
@@ -280,7 +280,7 @@ export const tours: Tour[] = [
         icon: "🗺️",
         title: "Tus zonas",
         content:
-          "Cada tarjeta es una zona. Tocá una para ver la lista de medidores a leer y empezar la ruta.",
+          "Cada tarjeta es una zona de trabajo. Tocá una para ver la lista de medidores a leer y comenzar la ruta de lectura.",
         selector: "#tour-portal-zones",
         side: "top",
         showSkip: true,
@@ -302,7 +302,7 @@ export const tours: Tour[] = [
         icon: "📊",
         title: "Resumen del equipo",
         content:
-          "Las tarjetas muestran el total de operarios, cuántos están activos y la cantidad de zonas cubiertas en total.",
+          "Las tarjetas muestran el total de operarios registrados, cuántos están activos y la cantidad de zonas cubiertas en total.",
         selector: "#tour-operarios-stats",
         side: "bottom",
         showSkip: true,
@@ -320,7 +320,7 @@ export const tours: Tour[] = [
         icon: "➕",
         title: "Nuevo operario",
         content:
-          "Registrá un nuevo operario de campo asignándole nombre, email y contraseña de acceso.",
+          "Registrá un nuevo operario de campo asignándole nombre, email y contraseña de acceso al portal.",
         selector: "#tour-operarios-create",
         side: "bottom",
         showSkip: true,
@@ -329,7 +329,7 @@ export const tours: Tour[] = [
         icon: "📋",
         title: "Lista de operarios",
         content:
-          "Cada fila muestra el nombre, email, estado y cantidad de zonas asignadas. Hacé clic para ver el detalle completo.",
+          "Cada fila muestra el nombre, email, estado y cantidad de zonas asignadas. Hacé clic en una fila para ver el detalle completo del operario.",
         selector: "#tour-operarios-table",
         side: "top",
         showSkip: true,
@@ -343,7 +343,7 @@ export const tours: Tour[] = [
         icon: "👷",
         title: "Detalle del operario",
         content:
-          "Esta vista muestra el perfil completo del operario: actividad, zonas asignadas e historial de lecturas.",
+          "Esta vista muestra el perfil completo del operario: actividad reciente, zonas asignadas e historial de lecturas registradas.",
         side: "bottom",
         showSkip: true,
       },
@@ -351,7 +351,7 @@ export const tours: Tour[] = [
         icon: "📈",
         title: "Estadísticas",
         content:
-          "Total de lecturas realizadas, lecturas de la semana actual y cantidad de zonas asignadas.",
+          "Total de lecturas realizadas, lecturas de la semana actual y cantidad de zonas de trabajo asignadas.",
         selector: "#tour-operario-stats",
         side: "bottom",
         showSkip: true,
@@ -369,7 +369,7 @@ export const tours: Tour[] = [
         icon: "📋",
         title: "Historial de lecturas",
         content:
-          "Las últimas 30 lecturas registradas por el operario: medidor, valor, consumo calculado y observaciones.",
+          "Las últimas 30 lecturas registradas por el operario: medidor, valor ingresado, consumo calculado y observaciones.",
         selector: "#tour-operario-readings",
         side: "top",
         showSkip: true,
@@ -383,7 +383,7 @@ export const tours: Tour[] = [
         icon: "🗺️",
         title: "Detalle de zona",
         content:
-          "Esta vista muestra los medidores dentro del área geográfica y los operarios asignados a la zona.",
+          "Esta vista muestra los medidores dentro del área geográfica de la zona, las descargas disponibles y los operarios asignados.",
         side: "bottom",
         showSkip: true,
       },
@@ -391,7 +391,7 @@ export const tours: Tour[] = [
         icon: "📡",
         title: "Medidores de la zona",
         content:
-          "Lista de medidores mecánicos e inteligentes dentro del polígono de esta zona.",
+          "Lista de medidores mecánicos e inteligentes dentro del polígono de esta zona. Muestra el tipo, dispositivo, usuario, consumo acumulado del período y estado operacional.",
         selector: "#tour-zone-meters",
         side: "bottom",
         showSkip: true,
@@ -400,7 +400,7 @@ export const tours: Tour[] = [
         icon: "👷",
         title: "Operarios asignados",
         content:
-          "Los operarios de campo responsables de realizar las lecturas en esta zona.",
+          "Los operarios de campo responsables de realizar las lecturas en esta zona. Podés agregar o quitar operarios desde este panel.",
         selector: "#tour-zone-operators",
         side: "top",
         showSkip: true,
@@ -422,7 +422,7 @@ export const tours: Tour[] = [
         icon: "👤",
         title: "Información Personal",
         content:
-          "Modificá nombre, apellido, email y estado de la cuenta. Solo los administradores pueden cambiar el estado.",
+          "Modificá nombre, apellido, email y estado de la cuenta. Solo los administradores pueden cambiar el estado del usuario.",
         selector: "#tour-edit-personal",
         side: "bottom",
         showSkip: true,
@@ -431,7 +431,7 @@ export const tours: Tour[] = [
         icon: "📍",
         title: "Ubicación",
         content:
-          "Actualizá la dirección del usuario buscando con el autocompletado. El mapa se actualiza automáticamente al seleccionar una dirección.",
+          "Actualizá la dirección del usuario usando el autocompletado. El mapa se actualiza automáticamente al seleccionar una nueva dirección.",
         selector: "#tour-edit-location",
         side: "top",
         showSkip: true,

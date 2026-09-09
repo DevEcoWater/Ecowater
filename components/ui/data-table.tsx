@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { X } from "lucide-react";
+import { X, FileX } from "lucide-react";
 import type { Table as ReactTable } from "@tanstack/react-table";
 
 interface DataTableProps<TData, TValue> {
@@ -20,6 +20,7 @@ interface DataTableProps<TData, TValue> {
   table: ReactTable<TData>;
   isLoading: boolean;
   error: any;
+  onRowClick?: (row: TData) => void;
 }
 
 export function DataTable<TData, TValue>({
@@ -28,12 +29,13 @@ export function DataTable<TData, TValue>({
   table,
   isLoading,
   error,
+  onRowClick,
 }: DataTableProps<TData, TValue>) {
   return (
     <>
       <div className="w-full">
         <Table>
-          <TableHeader>
+          <TableHeader className="sticky top-0 bg-background z-10">
             {table &&
               table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
@@ -67,6 +69,8 @@ export function DataTable<TData, TValue>({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
+                  onClick={onRowClick ? () => onRowClick(row.original) : undefined}
+                  className={onRowClick ? "cursor-pointer hover:bg-muted/50 transition-colors" : undefined}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
@@ -80,12 +84,10 @@ export function DataTable<TData, TValue>({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length}>
-                  <div className="flex items-center justify-center p-6 w-full">
-                    <div className="flex flex-col items-center gap-2 text-muted-foreground w-full">
-                      <X className="h-8 w-8" />
-                      <p>No se encontraron resultados</p>
-                    </div>
+                <TableCell colSpan={columns.length} className="h-[21rem]">
+                  <div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground">
+                    <FileX className="w-8 h-8 opacity-40" />
+                    <span className="text-sm">No se encontraron resultados</span>
                   </div>
                 </TableCell>
               </TableRow>

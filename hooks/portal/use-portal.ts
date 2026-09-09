@@ -68,14 +68,14 @@ export function useSubmitReadingMutation(zoneId?: string) {
 
 export function useOcrMutation(meterId: string) {
   return useMutation({
-    mutationFn: async (photo_url: string) => {
+    mutationFn: async (imageBase64: string) => {
       const res = await fetch(`/api/meter/${meterId}/ocr`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ photo_url }),
+        body: JSON.stringify({ imageBase64 }),
       });
       const data = await res.json();
-      return data as { value: string | null; error?: string };
+      return data as { value: string | null; rawText?: string; error?: string };
     },
   });
 }

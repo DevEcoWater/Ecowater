@@ -7,6 +7,7 @@ interface ValveCommandsCardProps {
   deviceName: string;
   currentValveStatus: string | null;
   lastSeen?: string | null;
+  canOperate?: boolean;
 }
 
 export function ValveCommandsCard({
@@ -14,6 +15,7 @@ export function ValveCommandsCard({
   deviceName,
   currentValveStatus,
   lastSeen,
+  canOperate,
 }: ValveCommandsCardProps) {
   return (
     <ValveControlPanel
@@ -21,6 +23,7 @@ export function ValveCommandsCard({
       deviceName={deviceName}
       currentValveStatus={currentValveStatus}
       lastSeen={lastSeen}
+      canOperate={canOperate}
     />
   );
 }

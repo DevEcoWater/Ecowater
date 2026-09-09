@@ -25,10 +25,20 @@ export interface ValveCommandRequest {
   command: ValveCommandType;
 }
 
+export type ValveCommandStatus = "SUCCESS" | "MQTT_ERROR";
+
 export interface ValveCommandResponse {
   success: boolean;
+  status: ValveCommandStatus;
   topic: string;
   action: string;
+}
+
+export interface ValveCommandErrorResponse {
+  error: string;
+  status: ValveCommandStatus;
+  topic?: string;
+  action?: string;
 }
 
 export function resolveValveDisplayStatus(

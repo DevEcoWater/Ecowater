@@ -55,10 +55,10 @@ function CoordinateMap({
     scrollwheel: !readOnly,
     draggable: !readOnly,
     clickableIcons: !readOnly,
-    // Only restrict when no zones are shown (free placement mode needs wider view)
-    ...(zones
-      ? {}
-      : {
+    // Restrict area only on interactive maps without zone overlays (e.g. meter placement).
+    // Read-only maps display whatever location they receive — no restriction needed.
+    ...(!readOnly && !zones
+      ? {
           minZoom: 15,
           maxZoom: 17,
           restriction: {
@@ -70,7 +70,8 @@ function CoordinateMap({
             },
             strictBounds: true,
           },
-        }),
+        }
+      : {}),
   };
 
   const onLoad = useCallback((map: google.maps.Map) => {

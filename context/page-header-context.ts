@@ -8,9 +8,8 @@ export type PageHeaderContextType = {
 };
 
 export const defaultPageHeader: PageHeaderContextType = {
-  title: "Gestión de Usuarios",
-  description:
-    "Administre usuarios, registre nuevos clientes y actualice información.",
+  title: "Dashboard",
+  description: "Panel de control principal",
   tourName: null,
   setPageHeader: () => {},
 };

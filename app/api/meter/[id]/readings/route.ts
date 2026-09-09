@@ -1,12 +1,12 @@
 // app/api/meter/[id]/readings/route.ts
-import { PrismaClient } from "@prisma/client";
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
 export async function POST(
   req: Request,
   { params }: { params: { id: string } }
 ) {
-  const prisma = new PrismaClient();
+
   try {
     const body = await req.json();
     const { instantaneous_flow, observations, photo_url, submitted_by } = body;
@@ -39,10 +39,25 @@ export async function POST(
     });
 
     const newValue = parseFloat(instantaneous_flow);
-    const prevValue = previousReading?.instantaneous_flow
+    const previousValue = previousReading?.instantaneous_flow
       ? parseFloat(previousReading.instantaneous_flow)
-      : 0;
-    const consumption = isNaN(newValue) ? null : Math.max(0, newValue - prevValue);
+      : null;
+
+    if (
+      previousValue !== null &&
+      !isNaN(previousValue) &&
+      !isNaN(newValue) &&
+      newValue < previousValue
+    ) {
+      return NextResponse.json(
+        { error: "La lectura no puede ser menor a la lectura anterior" },
+        { status: 400 }
+      );
+    }
+
+    const consumption = isNaN(newValue)
+      ? null
+      : Math.max(0, newValue - (previousValue ?? 0));
 
     const reading = await prisma.reading.create({
       data: {
@@ -110,7 +125,7 @@ export async function GET(
   req: Request,
   { params }: { params: { id: string } }
 ) {
-  const prisma = new PrismaClient();
+
 
   try {
     const { searchParams } = new URL(req.url);

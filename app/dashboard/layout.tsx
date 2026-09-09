@@ -19,6 +19,7 @@ import { AuthGuard } from "@/components/auth/auth-guard";
 import { configureDayjs } from "@/utils/configureDayjs";
 import { TourProvider } from "@/components/layout/panel/tour-provider";
 import { PageTransition } from "@/components/layout/panel/page-transition";
+import { CooperativeThemeProvider } from "@/providers/cooperative-theme-provider";
 
 configureDayjs();
 
@@ -29,6 +30,7 @@ export default function DashboardLayout({
 }>) {
   return (
     <AuthGuard requireAuth={true}>
+      <CooperativeThemeProvider />
       <TourProvider>
       <UiSidebarProvider defaultOpen={false}>
         <ThemeProvider attribute="class" defaultTheme="light">

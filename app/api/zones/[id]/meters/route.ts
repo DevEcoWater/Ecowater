@@ -1,11 +1,9 @@
-import { PrismaClient } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { pointInPolygon, PolygonPoint } from "@/lib/point-in-polygon";
 import { ZoneMeter } from "@/types/zones/zone-types";
+import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
-
-const prisma = new PrismaClient();
 
 // Interpreta YYYY-MM-DD como inicio de dia en UTC-3.
 function parseStartOfDayUtcMinus3(dateInput: string): Date {

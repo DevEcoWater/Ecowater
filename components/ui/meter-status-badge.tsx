@@ -27,36 +27,36 @@ export function MeterStatusBadge({
       case "ONLINE":
         return {
           icon: Wifi,
-          color: "text-green-500",
-          bgColor: "bg-green-50",
-          borderColor: "border-green-200",
+          color: "text-green-500 dark:text-green-400",
+          bgColor: "bg-green-50 dark:bg-green-500/10",
+          borderColor: "border-green-200 dark:border-green-500/30",
           text: "Activo",
           description: "Última lectura < 24h",
         };
       case "STALE":
         return {
           icon: WifiOff,
-          color: "text-yellow-500",
-          bgColor: "bg-yellow-50",
-          borderColor: "border-yellow-200",
+          color: "text-yellow-500 dark:text-yellow-400",
+          bgColor: "bg-yellow-50 dark:bg-yellow-500/10",
+          borderColor: "border-yellow-200 dark:border-yellow-500/30",
           text: "Inactivo",
           description: "Última lectura ≥ 24h",
         };
       case "OFFLINE":
         return {
           icon: WifiOff,
-          color: "text-red-500",
-          bgColor: "bg-red-50",
-          borderColor: "border-red-200",
+          color: "text-red-500 dark:text-red-400",
+          bgColor: "bg-red-50 dark:bg-red-500/10",
+          borderColor: "border-red-200 dark:border-red-500/30",
           text: "Desconectado",
           description: "Sin lecturas registradas",
         };
       default:
         return {
           icon: AlertCircle,
-          color: "text-gray-500",
-          bgColor: "bg-gray-50",
-          borderColor: "border-gray-200",
+          color: "text-gray-500 dark:text-muted-foreground",
+          bgColor: "bg-gray-50 dark:bg-muted",
+          borderColor: "border-gray-200 dark:border-border",
           text: "Desconocido",
           description: "Estado no determinado",
         };
@@ -126,7 +126,7 @@ export function MeterStatusBadge({
           {config.text}
         </span>
         {showDetails && (
-          <div className="text-xs text-gray-600 space-y-1">
+          <div className="text-xs text-muted-foreground space-y-1">
             <div>{config.description}</div>
             {connectivity.lastSeen && (
               <div className="flex items-center gap-1">

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Zone, ZoneMeter, ZonePolygonPoint } from "@/types/zones/zone-types";
+import { ReadingRouteResponse } from "@/types/operarios/operario-types";
 
 const ZONES_KEY = ["zones"];
 
@@ -87,6 +88,9 @@ interface UpdateZoneInput {
   name?: string;
   color?: string;
   polygon?: ZonePolygonPoint[];
+  route_order?: string[] | null;
+  route_assignments?: Record<string, string> | null;
+  operator_target?: number | null;
 }
 
 export function useUpdateZoneMutation() {
@@ -116,5 +120,80 @@ export function useDeleteZoneMutation() {
       if (!res.ok) throw new Error("Error al eliminar zona");
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ZONES_KEY }),
+  });
+}
+
+export function useAssignOperarioToZone() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      operarioId,
+      zoneId,
+    }: {
+      operarioId: string;
+      zoneId: string;
+    }) => {
+      const res = await fetch(`/api/operarios/${operarioId}/zones`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ zone_id: zoneId }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(
+          (err as { error?: string }).error ?? "Error al asignar operario"
+        );
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ZONES_KEY });
+      qc.invalidateQueries({ queryKey: ["zone-reading-route"] });
+      qc.invalidateQueries({ queryKey: ["operarios"] }); // busts all: paginated list + "all"
+    },
+  });
+}
+
+export function useRemoveOperarioFromZone() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      operarioId,
+      zoneId,
+    }: {
+      operarioId: string;
+      zoneId: string;
+    }) => {
+      const res = await fetch(
+        `/api/operarios/${operarioId}/zones/${zoneId}`,
+        { method: "DELETE" }
+      );
+      if (!res.ok) throw new Error("Error al remover operario");
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ZONES_KEY });
+      qc.invalidateQueries({ queryKey: ["zone-reading-route"] });
+      qc.invalidateQueries({ queryKey: ["operarios"] }); // busts all: paginated list + "all"
+    },
+  });
+}
+
+export function useZoneReadingRouteQuery(
+  zoneId: string | null,
+  period?: { startDate: string; endDate: string }
+) {
+  return useQuery<ReadingRouteResponse>({
+    queryKey: ["zone-reading-route", zoneId, period?.startDate, period?.endDate],
+    queryFn: async () => {
+      const query = period
+        ? `?startDate=${encodeURIComponent(period.startDate)}&endDate=${encodeURIComponent(period.endDate)}`
+        : "";
+      const res = await fetch(
+        `/api/operarios/zones/${zoneId}/reading-route${query}`
+      );
+      if (!res.ok) throw new Error("Error al obtener ruta de lectura");
+      return res.json();
+    },
+    enabled: !!zoneId,
   });
 }

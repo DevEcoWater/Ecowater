@@ -55,12 +55,20 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <SidebarMenuItem>
               <SidebarMenuButton asChild className="flex items-center gap-2">
                 <span className="text-base font-semibold flex items-center gap-2">
-                  <Image
-                    src={clientConfig.brand.logoMark}
-                    alt="Logo"
-                    width={24}
-                    height={24}
-                  />
+                  {cooperative?.logo_url ? (
+                    <img
+                      src={cooperative.logo_url}
+                      alt={cooperative.name}
+                      className="h-6 w-6 rounded object-contain shrink-0"
+                    />
+                  ) : (
+                    <Image
+                      src={clientConfig.brand.logoMark}
+                      alt={clientConfig.brand.name}
+                      width={24}
+                      height={24}
+                    />
+                  )}
                   {open &&
                     (cooperative ? (
                       cooperative.name

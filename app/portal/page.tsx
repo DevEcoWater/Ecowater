@@ -7,7 +7,7 @@ import { ZoneCard } from "@/components/portal/zone-card";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Map, Wrench, ArrowRight, ClipboardCheck } from "lucide-react";
+import { Map, Wrench, ArrowRight, ClipboardCheck, CheckCircle2 } from "lucide-react";
 
 export default function PortalHomePage() {
   const { data: session } = useSession();
@@ -15,8 +15,11 @@ export default function PortalHomePage() {
   const router = useRouter();
 
   const firstName = session?.user?.name?.split(" ")[0] ?? "Operario";
-  const totalMeters = zones?.reduce((sum, z) => sum + z.meter_count, 0) ?? 0;
-  const activeZones = zones?.filter((z) => z.status === "ACTIVE").length ?? 0;
+
+  const activeZones   = zones?.filter((z) => z.status === "ACTIVE").length ?? 0;
+  const totalAssigned = zones?.reduce((sum, z) => sum + z.assigned_count, 0) ?? 0;
+  const totalReadToday = zones?.reduce((sum, z) => sum + z.read_count_today, 0) ?? 0;
+  const allDoneToday  = totalAssigned > 0 && totalReadToday >= totalAssigned;
 
   const hour = new Date().getHours();
   const greeting =
@@ -38,6 +41,18 @@ export default function PortalHomePage() {
                   month: "long",
                 })}
               </p>
+              {!isLoading && totalAssigned > 0 && (
+                allDoneToday ? (
+                  <p className="text-blue-100 text-sm mt-2 font-medium flex items-center gap-1">
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    Completaste todas tus lecturas de hoy
+                  </p>
+                ) : (
+                  <p className="text-blue-100 text-sm mt-2 font-medium">
+                    {totalReadToday} de {totalAssigned} lecturas completadas
+                  </p>
+                )
+              )}
             </div>
             <div className="p-3 bg-white/20 rounded-xl">
               <ClipboardCheck className="w-7 h-7 text-white" />
@@ -47,39 +62,56 @@ export default function PortalHomePage() {
       </Card>
 
       {/* Stats row */}
-      <div id="tour-portal-stats" className="grid grid-cols-2 gap-4">
+      <div id="tour-portal-stats" className="grid grid-cols-3 gap-3">
+        {/* Active zones */}
         <Card className="border-0 shadow-sm bg-white dark:bg-card border-l-4 border-l-blue-500">
-          <CardContent className="p-5">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-100">
-                <Map className="w-4 h-4 text-blue-600" />
+          <CardContent className="p-4">
+            <div className="flex flex-col gap-1">
+              <div className="p-1.5 rounded-lg bg-blue-100 w-fit">
+                <Map className="w-3.5 h-3.5 text-blue-600" />
               </div>
-              <div>
-                {isLoading ? (
-                  <Skeleton className="h-6 w-8 mb-0.5" />
-                ) : (
-                  <p className="text-xl font-bold">{activeZones}</p>
-                )}
-                <p className="text-xs text-muted-foreground">Zonas activas</p>
-              </div>
+              {isLoading ? (
+                <Skeleton className="h-6 w-6 mt-0.5" />
+              ) : (
+                <p className="text-xl font-bold">{activeZones}</p>
+              )}
+              <p className="text-xs text-muted-foreground leading-tight">Zonas activas</p>
             </div>
           </CardContent>
         </Card>
 
+        {/* Assigned meters */}
         <Card className="border-0 shadow-sm bg-white dark:bg-card border-l-4 border-l-amber-500">
-          <CardContent className="p-5">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-amber-100">
-                <Wrench className="w-4 h-4 text-amber-600" />
+          <CardContent className="p-4">
+            <div className="flex flex-col gap-1">
+              <div className="p-1.5 rounded-lg bg-amber-100 w-fit">
+                <Wrench className="w-3.5 h-3.5 text-amber-600" />
               </div>
-              <div>
-                {isLoading ? (
-                  <Skeleton className="h-6 w-8 mb-0.5" />
-                ) : (
-                  <p className="text-xl font-bold">{totalMeters}</p>
-                )}
-                <p className="text-xs text-muted-foreground">Medidores a leer</p>
+              {isLoading ? (
+                <Skeleton className="h-6 w-6 mt-0.5" />
+              ) : (
+                <p className="text-xl font-bold">{totalAssigned}</p>
+              )}
+              <p className="text-xs text-muted-foreground leading-tight">Asignados</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Read today */}
+        <Card className="border-0 shadow-sm bg-white dark:bg-card border-l-4 border-l-green-500">
+          <CardContent className="p-4">
+            <div className="flex flex-col gap-1">
+              <div className="p-1.5 rounded-lg bg-green-100 w-fit">
+                <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
               </div>
+              {isLoading ? (
+                <Skeleton className="h-6 w-6 mt-0.5" />
+              ) : (
+                <p className={`text-xl font-bold ${allDoneToday ? "text-green-600" : ""}`}>
+                  {totalReadToday}
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground leading-tight">Leídos hoy</p>
             </div>
           </CardContent>
         </Card>
@@ -104,8 +136,8 @@ export default function PortalHomePage() {
         <div className="space-y-3">
           {isLoading && (
             <>
-              <Skeleton className="h-20 w-full rounded-xl" />
-              <Skeleton className="h-20 w-full rounded-xl" />
+              <Skeleton className="h-24 w-full rounded-xl" />
+              <Skeleton className="h-24 w-full rounded-xl" />
             </>
           )}
           {!isLoading && zones?.length === 0 && (

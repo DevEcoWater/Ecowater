@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
-  serverExternalPackages: ["mqtt", "mongodb"],
+  serverExternalPackages: ["mqtt", "mongodb", "@google-cloud/vision"],
   images: {
     remotePatterns: [
       {

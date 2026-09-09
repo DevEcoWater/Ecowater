@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { ConsumptionQueryParams } from "./use-consumption-data";
 
 export interface AlarmDataPoint {
@@ -47,5 +47,6 @@ export const useAlarmTrends = (
     refetchInterval: false,
     refetchOnWindowFocus: false,
     refetchOnMount: true,
+    placeholderData: keepPreviousData,
   });
 };
