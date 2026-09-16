@@ -25,11 +25,10 @@ export const parseTimestamp = (timestamp: string): string => {
 
   const formattedInput = `${fullYear}-${MM}-${dd} ${HH}:${mm}:${ss}`;
 
-  // Interpreta como timezone local del cliente y convierte a UTC ISO para que Prisma lo almacene correctamente.
-  // Sin esto, el string sin zona se guardaba como UTC y al mostrar aparecía desfasado.
-  return dayjs
-    .tz(formattedInput, clientConfig.locale.timezone)
-    .toISOString();
+  // El reloj del medidor emite en UTC, no en hora local. Interpretar estos
+  // dígitos como timezone local (como se hizo entre e9fe1b9 y este fix)
+  // corría cada instante +3h hacia el futuro real — ver ED-90.
+  return dayjs.utc(formattedInput).toISOString();
 };
 
 export const parseUnixTimeToLocal = (unixTime: number): string => {
