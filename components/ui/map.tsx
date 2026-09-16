@@ -6,7 +6,7 @@ import React, {
   useMemo,
   useRef,
 } from "react";
-import { GoogleMap, Marker, InfoWindow, DrawingManager, Polygon } from "@react-google-maps/api";
+import { GoogleMap, Marker, InfoWindow, Polygon } from "@react-google-maps/api";
 import { clientConfig } from "@/config/client.config";
 import { Skeleton } from "./skeleton";
 import { chipConfig } from "@/utils/getChipColor";
@@ -76,7 +76,7 @@ function Map() {
   const editingPolygonRef = useRef<google.maps.Polygon | null>(null);
   const [editingZone, setEditingZone] = useState<Zone | null>(null);
   const [drawingMode, setDrawingMode] = useState(false);
-  const [pendingPolygon, setPendingPolygon] = useState<google.maps.Polygon | null>(null);
+  const [drawingPath, setDrawingPath] = useState<ZonePolygonPoint[]>([]);
   const [pendingCoords, setPendingCoords] = useState<ZonePolygonPoint[]>([]);
   const [zoneDialogOpen, setZoneDialogOpen] = useState(false);
   const [newZoneName, setNewZoneName] = useState("");
@@ -622,19 +622,29 @@ function Map() {
     setActiveCluster(null);
   };
 
-  const handlePolygonComplete = useCallback(
-    (polygon: google.maps.Polygon) => {
-      const coords: ZonePolygonPoint[] = polygon
-        .getPath()
-        .getArray()
-        .map((latlng) => ({ lat: latlng.lat(), lng: latlng.lng() }));
-      setPendingPolygon(polygon);
-      setPendingCoords(coords);
-      setZoneDialogOpen(true);
-      setDrawingMode(false);
+  const handleMapClick = useCallback(
+    (e: google.maps.MapMouseEvent) => {
+      if (!drawingMode || !e.latLng) return;
+      setDrawingPath((prev) => [
+        ...prev,
+        { lat: e.latLng!.lat(), lng: e.latLng!.lng() },
+      ]);
     },
-    []
+    [drawingMode]
   );
+
+  const handleFinishDrawing = useCallback(() => {
+    if (drawingPath.length < 3) return;
+    setPendingCoords(drawingPath);
+    setZoneDialogOpen(true);
+    setDrawingMode(false);
+    setDrawingPath([]);
+  }, [drawingPath]);
+
+  const handleCancelDrawing = useCallback(() => {
+    setDrawingMode(false);
+    setDrawingPath([]);
+  }, []);
 
   const handleSaveZone = useCallback(async () => {
     if (!newZoneName.trim()) return;
@@ -644,8 +654,6 @@ function Map() {
         color: newZoneColor,
         polygon: pendingCoords,
       });
-      pendingPolygon?.setMap(null);
-      setPendingPolygon(null);
       setPendingCoords([]);
       setNewZoneName("");
       setNewZoneColor("#3B82F6");
@@ -654,16 +662,14 @@ function Map() {
     } catch {
       toast({ title: "Error al crear zona", variant: "destructive" });
     }
-  }, [newZoneName, newZoneColor, pendingCoords, pendingPolygon, createZone, toast]);
+  }, [newZoneName, newZoneColor, pendingCoords, createZone, toast]);
 
   const handleCancelZone = useCallback(() => {
-    pendingPolygon?.setMap(null);
-    setPendingPolygon(null);
     setPendingCoords([]);
     setNewZoneName("");
     setNewZoneColor("#3B82F6");
     setZoneDialogOpen(false);
-  }, [pendingPolygon]);
+  }, []);
 
   const handleSaveEditZone = useCallback(async () => {
     if (!editingZone || !editingPolygonRef.current) return;
@@ -698,6 +704,7 @@ function Map() {
       zoom={8}
       onLoad={onLoad}
       onUnmount={onUnmount}
+      onClick={handleMapClick}
     >
       <div className="absolute right-4 top-4 z-[1] w-[280px] max-h-[calc(100%-2rem)] overflow-y-auto">
         <Collapsible defaultOpen>
@@ -910,7 +917,11 @@ function Map() {
                     size="sm"
                     variant={drawingMode ? "default" : "outline"}
                     className="w-full text-xs"
-                    onClick={() => setDrawingMode((v) => !v)}
+                    onClick={() =>
+                      drawingMode
+                        ? handleCancelDrawing()
+                        : setDrawingMode(true)
+                    }
                   >
                     {drawingMode ? (
                       <><X className="w-3.5 h-3.5" /> Cancelar dibujo</>
@@ -1291,22 +1302,40 @@ function Map() {
         </div>
       )}
 
-      {/* DrawingManager */}
-      {drawingMode && (
-        <DrawingManager
-          drawingMode={window.google?.maps?.drawing?.OverlayType?.POLYGON}
+      {/* New zone: click-to-draw preview */}
+      {drawingMode && drawingPath.length > 0 && (
+        <Polygon
+          paths={drawingPath}
           options={{
-            drawingControl: false,
-            polygonOptions: {
-              fillColor: newZoneColor,
-              fillOpacity: 0.25,
-              strokeColor: newZoneColor,
-              strokeWeight: 2,
-              editable: false,
-            },
+            fillColor: newZoneColor,
+            fillOpacity: 0.25,
+            strokeColor: newZoneColor,
+            strokeWeight: 2,
+            clickable: false,
+            editable: false,
           }}
-          onPolygonComplete={handlePolygonComplete}
         />
+      )}
+
+      {/* New zone: drawing controls bar */}
+      {drawingMode && (
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-[1] bg-white rounded-xl shadow-lg border px-4 py-3 flex items-center gap-4">
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: newZoneColor }} />
+            Dibujando zona
+            <span className="text-xs text-muted-foreground font-normal ml-1">
+              — hacé click en el mapa para agregar vértices ({drawingPath.length} punto{drawingPath.length === 1 ? "" : "s"})
+            </span>
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" onClick={handleFinishDrawing} disabled={drawingPath.length < 3}>
+              <Check className="w-3.5 h-3.5 mr-1" /> Finalizar
+            </Button>
+            <Button size="sm" variant="outline" onClick={handleCancelDrawing}>
+              <X className="w-3.5 h-3.5 mr-1" /> Cancelar
+            </Button>
+          </div>
+        </div>
       )}
     </GoogleMap>
   ) : (
