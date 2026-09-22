@@ -7,9 +7,9 @@ import { parseInstantaneousFlow } from "@/utils/parseInstantaneousFlow";
 export const dynamic = "force-dynamic";
 import { parseTemperature } from "@/utils/parseTemperature";
 import {
-  parseTimestamp,
-} from "@/utils/parseTimestamp ";
-import { convertTimestampToArgentinaTime } from "@/utils/timestampConverter";
+  convertTimestampToArgentinaTime,
+  convertTimestampToLocalTime,
+} from "@/utils/timestampConverter";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(request: Request) {
@@ -67,6 +67,22 @@ export async function POST(request: Request) {
       );
     }
 
+    // Cuando ocurrio la lectura. Se toma del `timestamp` unix que manda el
+    // gateway y NO de los digitos de fecha que trae el payload, que salen del
+    // reloj interno del medidor: medido contra la hora real de llegada, ese
+    // reloj estaba casi once horas adelantado, y ninguna cuenta de zona
+    // horaria arregla un reloj desajustado. El del gateway coincide al
+    // segundo, y es el mismo que ya se venia usando para created_at.
+    //
+    // Si el gateway no lo manda, vale mas la hora de llegada que un reloj que
+    // sabemos que miente. Los digitos crudos quedan igual en `plot`, que
+    // guarda el payload hex entero.
+    const gatewayTimestamp =
+      typeof timestamp === "number" && Number.isFinite(timestamp) && timestamp > 0
+        ? convertTimestampToLocalTime(timestamp)
+        : new Date().toISOString();
+    const readingTimestamp = gatewayTimestamp;
+
     const parseData = parseMeterData(data);
     const { alarmStatus, spare } = parseData;
     const byte1 = parseInt(alarmStatus, 16);
@@ -80,7 +96,6 @@ export async function POST(request: Request) {
       reverseFlow: parseFlowHex(parseData.reverseFlow),
       instantaneousFlow: parseInstantaneousFlow(parseData.instantaneousFlow),
       realTimeTemperature: parseTemperature(parseData.realTimeTemperature),
-      timestamps: parseTimestamp(parseData.timestamps),
     };
     // No sobrescribir lat/lng con null, undefined o 0
     const primaryLat = rxInfo?.[0]?.location?.latitude;
@@ -137,7 +152,7 @@ export async function POST(request: Request) {
     const reading = await prisma.reading.create({
       data: {
         meter_id: meter.id,
-        timestamp: parsedValues.timestamps,  
+        timestamp: readingTimestamp,
         plot: data,
         fCnt,
         fPort,

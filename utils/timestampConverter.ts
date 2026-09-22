@@ -52,6 +52,12 @@ export function formatReadingAge(
   if (isNaN(date.getTime())) return "Sin lecturas";
 
   const diffMs = Date.now() - date.getTime();
+
+  // Una fecha futura no se anuncia como pasada. Sin esto, una lectura sellada
+  // once horas adelante se mostraba como "hace 11 horas" y disparaba alertas
+  // de medidor inactivo sobre un aparato que acababa de reportar.
+  if (diffMs < 0) return "recién";
+
   const diffSec = Math.floor(diffMs / 1000);
   const diffMin = Math.floor(diffSec / 60);
   const diffH = Math.floor(diffMin / 60);
