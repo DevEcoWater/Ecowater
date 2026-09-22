@@ -69,7 +69,35 @@ psql "postgresql://readonly:LA_CONTRASEÑA@localhost:5433/ecowater_cosego"
 | Usuario | `readonly` |
 | SSL | no hace falta (el túnel ya va cifrado) |
 
-### Lo más cómodo: que el cliente arme el túnel solo
+## Lo más simple: la consola web, sin instalar nada
+
+En el servidor corre **pgweb**, una consola de Postgres de solo lectura. No hay
+que instalar ningún programa: se llega con el navegador, a través del mismo
+túnel SSH.
+
+Abrí el túnel en una terminal y dejala:
+
+```bash
+ssh -N -L 8081:localhost:8081 ecowater-vps
+```
+
+Y entrá a **http://localhost:8081**. Ya está conectada a la base de producción:
+no hay que cargar host, usuario ni contraseña.
+
+Trae el listado de tablas, un editor de consultas y exportación a CSV. Alcanza
+para el 90% de los casos — mirar lecturas, buscar un medidor, revisar la
+auditoría de válvulas.
+
+**No podés romper nada, ni queriendo.** Hay dos barreras: la conexión usa el rol
+`readonly`, y además pgweb rechaza cualquier consulta que no sea un `SELECT`.
+Tampoco se puede cambiar la conexión desde la interfaz.
+
+Si necesitás algo que la consola no hace —comparar esquemas, un cliente con
+autocompletado, exportar a otros formatos— seguí con las opciones de abajo.
+
+---
+
+### Lo más cómodo con un cliente: que arme el túnel solo
 
 DBeaver, TablePlus, DataGrip y pgAdmin saben abrir el túnel por su cuenta, así
 que no necesitás la terminal aparte. Cargás los datos una vez y después te
@@ -181,6 +209,15 @@ ssh ecowater-vps 'sudo docker ps --filter name=ecowater-postgres'
 
 **`bind: Address already in use`** — ya tenés un túnel abierto en el 5433, o
 algo más lo está usando. Usá otro puerto local: `-L 5434:localhost:5432`.
+
+**La consola web no carga** — comprobá que el contenedor esté arriba:
+
+```bash
+ssh ecowater-vps 'sudo docker ps --filter name=ecowater-pgweb'
+```
+
+**La consola dice que la consulta no está permitida** — es a propósito: solo
+acepta `SELECT`. Si necesitás escribir algo en producción, no es por acá.
 
 ---
 
