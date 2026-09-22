@@ -182,18 +182,18 @@ model Gateway {
 }
 
 model Zone {
-  id              String         @id @default(uuid())
-  name            String
-  color           String         @default("#3B82F6")
-  polygon         Json
-  route_order        Json?
-  route_assignments  Json?
-  operator_target    Int?
-  status          ZoneStatus     @default(ACTIVE)
-  created_at      DateTime       @default(now())
-  updated_at      DateTime       @updatedAt
-  zoneOperators   ZoneOperator[]
-  downloads       ZoneDownload[]
+  id                String         @id @default(uuid())
+  name              String
+  color             String         @default("#3B82F6")
+  polygon           Json
+  route_order       Json?
+  route_assignments Json?
+  operator_target   Int?
+  status            ZoneStatus     @default(ACTIVE)
+  created_at        DateTime       @default(now())
+  updated_at        DateTime       @updatedAt
+  zoneOperators     ZoneOperator[]
+  downloads         ZoneDownload[]
 }
 
 model ZoneDownload {
@@ -220,6 +220,26 @@ model ZoneOperator {
   @@unique([zone_id, user_id])
   @@index([zone_id])
   @@index([user_id])
+}
+
+/// Auditoria de comandos de valvula. Deliberadamente SIN relacion a Meter:
+/// un registro de quien le corto el agua a un socio tiene que sobrevivir al
+/// borrado del medidor, asi que meter_id es un string suelto y no una FK en
+/// cascada. Reemplaza la coleccion valve_events que vivia en Mongo Atlas.
+model ValveEvent {
+  id         String      @id @default(uuid())
+  timestamp  DateTime    @default(now())
+  user_id    String
+  user_email String
+  action     ValveAction
+  meter_id   String
+  dev_eui    String?
+  mqtt_topic String
+  result     ValveResult
+  error      String?
+
+  @@index([meter_id, timestamp])
+  @@index([timestamp])
 }
 
 enum CooperativeStatus {
@@ -270,4 +290,14 @@ enum RxInfoStatus {
   FAILED
   DELAYED
   ARCHIVED
+}
+
+enum ValveAction {
+  VALVE_OPEN
+  VALVE_CLOSE
+}
+
+enum ValveResult {
+  SENT
+  FAILED
 }

@@ -7,8 +7,11 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
 import { z } from "zod";
 
-// mqtt and mongodb are optional infrastructure — loaded dynamically so that a
-// missing package causes a graceful 5xx instead of crashing the route module.
+// mqtt is optional infrastructure — loaded dynamically so that a missing
+// package causes a graceful 5xx instead of crashing the route module.
+// The audit lives in Postgres, so it rides on the same connection this route
+// already needs: if the database is down, the meter lookup above fails and
+// nothing is ever published. "No audit, no command" holds by construction.
 
 const commandSchema = z.object({
   command: z.enum(["OPEN", "CLOSE"]),
@@ -67,19 +70,6 @@ export async function POST(req: Request, { params }: Context) {
       );
     }
 
-    // Sin auditoria no se ejecuta: cortar el agua de un socio tiene que quedar
-    // registrado con nombre y apellido. Se valida ANTES de publicar para no
-    // dejar un comando emitido que despues no podemos atribuir a nadie.
-    if (!process.env.MONGO_AUDIT_URI) {
-      return NextResponse.json(
-        {
-          error:
-            "Auditoría no configurada (MONGO_AUDIT_URI). No se envían comandos de válvula sin registro.",
-        },
-        { status: 503 }
-      );
-    }
-
     // Sin fallback a propósito: el application_id es por medidor (conviven 1 y 3)
     // y adivinarlo publica en una application inexistente — el broker acepta el
     // mensaje igual y el comando se pierde sin error. Mejor fallar acá.
@@ -108,9 +98,8 @@ export async function POST(req: Request, { params }: Context) {
     // devolver 500, o el operador reintenta sobre una valvula ya accionada.
     let audit: "SAVED" | "FAILED" = "SAVED";
     try {
-      const { saveValveEvent } = await import("@/lib/mongo-audit");
+      const { saveValveEvent } = await import("@/lib/valve-audit");
       await saveValveEvent({
-        timestamp: new Date(),
         user_id: session?.user?.id ?? "dev-bypass",
         user_email: session?.user?.email ?? "dev@bypass.local",
         action: command === "OPEN" ? "VALVE_OPEN" : "VALVE_CLOSE",
@@ -170,7 +159,7 @@ export async function GET(req: Request, { params }: Context) {
       Math.max(1, parseInt(searchParams.get("limit") ?? "10"))
     );
 
-    const { getValveHistory } = await import("@/lib/mongo-audit");
+    const { getValveHistory } = await import("@/lib/valve-audit");
     const result = await getValveHistory(params.id, page, limit);
 
     return NextResponse.json(result);
