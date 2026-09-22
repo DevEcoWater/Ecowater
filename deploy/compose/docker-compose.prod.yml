@@ -1,4 +1,10 @@
-# Project name = CLIENT_SLUG (set COMPOSE_PROJECT_NAME in .env.production).
+# Project name = CLIENT_SLUG, declared below so it travels with this file.
+# It used to live here as `name: ecowater`; 19245b8 traded it for a comment
+# asking to set COMPOSE_PROJECT_NAME in .env.production, nobody did, and every
+# later deploy resolved the project from this file's directory ("compose")
+# instead — colliding with the containers already running under "ecowater".
+name: ${CLIENT_SLUG:-ecowater}
+
 # Each client gets its own slug (e.g. "aquacoop-norte") so container/volume
 # names are scoped per client on the same host, if ever needed.
 # Safe on separate VPS — the default slug "ecowater" keeps backward compat.
@@ -14,6 +20,11 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    # Bound to loopback on purpose: Postgres is NOT reachable from the internet.
+    # Developers read production through an SSH tunnel — see
+    # deploy/docs/DB_READONLY_ACCESS.md. Never widen this to 0.0.0.0.
+    ports:
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
