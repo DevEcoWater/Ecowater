@@ -26,7 +26,7 @@ export async function POST(req: Request, { params }: Context) {
       if (!session?.user) {
         return NextResponse.json({ error: "No autenticado" }, { status: 401 });
       }
-      if (session.user.role !== "ADMIN") {
+      if (session.user.role !== "admin") {
         return NextResponse.json({ error: "Acceso denegado" }, { status: 403 });
       }
       if (!session.user.canWrite) {
@@ -67,7 +67,30 @@ export async function POST(req: Request, { params }: Context) {
       );
     }
 
-    const appId = meter.application_id ?? "2";
+    // Sin auditoria no se ejecuta: cortar el agua de un socio tiene que quedar
+    // registrado con nombre y apellido. Se valida ANTES de publicar para no
+    // dejar un comando emitido que despues no podemos atribuir a nadie.
+    if (!process.env.MONGO_AUDIT_URI) {
+      return NextResponse.json(
+        {
+          error:
+            "Auditoría no configurada (MONGO_AUDIT_URI). No se envían comandos de válvula sin registro.",
+        },
+        { status: 503 }
+      );
+    }
+
+    // Sin fallback a propósito: el application_id es por medidor (conviven 1 y 3)
+    // y adivinarlo publica en una application inexistente — el broker acepta el
+    // mensaje igual y el comando se pierde sin error. Mejor fallar acá.
+    if (!meter.application_id) {
+      return NextResponse.json(
+        { error: "Medidor sin application_id configurado" },
+        { status: 422 }
+      );
+    }
+
+    const appId = meter.application_id;
 
     const { getValveTopic, publishValveCommand, MqttBrokerError } = await import("@/lib/mqtt-client");
     const topic = getValveTopic(meter.dev_eui, appId);
@@ -81,28 +104,42 @@ export async function POST(req: Request, { params }: Context) {
       mqttStatus = err instanceof MqttBrokerError ? "MQTT_ERROR" : "MQTT_ERROR";
     }
 
-    const { saveValveEvent } = await import("@/lib/mongo-audit");
-    await saveValveEvent({
-      timestamp: new Date(),
-      user_id: session?.user?.id ?? "dev-bypass",
-      user_email: session?.user?.email ?? "dev@bypass.local",
-      action: command === "OPEN" ? "VALVE_OPEN" : "VALVE_CLOSE",
-      meter_id: params.id,
-      dev_eui: meter.dev_eui,
-      mqtt_topic: topic,
-      result: mqttError ? "FAILED" : "SENT",
-      error: mqttError,
-    });
+    // El comando ya salio al broker: un fallo al registrarlo no puede
+    // devolver 500, o el operador reintenta sobre una valvula ya accionada.
+    let audit: "SAVED" | "FAILED" = "SAVED";
+    try {
+      const { saveValveEvent } = await import("@/lib/mongo-audit");
+      await saveValveEvent({
+        timestamp: new Date(),
+        user_id: session?.user?.id ?? "dev-bypass",
+        user_email: session?.user?.email ?? "dev@bypass.local",
+        action: command === "OPEN" ? "VALVE_OPEN" : "VALVE_CLOSE",
+        meter_id: params.id,
+        dev_eui: meter.dev_eui,
+        mqtt_topic: topic,
+        result: mqttError ? "FAILED" : "SENT",
+        error: mqttError,
+      });
+    } catch (err) {
+      audit = "FAILED";
+      console.error("[VALVE AUDIT] no se pudo registrar el comando", {
+        meter_id: params.id,
+        dev_eui: meter.dev_eui,
+        action: command,
+        mqtt_result: mqttError ? "FAILED" : "SENT",
+        err,
+      });
+    }
 
     if (mqttError) {
       return NextResponse.json(
-        { error: `Fallo al publicar comando MQTT: ${mqttError}`, status: "MQTT_ERROR", topic, action: command },
+        { error: `Fallo al publicar comando MQTT: ${mqttError}`, status: "MQTT_ERROR", topic, action: command, audit },
         { status: 502 }
       );
     }
 
     return NextResponse.json(
-      { success: true, status: "SUCCESS", topic, action: command },
+      { success: true, status: "SUCCESS", topic, action: command, audit },
       { status: 201 }
     );
   } catch (err) {
@@ -121,7 +158,7 @@ export async function GET(req: Request, { params }: Context) {
       if (!session?.user) {
         return NextResponse.json({ error: "No autenticado" }, { status: 401 });
       }
-      if (session.user.role !== "ADMIN") {
+      if (session.user.role !== "admin") {
         return NextResponse.json({ error: "Acceso denegado" }, { status: 403 });
       }
     }

@@ -27,11 +27,15 @@ export interface ValveCommandRequest {
 
 export type ValveCommandStatus = "SUCCESS" | "MQTT_ERROR";
 
+export type ValveAuditResult = "SAVED" | "FAILED";
+
 export interface ValveCommandResponse {
   success: boolean;
   status: ValveCommandStatus;
   topic: string;
   action: string;
+  /** El comando se emitió, pero no se pudo registrar en la auditoría. */
+  audit?: ValveAuditResult;
 }
 
 export interface ValveCommandErrorResponse {
@@ -39,6 +43,7 @@ export interface ValveCommandErrorResponse {
   status: ValveCommandStatus;
   topic?: string;
   action?: string;
+  audit?: ValveAuditResult;
 }
 
 export function resolveValveDisplayStatus(

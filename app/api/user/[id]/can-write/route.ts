@@ -17,7 +17,7 @@ export async function PATCH(req: Request, { params }: Context) {
     if (!session?.user) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
-    if (session.user.role !== "ADMIN") {
+    if (session.user.role !== "admin") {
       return NextResponse.json({ error: "Acceso denegado" }, { status: 403 });
     }
     if (session.user.id === params.id) {
