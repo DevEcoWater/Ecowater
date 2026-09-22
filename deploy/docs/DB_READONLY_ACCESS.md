@@ -206,6 +206,12 @@ GRANT SELECT ON ALL SEQUENCES IN SCHEMA public TO readonly;
 -- Y también lo que se cree de acá en adelante, sin tener que volver a correr esto.
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO readonly;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON SEQUENCES TO readonly;
+
+-- IMPRESCINDIBLE. Sin esto el rol puede crear tablas igual: Postgres le da
+-- CREATE sobre el esquema public a todo el mundo por defecto, y un restore
+-- puede reponer ese permiso aunque lo hayas sacado antes.
+REVOKE CREATE ON SCHEMA public FROM PUBLIC;
+REVOKE CREATE ON SCHEMA public FROM readonly;
 ```
 
 Comprobá que quedó bien limitado:
@@ -215,9 +221,19 @@ Comprobá que quedó bien limitado:
 SET ROLE readonly;
 SELECT count(*) FROM "Meter";
 
--- Y esto tiene que fallar con "permission denied".
+-- Y esto tiene que fallar con "permission denied for schema public".
+-- Si en cambio te dice CREATE TABLE, te faltó el REVOKE de arriba: borrá la
+-- tabla, corré el REVOKE y volvé a probar.
 CREATE TABLE prueba_permisos (id int);
 RESET ROLE;
+```
+
+El estado correcto se ve así — fijate que PUBLIC (el nombre vacío antes del
+`=`) tiene `U` de usage pero no `C` de create:
+
+```sql
+SELECT nspacl FROM pg_namespace WHERE nspname = 'public';
+-- {devecowater=UC/devecowater,=U/devecowater,readonly=U/devecowater}
 ```
 
 ### Sumar a alguien
