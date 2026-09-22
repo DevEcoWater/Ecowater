@@ -1,5 +1,11 @@
-// mqtt is in serverExternalPackages — imported dynamically so webpack skips
-// static analysis and MODULE_NOT_FOUND is caught at runtime, not at build time.
+// mqtt is listed in experimental.serverComponentsExternalPackages, so Next
+// leaves it out of the bundle and traces it into the standalone output. The
+// import is dynamic so a missing package surfaces as a handled 502 rather than
+// crashing the route module at load.
+//
+// Do NOT put webpackIgnore back on it: that hides the import from the
+// dependency tracer, the package stops being copied into the standalone build,
+// and valve control dies in production with "Cannot find package 'mqtt'".
 
 export type ValveCommand = "OPEN" | "CLOSE";
 
@@ -28,8 +34,7 @@ export async function publishValveCommand(
   const brokerUrl = process.env.MQTT_BROKER_URL;
   if (!brokerUrl) throw new MqttBrokerError("MQTT_BROKER_URL no configurado");
 
-  // webpackIgnore: mqtt is external — skip static resolution
-  const { default: mqtt } = await import(/* webpackIgnore: true */ "mqtt");
+  const { default: mqtt } = await import("mqtt");
 
   const topic   = getValveTopic(devEui, appId);
 
