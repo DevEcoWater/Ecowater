@@ -17,10 +17,34 @@ export interface MeterData {
   endingCode: string;
 }
 
+/** Largo minimo de una trama de lectura, en caracteres hex, ya sin preambulo. */
+export const READING_FRAME_LENGTH = 98;
+
+/**
+ * Saca el preambulo de despertador que el medidor antepone a algunas tramas.
+ * Viene como FF o como FEFE segun el tipo de trama, repetido a veces mas de
+ * una vez. El parser original solo contemplaba FF, asi que las tramas FEFE
+ * quedaban corridas cuatro caracteres y todos los cortes por posicion salian
+ * mal.
+ */
+export function stripPreamble(input: string): string {
+  let out = input.trim();
+  while (/^(FF|FE)/i.test(out)) out = out.slice(2);
+  return out;
+}
+
+/**
+ * True si la trama tiene pinta de lectura de consumo. Las de confirmacion de
+ * downlink llegan por el mismo endpoint, son mas cortas y no se pueden parsear
+ * con estos offsets.
+ */
+export function isReadingFrame(input: string): boolean {
+  const f = stripPreamble(input);
+  return f.length >= READING_FRAME_LENGTH && f.slice(0, 2).toUpperCase() === "68";
+}
+
 export function parseMeterData(input: string): MeterData {
-  const filterInput = input.toUpperCase().startsWith("FF")
-    ? input.slice(2)
-    : input;
+  const filterInput = stripPreamble(input);
 
   return {
     startCode: filterInput.slice(0, 2),

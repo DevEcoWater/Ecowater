@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { parseMeterStatus } from "@/utils/parseMeterStatus";
-import { parseMeterData } from "@/utils/parseMeterData";
+import { parseMeterData, isReadingFrame } from "@/utils/parseMeterData";
 import { parseFlowHex } from "@/utils/parseFlowHex";
 import { parseInstantaneousFlow } from "@/utils/parseInstantaneousFlow";
 
@@ -46,6 +46,25 @@ export async function POST(request: Request) {
       });
     } catch (e) {
       console.warn("[GATEWAY] Failed to log payload summary", e);
+    }
+
+    // El medidor manda por este mismo endpoint dos clases de trama: la lectura
+    // de consumo y la confirmacion de un downlink, que llega unos segundos
+    // despues de cada comando de valvula. La segunda es mas corta y no se
+    // puede leer con los offsets de la primera: hasta ahora entraba igual al
+    // parser, salia todo NaN y el endpoint devolvia 500. Eran uno de cada tres
+    // POST del gateway, y ese ruido tapaba cualquier falla real de ingesta.
+    if (!isReadingFrame(data)) {
+      console.log("[GATEWAY] Trama que no es de lectura, ignorada", {
+        devEUI,
+        fPort,
+        fCnt,
+        data: typeof data === "string" ? data.slice(0, 48) : data,
+      });
+      return NextResponse.json(
+        { ok: true, ignored: "not-a-reading-frame" },
+        { status: 200 }
+      );
     }
 
     const parseData = parseMeterData(data);
