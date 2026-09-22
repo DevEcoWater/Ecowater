@@ -91,6 +91,34 @@ services:
     networks:
       - client_net
 
+  # Consola web de solo lectura para el equipo. Escucha unicamente en loopback:
+  # se llega por el tunel SSH, igual que a Postgres. Ver
+  # deploy/docs/DB_READONLY_ACCESS.md.
+  #
+  # Es pgweb y no pgAdmin a proposito: un binario de Go que consume 5,7 MiB
+  # contra los ~300 MiB de pgAdmin, y con mucha menos superficie de ataque.
+  pgweb:
+    image: sosedoff/pgweb:latest
+    container_name: ${CLIENT_SLUG:-ecowater}-pgweb
+    restart: unless-stopped
+    command:
+      - --bind=0.0.0.0
+      - --listen=8081
+      - --url=${PGWEB_DATABASE_URL}
+      # Dos barreras, no una: el usuario de la conexion ya es de solo lectura,
+      # y ademas pgweb rechaza cualquier consulta que no sea un SELECT.
+      - --readonly
+      # Impide cambiar la conexion desde la interfaz: nadie puede apuntarla a
+      # otra base ni entrar con otro usuario.
+      - --lock-session
+    ports:
+      - "127.0.0.1:8081:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - client_net
+
 volumes:
   postgres_data:
 
