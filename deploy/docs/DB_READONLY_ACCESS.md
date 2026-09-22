@@ -134,9 +134,11 @@ los uses para poblar un entorno de pruebas.
 ### Consultas de uso frecuente
 
 ```sql
--- Últimas lecturas que llegaron, por hora real de llegada.
--- Ojo: Reading.timestamp viene del reloj interno del medidor y está
--- desfasado. Para "cuándo llegó de verdad" usá Status.created_at.
+-- Últimas lecturas que llegaron.
+-- Desde el fix de ED-90, Reading.timestamp sale del reloj del gateway y
+-- coincide con Status.created_at al segundo: podés usar cualquiera de los dos.
+-- Antes venía del reloj interno del medidor, que se reiniciaba solo y dejaba
+-- lecturas fechadas con meses de diferencia.
 select s.created_at, m.device_name, s.valve_status, s.empty_pipe_alarm
 from "Status" s
 join "Reading" r on r.id = s.reading_id
