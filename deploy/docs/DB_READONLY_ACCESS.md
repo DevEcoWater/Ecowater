@@ -4,13 +4,45 @@ Desde el 22/09/2026 producción corre sobre el PostgreSQL del VPS, no sobre
 Supabase. Ya no hay una consola web donde mirar los datos, así que esta es la
 forma de conectarse.
 
-El acceso es **de solo lectura y a través de un túnel SSH**. Postgres escucha
-únicamente en `127.0.0.1` del servidor: no está expuesto a internet y no hay
-forma de llegar sin una clave SSH autorizada.
+Hay dos formas de entrar. **La consola web no necesita nada instalado ni clave
+SSH** y alcanza para casi todo. El túnel queda para quien necesite un cliente
+completo.
+
+Las dos son de solo lectura: no hay manera de escribir en producción desde
+ninguna de las dos.
 
 ---
 
-## Una sola vez: pedir acceso
+## La forma simple: la consola web
+
+**https://pgweb.ecowater.com.ar**
+
+Entrás con el usuario y la contraseña que te pasen —no están en el repositorio—
+y ya estás conectado a la base de producción. No hay que configurar nada.
+
+Trae el listado de tablas, un editor de consultas y exportación a CSV. Alcanza
+para mirar lecturas, buscar un medidor o revisar la auditoría de válvulas.
+
+**No podés romper nada, ni queriendo.** Hay dos barreras: la conexión usa el rol
+`readonly`, que no tiene permiso de escritura en la base, y además la consola
+rechaza cualquier consulta que no sea un `SELECT`. Tampoco se puede cambiar la
+conexión desde la interfaz.
+
+> **La contraseña de esa consola es sensible.** Es lo único que separa internet
+> de los nombres, domicilios y consumos de los socios. Va en el gestor de
+> contraseñas del equipo, no en un chat. Si alguien se va del proyecto, se rota.
+
+Si necesitás algo que la consola no hace —comparar esquemas, autocompletado,
+exportar a otros formatos— seguí con el túnel.
+
+---
+
+## La otra forma: túnel SSH con tu cliente
+
+Postgres escucha únicamente en `127.0.0.1` del servidor: no está expuesto a
+internet y no hay forma de llegar sin una clave SSH autorizada.
+
+### Una sola vez: pedir acceso
 
 **1. Que te agreguen la clave SSH.** Pasale tu clave pública a quien administre
 el servidor:
@@ -68,34 +100,6 @@ psql "postgresql://readonly:LA_CONTRASEÑA@localhost:5433/ecowater_cosego"
 | Base | `ecowater_cosego` |
 | Usuario | `readonly` |
 | SSL | no hace falta (el túnel ya va cifrado) |
-
-## Lo más simple: la consola web, sin instalar nada
-
-En el servidor corre **pgweb**, una consola de Postgres de solo lectura. No hay
-que instalar ningún programa: se llega con el navegador, a través del mismo
-túnel SSH.
-
-Abrí el túnel en una terminal y dejala:
-
-```bash
-ssh -N -L 8081:localhost:8081 ecowater-vps
-```
-
-Y entrá a **http://localhost:8081**. Ya está conectada a la base de producción:
-no hay que cargar host, usuario ni contraseña.
-
-Trae el listado de tablas, un editor de consultas y exportación a CSV. Alcanza
-para el 90% de los casos — mirar lecturas, buscar un medidor, revisar la
-auditoría de válvulas.
-
-**No podés romper nada, ni queriendo.** Hay dos barreras: la conexión usa el rol
-`readonly`, y además pgweb rechaza cualquier consulta que no sea un `SELECT`.
-Tampoco se puede cambiar la conexión desde la interfaz.
-
-Si necesitás algo que la consola no hace —comparar esquemas, un cliente con
-autocompletado, exportar a otros formatos— seguí con las opciones de abajo.
-
----
 
 ### Lo más cómodo con un cliente: que arme el túnel solo
 
@@ -210,10 +214,14 @@ ssh ecowater-vps 'sudo docker ps --filter name=ecowater-postgres'
 **`bind: Address already in use`** — ya tenés un túnel abierto en el 5433, o
 algo más lo está usando. Usá otro puerto local: `-L 5434:localhost:5432`.
 
-**La consola web no carga** — comprobá que el contenedor esté arriba:
+**La consola web pide usuario y contraseña y no los tenés** — no están en el
+repositorio a propósito. Pedíselas a quien administre el servidor.
+
+**La consola web no carga** — puede ser el contenedor o el proxy:
 
 ```bash
 ssh ecowater-vps 'sudo docker ps --filter name=ecowater-pgweb'
+ssh ecowater-vps 'sudo nginx -t && sudo systemctl status nginx --no-pager | head -3'
 ```
 
 **La consola dice que la consulta no está permitida** — es a propósito: solo
@@ -274,6 +282,25 @@ El estado correcto se ve así — fijate que PUBLIC (el nombre vacío antes del
 SELECT nspacl FROM pg_namespace WHERE nspname = 'public';
 -- {devecowater=UC/devecowater,=U/devecowater,readonly=U/devecowater}
 ```
+
+### Rotar la contraseña de la consola web
+
+Se hace cuando se filtra o cuando alguien deja el proyecto. La contraseña vive
+en un archivo de nginx, no en el repositorio ni en la base:
+
+```bash
+ssh ecowater-vps
+NUEVA='pone_una_contraseña_larga'
+openssl passwd -apr1 "$NUEVA" | sed 's/^/ecowater:/' \
+  | sudo tee /etc/nginx/.htpasswd-pgweb > /dev/null
+sudo chmod 640 /etc/nginx/.htpasswd-pgweb
+sudo chown root:www-data /etc/nginx/.htpasswd-pgweb
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+El hash empieza con `$apr1$`. Si al mirar el archivo no ves ese prefijo, el
+shell se comió los `$` y la contraseña quedó mal: rehacelo pasando el contenido
+por una tubería como arriba, no dentro de comillas dobles.
 
 ### Sumar a alguien
 
