@@ -69,11 +69,52 @@ psql "postgresql://readonly:LA_CONTRASEÑA@localhost:5433/ecowater_cosego"
 | Usuario | `readonly` |
 | SSL | no hace falta (el túnel ya va cifrado) |
 
-Varios clientes saben armar el túnel solos: buscá la pestaña *SSH* en la
-configuración de la conexión y cargá ahí el host `138.36.237.244`, puerto
-`5306`, usuario `deploy` y tu clave privada. Si lo hacés así, el host de la base
-pasa a ser `postgres` o `localhost` según el cliente, y te ahorrás la terminal
-aparte.
+### Lo más cómodo: que el cliente arme el túnel solo
+
+DBeaver, TablePlus, DataGrip y pgAdmin saben abrir el túnel por su cuenta, así
+que no necesitás la terminal aparte. Cargás los datos una vez y después te
+conectás como a cualquier otra base.
+
+**En DBeaver**, al crear una conexión PostgreSQL:
+
+*Pestaña Main*
+
+| Campo | Valor |
+|---|---|
+| Host | `localhost` |
+| Port | `5432` |
+| Database | `ecowater_cosego` |
+| Username | `readonly` |
+| Password | la que te pasaron |
+
+*Pestaña SSH* — tildá **Use SSH Tunnel**
+
+| Campo | Valor |
+|---|---|
+| Host/IP | `138.36.237.244` |
+| Port | `5306` |
+| User Name | `deploy` |
+| Authentication Method | Public Key |
+| Private Key | `~/.ssh/id_ed25519` |
+
+En Main va `localhost:5432` y no el puerto 5433 del ejemplo de la terminal:
+desde el otro extremo del túnel, que lo abre DBeaver, la base *es* local. Probá
+con **Test Connection** antes de guardar.
+
+El resto de los clientes es lo mismo con otros nombres: TablePlus lo llama
+*Over SSH*, DataGrip *SSH/SSL*, pgAdmin *SSH Tunnel*. Un cliente de MySQL o
+MariaDB no sirve: es otro protocolo.
+
+### Por qué no abrimos el puerto y listo
+
+Publicar el 5432 en internet significa que cualquier escáner automático lo
+encuentra en horas y empieza a probar contraseñas, y que lo único que protege
+los datos de los socios es esa contraseña. Peor todavía: este Postgres no tiene
+TLS configurado, así que las credenciales y los datos viajarían sin cifrar.
+
+El túnel resuelve las tres cosas sin agregar nada: autenticación por clave,
+tráfico cifrado, y ningún puerto nuevo en el firewall — el de SSH ya está
+abierto.
 
 ---
 
