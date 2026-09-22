@@ -69,9 +69,14 @@ export default function UserDetailPage() {
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
 
   const isViewingOwnProfile = session?.user?.id === userId;
+  // Los roles se guardan en minuscula (admin, lector, operario, supervisor,
+  // user) y tanto la sesion como /api/user/[id] los propagan tal cual. Comparar
+  // contra "ADMIN" daba siempre false, asi que ningun administrador podia
+  // gestionar el estado ni los permisos de otro usuario: los controles no se
+  // renderizaban nunca.
   const canManagePermissions =
-    session?.user?.role === "ADMIN" && !isViewingOwnProfile && userData?.role === "ADMIN";
-  const canManageStatus = session?.user?.role === "ADMIN" && !isViewingOwnProfile;
+    session?.user?.role === "admin" && !isViewingOwnProfile && userData?.role === "admin";
+  const canManageStatus = session?.user?.role === "admin" && !isViewingOwnProfile;
 
   const initials = `${userData?.firstName?.[0] ?? ""}${userData?.lastName?.[0] ?? ""}`.toUpperCase();
 

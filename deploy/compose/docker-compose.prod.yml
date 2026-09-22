@@ -40,7 +40,11 @@ services:
     container_name: ${CLIENT_SLUG:-ecowater}-mqtt
     restart: unless-stopped
     ports:
-      - "1883:1883"
+      # 1883 va sin cifrar, asi que solo loopback: la app le habla por la red
+      # interna de Docker (mqtt:1883) y no necesita pasar por el host. Queda
+      # accesible para depurar con mosquitto_sub desde el servidor.
+      - "127.0.0.1:1883:1883"
+      # 8883 si sale a internet: por aca entra el gateway LoRa, con TLS.
       - "8883:8883"
     volumes:
       - ../mqtt/config/mosquitto.conf:/mosquitto/config/mosquitto.conf
