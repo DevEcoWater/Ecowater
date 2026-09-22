@@ -992,6 +992,7 @@ function Map() {
       {cooperativePosition && (
         <Marker
           position={cooperativePosition}
+          options={{ clickable: !drawingMode }}
           icon={{
             url: "/house.svg",
             scaledSize: new google.maps.Size(40, 40),
@@ -1035,6 +1036,7 @@ function Map() {
                 lng: item.lng,
               }}
               onClick={() => handleMarkerClick(index)}
+              options={{ clickable: !drawingMode }}
               icon={{
                 url: isMech
                   ? createMechanicalColoredIcon(textColor)
@@ -1206,7 +1208,12 @@ function Map() {
                   fillOpacity: isHovered ? 0.38 : 0.18,
                   strokeColor: zone.color,
                   strokeWeight: isHovered ? 3 : 2,
-                  clickable: true,
+                  // Mientras se dibuja, las zonas existentes dejan pasar el
+                  // click al mapa. Si no, un click sobre una zona ya dibujada
+                  // se lo lleva ella —abriendo su panel— y el vertice nunca se
+                  // agrega: una zona nueva pegada a otra seria imposible de
+                  // trazar.
+                  clickable: !drawingMode,
                   editable: false,
                   zIndex: 1,
                 }}
