@@ -11,4 +11,4 @@ echo "[deploy] Building and starting services..."
 docker compose -f "$COMPOSE_FILE" --env-file "$ROOT_DIR/deploy/env/.env.production" up -d --build
 
 echo "[deploy] Current status:"
-docker compose -f "$COMPOSE_FILE" ps
+docker compose -f "$COMPOSE_FILE" --env-file "$ROOT_DIR/deploy/env/.env.production" ps
