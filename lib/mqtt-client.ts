@@ -32,7 +32,12 @@ export async function publishValveCommand(
   const { default: mqtt } = await import(/* webpackIgnore: true */ "mqtt");
 
   const topic   = getValveTopic(devEui, appId);
-  const payload = JSON.stringify({ confirmed: true, fPort: 2, data: HEX_DATA[command] });
+
+  // EXPERIMENTO (ED-88): replica byte a byte el payload que Mariano publica a
+  // mano desde HiveMQ y que si funciona — una linea, con espacios despues de
+  // '{', de cada ':' y de cada ',', y antes de '}'. JSON.stringify los omite.
+  // Si el parser de apsSrv resulta ser tolerante, volver a JSON.stringify.
+  const payload = `{ "confirmed": true, "fPort": 2, "data": "${HEX_DATA[command]}" }`;
 
   return new Promise((resolve, reject) => {
     const client = mqtt.connect(brokerUrl, {
