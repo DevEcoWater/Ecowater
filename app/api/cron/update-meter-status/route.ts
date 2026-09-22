@@ -9,6 +9,11 @@ import { prisma } from "@/lib/prisma";
  * 2. Marcar como ACTIVE medidores que vuelven a enviar datos
  * 3. Mantener consistencia entre BD y estado real
  */
+// El POST ya es dinamico porque lee los headers, pero el GET no recibe nada y
+// cuenta medidores en la base: sin esto se prerenderiza en el build y devuelve
+// para siempre las estadisticas del momento en que se compilo la imagen.
+export const dynamic = "force-dynamic";
+
 export async function POST(request: Request) {
   try {
     // Verificar que sea una llamada autorizada (desde Vercel Cron)

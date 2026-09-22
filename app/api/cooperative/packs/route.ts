@@ -1,6 +1,18 @@
 import { NextResponse } from "next/server";
 import { clientConfig } from "@/config/client.config";
 
+// Sin esto Next prerenderiza la ruta durante el build. El GET no recibe
+// parametros ni usa nada dinamico, asi que califica como estatica: se ejecuta
+// una sola vez al compilar y su respuesta queda congelada en la imagen.
+//
+// El build corre dentro del contenedor, donde las FEATURE_* no existen — el
+// compose solo pasa las NEXT_PUBLIC_* como build args. Resultado: todos los
+// flags quedaban en el default `false` de client.config y la variable de
+// entorno del runtime no se leia nunca, porque la ruta no volvia a correr.
+// Sintoma: FEATURE_VALVE_CONTROL=true en el contenedor y el endpoint
+// devolviendo valve_control:false, con la tarjeta de valvula invisible.
+export const dynamic = "force-dynamic";
+
 /**
  * GET /api/cooperative/packs
  * Server-side proxy to the CRM API — keeps CRM_API_KEY off the client.
