@@ -2,7 +2,10 @@
  * client.config.ts — Per-client static configuration
  *
  * This module is the single source of truth for everything that changes per client.
- * All values here are committed to the repo — the repo IS the client.
+ * All values here are committed to the repo. Which client a build serves is chosen
+ * at build time by NEXT_PUBLIC_CLIENT (compose: CLIENT_CONFIG, default "ecowater"),
+ * so several clients can share one codebase — one image and one deploy each.
+ * Add a client: create config/clients/<id>.ts and register it in `registry` below.
  *
  * Rule of thumb:
  *   - Same for every deploy of THIS client → goes here (committed TS).
@@ -42,6 +45,8 @@
  *                         components/medidores/mechanical-meter-form.tsx:32
  *   featureFlags.*     → app/api/cooperative/packs/route.ts (env fallback defaults)
  */
+
+import { olmosConfig } from "./clients/olmos";
 
 export interface ClientConfig {
   brand: {
@@ -91,10 +96,10 @@ export interface ClientConfig {
 }
 
 // ---------------------------------------------------------------------------
-// Ecowater — production values (change these when forking for a new client)
+// Ecowater — production values (COSEGO, app.ecowater.com.ar)
 // ---------------------------------------------------------------------------
 
-export const clientConfig: ClientConfig = {
+const ecowaterConfig: ClientConfig = {
   brand: {
     name: "EcoWater",
     logo: "/eco-water.svg",
@@ -121,3 +126,23 @@ export const clientConfig: ClientConfig = {
     urgencies: false,
   },
 };
+
+// ---------------------------------------------------------------------------
+// Client selection — resolved at build time (NEXT_PUBLIC_* is inlined by Next)
+// ---------------------------------------------------------------------------
+
+const registry: Record<string, ClientConfig> = {
+  ecowater: ecowaterConfig,
+  olmos: olmosConfig,
+};
+
+const clientId = process.env.NEXT_PUBLIC_CLIENT || "ecowater";
+
+if (!(clientId in registry)) {
+  // Fail the build rather than ship one client's deploy wearing another's brand.
+  throw new Error(
+    `Unknown NEXT_PUBLIC_CLIENT "${clientId}". Known clients: ${Object.keys(registry).join(", ")}`,
+  );
+}
+
+export const clientConfig: ClientConfig = registry[clientId];
