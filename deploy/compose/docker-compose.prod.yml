@@ -8,6 +8,12 @@ name: ${CLIENT_SLUG:-ecowater}
 # Each client gets its own slug (e.g. "aquacoop-norte") so container/volume
 # names are scoped per client on the same host, if ever needed.
 # Safe on separate VPS — the default slug "ecowater" keeps backward compat.
+#
+# Two clients on ONE host: use a separate checkout per client, each with its own
+# deploy/env/.env.production setting CLIENT_SLUG, CLIENT_CONFIG and distinct host
+# ports (APP_PORT, POSTGRES_HOST_PORT, PGWEB_PORT, MQTT_PLAIN_PORT, MQTT_TLS_PORT).
+# Every default below equals the previous hardcoded value. See
+# deploy/docs/MULTI_CLIENT_SAME_VPS.md.
 
 services:
   postgres:
@@ -24,7 +30,7 @@ services:
     # Developers read production through an SSH tunnel — see
     # deploy/docs/DB_READONLY_ACCESS.md. Never widen this to 0.0.0.0.
     ports:
-      - "127.0.0.1:5432:5432"
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -43,9 +49,9 @@ services:
       # 1883 va sin cifrar, asi que solo loopback: la app le habla por la red
       # interna de Docker (mqtt:1883) y no necesita pasar por el host. Queda
       # accesible para depurar con mosquitto_sub desde el servidor.
-      - "127.0.0.1:1883:1883"
+      - "127.0.0.1:${MQTT_PLAIN_PORT:-1883}:1883"
       # 8883 si sale a internet: por aca entra el gateway LoRa, con TLS.
-      - "8883:8883"
+      - "${MQTT_TLS_PORT:-8883}:8883"
     volumes:
       - ../mqtt/config/mosquitto.conf:/mosquitto/config/mosquitto.conf
       - ../mqtt/config/passwords:/mosquitto/config/passwords
@@ -62,6 +68,7 @@ services:
       context: ../..
       dockerfile: deploy/docker/Dockerfile
       args:
+        NEXT_PUBLIC_CLIENT: ${CLIENT_CONFIG:-ecowater}
         # NEXT_PUBLIC_NAME removed — brand name is committed in config/client.config.ts
         NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
         NEXT_PUBLIC_FIREBASE_API_KEY: ${NEXT_PUBLIC_FIREBASE_API_KEY}
@@ -77,7 +84,7 @@ services:
       postgres:
         condition: service_healthy
     ports:
-      - "127.0.0.1:3000:3000"
+      - "127.0.0.1:${APP_PORT:-3000}:3000"
     healthcheck:
       test:
         [
@@ -112,7 +119,7 @@ services:
       # otra base ni entrar con otro usuario.
       - --lock-session
     ports:
-      - "127.0.0.1:8081:8081"
+      - "127.0.0.1:${PGWEB_PORT:-8081}:8081"
     depends_on:
       postgres:
         condition: service_healthy
