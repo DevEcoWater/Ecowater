@@ -63,6 +63,12 @@ export async function POST(req: Request, { params }: Context) {
         { status: 422 }
       );
     }
+    if (!meter.has_valve) {
+      return NextResponse.json(
+        { error: "Este medidor no tiene válvula" },
+        { status: 422 }
+      );
+    }
     if (!meter.dev_eui) {
       return NextResponse.json(
         { error: "Medidor sin dev_eui configurado" },

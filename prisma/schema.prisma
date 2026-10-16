@@ -98,6 +98,9 @@ model Meter {
   updated_at         DateTime          @updatedAt
   status             MeterStatus       @default(ACTIVE)
   operational_status OperationalStatus @default(OPERATIONAL)
+  /// Solo los medidores inteligentes con valvula instalada admiten comandos de
+  /// apertura/cierre. No se deduce de las lecturas: hay que marcarlo a mano.
+  has_valve          Boolean           @default(false)
   readings           Reading[]
   userMeters         UserMeter[]
 }
