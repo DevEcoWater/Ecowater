@@ -37,6 +37,14 @@ import ZoneAssignment from "@/components/operarios/zone-assignment";
 import { useOperariosQuery } from "@/hooks/operarios/use-operarios";
 import { Badge } from "@/components/ui/badge";
 import { getTodayDateInputAR } from "@/lib/utils";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationPrevious,
+  PaginationNext,
+} from "@/components/ui/pagination";
 
 interface ZoneDetailProps {
   id: string;
@@ -76,6 +84,8 @@ function isSamePeriod(
   return a.startDate === b.startDate && a.endDate === b.endDate;
 }
 
+const PAGE_SIZE = 8;
+
 export function ZoneDetail({ id }: ZoneDetailProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -84,7 +94,6 @@ export function ZoneDetail({ id }: ZoneDetailProps) {
   const { data: zone, isLoading: zoneLoading } = useZoneQuery(id);
   const { data: meters, isLoading: metersLoading } = useZoneMetersQuery(id, selectedPeriod);
   const { data: operariosData } = useOperariosQuery(1, "");
-  // Filter operators assigned to this zone
   const assignedOperarios = operariosData?.data.filter((op) =>
     op.assignedZones.some((z) => z.id === id)
   ) ?? [];
@@ -100,10 +109,19 @@ export function ZoneDetail({ id }: ZoneDetailProps) {
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState("");
   const [editColor, setEditColor] = useState("");
+  const [metersPage, setMetersPage] = useState(1);
+
   const currentBimesterPeriod = getCurrentBimesterRange();
   const previousBimesterPeriod = getPreviousBimesterRange();
   const isCurrentBimesterSelected = isSamePeriod(selectedPeriod, currentBimesterPeriod);
   const isPreviousBimesterSelected = isSamePeriod(selectedPeriod, previousBimesterPeriod);
+
+  useEffect(() => {
+    setMetersPage(1);
+  }, [selectedPeriod]);
+
+  const totalMetersPages = meters ? Math.ceil(meters.length / PAGE_SIZE) : 1;
+  const paginatedMeters = meters?.slice((metersPage - 1) * PAGE_SIZE, metersPage * PAGE_SIZE) ?? [];
 
   const startEdit = () => {
     setEditName(zone?.name ?? "");
@@ -134,7 +152,6 @@ export function ZoneDetail({ id }: ZoneDetailProps) {
     }
   };
 
-
   if (zoneLoading) {
     return (
       <div className="space-y-4">
@@ -160,7 +177,6 @@ export function ZoneDetail({ id }: ZoneDetailProps) {
     <div className="flex flex-col gap-6">
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-4">
-        {/* Color swatch + edit name/color inline */}
         {editing ? (
           <div className="flex items-center gap-3">
             <input
@@ -230,152 +246,190 @@ export function ZoneDetail({ id }: ZoneDetailProps) {
         </div>
       </div>
 
-      {/* Meters table */}
-      <div>
-        <div className="mb-3 flex flex-col gap-2">
-          <Label>Periodo para tabla y descarga</Label>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              type="button"
-              size="sm"
-              variant={isCurrentBimesterSelected ? "default" : "outline"}
-              onClick={() => setSelectedPeriod(currentBimesterPeriod)}
-            >
-              Bimestre actual
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant={isPreviousBimesterSelected ? "default" : "outline"}
-              onClick={() => setSelectedPeriod(previousBimesterPeriod)}
-            >
-              Bimestre anterior
-            </Button>
-            <Input
-              type="date"
-              className="w-[170px]"
-              value={selectedPeriod.startDate}
-              onChange={(e) =>
-                setSelectedPeriod((prev) => ({ ...prev, startDate: e.target.value }))
-              }
-            />
-            <Input
-              type="date"
-              className="w-[170px]"
-              value={selectedPeriod.endDate}
-              onChange={(e) =>
-                setSelectedPeriod((prev) => ({ ...prev, endDate: e.target.value }))
-              }
-            />
-          </div>
-        </div>
-
-        <div className="mb-3">
-          <h2 className="text-lg font-semibold">
-            Medidores en la zona{" "}
+      {/* Tabs */}
+      <Tabs defaultValue="medidores">
+        <TabsList>
+          <TabsTrigger value="medidores" className="gap-1.5">
+            Medidores
             {!metersLoading && meters && (
-              <span className="text-muted-foreground font-normal text-sm">
-                ({meters.length})
-              </span>
+              <span className="text-xs opacity-60">({meters.length})</span>
             )}
-          </h2>
-          <p className="text-xs text-muted-foreground mt-1">
-            Acumulado para el periodo {selectedPeriod.startDate} {"->"} {selectedPeriod.endDate}
-          </p>
-        </div>
+          </TabsTrigger>
+          <TabsTrigger value="historial">Historial</TabsTrigger>
+        </TabsList>
 
-        {metersLoading ? (
-          <div className="space-y-2">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} className="h-10 w-full" />
-            ))}
+        {/* Medidores tab */}
+        <TabsContent value="medidores" className="mt-4 flex flex-col gap-6">
+          <div>
+            <p className="text-xs text-muted-foreground mb-3">
+              Acumulado para el periodo {selectedPeriod.startDate} {"->"} {selectedPeriod.endDate}
+            </p>
+
+            {metersLoading ? (
+              <div className="space-y-2">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Skeleton key={i} className="h-10 w-full" />
+                ))}
+              </div>
+            ) : !meters || meters.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-6 text-center">
+                No hay medidores dentro de esta zona.
+              </p>
+            ) : (
+              <>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead>Dispositivo</TableHead>
+                      <TableHead>Usuario</TableHead>
+                      <TableHead>Dirección</TableHead>
+                      <TableHead>Acumulado del periodo (m³)</TableHead>
+                      <TableHead>Estado</TableHead>
+                      <TableHead />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedMeters.map((m: ZoneMeter) => (
+                      <TableRow key={m.id}>
+                        <TableCell>
+                          {m.meter_type === "MECHANICAL" ? (
+                            <span className="inline-flex items-center gap-1 text-xs bg-amber-100 text-amber-700 rounded-full px-2 py-0.5">
+                              <Wrench className="w-3 h-3" />
+                              Mecánico
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-xs bg-blue-100 text-blue-700 rounded-full px-2 py-0.5">
+                              <Cpu className="w-3 h-3" />
+                              Inteligente
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell>{m.device_name}</TableCell>
+                        <TableCell>{m.userName ?? "—"}</TableCell>
+                        <TableCell className="max-w-[200px] truncate">
+                          {m.meter_type === "MECHANICAL" ? m.street_address ?? "—" : m.shortData ?? "—"}
+                        </TableCell>
+                        <TableCell>{m.month_cumulative_flow ?? "—"}</TableCell>
+                        <TableCell>
+                          <Chip status={m.status as any} />
+                        </TableCell>
+                        <TableCell>
+                          <Button size="sm" variant="ghost" asChild>
+                            <Link href={`/dashboard/medidores/${m.id}`}>Ver</Link>
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+
+                {totalMetersPages > 1 && (
+                  <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
+                    <span>Página {metersPage} de {totalMetersPages}</span>
+                    <Pagination className="w-auto mx-0">
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious
+                            href="#"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setMetersPage((p) => Math.max(1, p - 1));
+                            }}
+                            className={metersPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                          />
+                        </PaginationItem>
+                        <PaginationItem>
+                          <PaginationNext
+                            href="#"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setMetersPage((p) => Math.min(totalMetersPages, p + 1));
+                            }}
+                            className={metersPage === totalMetersPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  </div>
+                )}
+              </>
+            )}
           </div>
-        ) : !meters || meters.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-6 text-center">
-            No hay medidores dentro de esta zona.
-          </p>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Dispositivo</TableHead>
-                <TableHead>Usuario</TableHead>
-                <TableHead>Dirección</TableHead>
-                <TableHead>Acumulado del periodo (m³)</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {meters.map((m: ZoneMeter) => (
-                <TableRow key={m.id}>
-                  <TableCell>
-                    {m.meter_type === "MECHANICAL" ? (
-                      <span className="inline-flex items-center gap-1 text-xs bg-amber-100 text-amber-700 rounded-full px-2 py-0.5">
-                        <Wrench className="w-3 h-3" />
-                        Mecánico
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-xs bg-blue-100 text-blue-700 rounded-full px-2 py-0.5">
-                        <Cpu className="w-3 h-3" />
-                        Inteligente
-                      </span>
-                    )}
-                  </TableCell>
-                  <TableCell>{m.device_name}</TableCell>
-                  <TableCell>{m.userName ?? "—"}</TableCell>
-                  <TableCell className="max-w-[200px] truncate">
-                    {m.meter_type === "MECHANICAL" ? m.street_address ?? "—" : m.shortData ?? "—"}
-                  </TableCell>
-                  <TableCell>{m.month_cumulative_flow ?? "—"}</TableCell>
-                  <TableCell>
-                    <Chip status={m.status as any} />
-                  </TableCell>
-                  <TableCell>
-                    <Button size="sm" variant="ghost" asChild>
-                      <Link href={`/dashboard/medidores/${m.id}`}>Ver</Link>
-                    </Button>
-                  </TableCell>
-                </TableRow>
+
+          {/* Operators section */}
+          <div>
+            <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+              <HardHat className="h-4 w-4" />
+              Operarios asignados
+            </h2>
+            <div className="flex flex-wrap gap-2 mb-3">
+              {assignedOperarios.length === 0 && (
+                <p className="text-sm text-muted-foreground">Sin operarios asignados.</p>
+              )}
+              {assignedOperarios.map((op) => (
+                <Badge key={op.id} variant="outline" className="flex items-center gap-1.5">
+                  <HardHat className="h-3 w-3" />
+                  <Link href={`/dashboard/operarios/${op.id}`} className="hover:underline">
+                    {op.firstName} {op.lastName}
+                  </Link>
+                </Badge>
               ))}
-            </TableBody>
-          </Table>
-        )}
-      </div>
+            </div>
+            <p className="text-xs text-muted-foreground mb-2">
+              Para asignar operarios a esta zona, ve al detalle de cada operario.
+            </p>
+          </div>
+        </TabsContent>
 
-      {/* Download history section */}
-      <ZoneDownloadSection
-        zoneId={id}
-        zoneName={zone.name}
-        meters={meters}
-        periodStart={selectedPeriod.startDate}
-        periodEnd={selectedPeriod.endDate}
-      />
-
-      {/* Operators section */}
-      <div>
-        <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-          <HardHat className="h-4 w-4" />
-          Operarios asignados
-        </h2>
-        <div className="flex flex-wrap gap-2 mb-3">
-          {assignedOperarios.length === 0 && (
-            <p className="text-sm text-muted-foreground">Sin operarios asignados.</p>
-          )}
-          {assignedOperarios.map((op) => (
-            <Badge key={op.id} variant="outline" className="flex items-center gap-1.5">
-              <HardHat className="h-3 w-3" />
-              <Link href={`/dashboard/operarios/${op.id}`} className="hover:underline">
-                {op.firstName} {op.lastName}
-              </Link>
-            </Badge>
-          ))}
-        </div>
-        <p className="text-xs text-muted-foreground mb-2">
-          Para asignar operarios a esta zona, ve al detalle de cada operario.
-        </p>
-      </div>
+        {/* Historial tab */}
+        <TabsContent value="historial" className="mt-4 flex flex-col gap-6">
+          <div className="flex flex-col gap-2">
+            <Label>Periodo para tabla y descarga</Label>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant={isCurrentBimesterSelected ? "default" : "outline"}
+                onClick={() => setSelectedPeriod(currentBimesterPeriod)}
+              >
+                Bimestre actual
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={isPreviousBimesterSelected ? "default" : "outline"}
+                onClick={() => setSelectedPeriod(previousBimesterPeriod)}
+              >
+                Bimestre anterior
+              </Button>
+              <Input
+                type="date"
+                className="w-[170px]"
+                value={selectedPeriod.startDate}
+                onChange={(e) =>
+                  setSelectedPeriod((prev) => ({ ...prev, startDate: e.target.value }))
+                }
+              />
+              <Input
+                type="date"
+                className="w-[170px]"
+                value={selectedPeriod.endDate}
+                onChange={(e) =>
+                  setSelectedPeriod((prev) => ({ ...prev, endDate: e.target.value }))
+                }
+              />
+            </div>
+          </div>
+          <ZoneDownloadSection
+            zoneId={id}
+            zoneName={zone.name}
+            meters={meters}
+            periodStart={selectedPeriod.startDate}
+            periodEnd={selectedPeriod.endDate}
+          />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

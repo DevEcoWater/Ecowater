@@ -29,7 +29,8 @@ export default function MeterReadingPage() {
       <ManualReadingForm
         meterId={meterId}
         zoneId={zoneId}
-        meterName={meter.street_address ?? meter.device_name}
+        meterName={meter.device_name}
+        streetAddress={meter.street_address ?? null}
         userName={meter.userName}
         lastReadingValue={meter.last_reading_value}
         lastReadingDate={meter.last_reading_date ? String(meter.last_reading_date) : null}

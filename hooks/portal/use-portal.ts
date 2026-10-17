@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { OperatorZone, ReadingRouteResponse } from "@/types/operarios/operario-types";
+import { OcrRouteResponse, ReadingAttemptPayload } from "@/types/portal/reading-attempt-types";
 
 // ── Operator portal queries ───────────────────────────────────────────────────
 
@@ -68,14 +69,31 @@ export function useSubmitReadingMutation(zoneId?: string) {
 
 export function useOcrMutation(meterId: string) {
   return useMutation({
-    mutationFn: async (photo_url: string) => {
+    mutationFn: async (file: File): Promise<OcrRouteResponse> => {
+      const fd = new FormData();
+      fd.append("image", file);
       const res = await fetch(`/api/meter/${meterId}/ocr`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ photo_url }),
+        body: fd,
       });
-      const data = await res.json();
-      return data as { value: string | null; error?: string };
+      if (!res.ok) throw new Error("Error en el servidor de OCR");
+      return res.json();
+    },
+  });
+}
+
+// ── Reading attempts ──────────────────────────────────────────────────────────
+
+export function useReadingAttemptMutation(meterId: string) {
+  return useMutation({
+    mutationFn: async (payload: ReadingAttemptPayload) => {
+      const res = await fetch(`/api/meter/${meterId}/reading-attempts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error("Error al guardar intento");
+      return res.json();
     },
   });
 }

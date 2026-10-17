@@ -35,7 +35,8 @@ model User {
   userMeters        UserMeter[]
   userRoles         UserRole[]
   zoneOperators     ZoneOperator[]
-  submittedReadings Reading[]      @relation("SubmittedReadings")
+  submittedReadings  Reading[]        @relation("SubmittedReadings")
+  readingAttempts    ReadingAttempt[] @relation("SubmittedAttempts")
 
   @@index([email])
 }
@@ -95,6 +96,7 @@ model Meter {
   operational_status OperationalStatus @default(OPERATIONAL)
   readings           Reading[]
   userMeters         UserMeter[]
+  readingAttempts    ReadingAttempt[]
 }
 
 model Reading {
@@ -212,6 +214,23 @@ model ZoneOperator {
   @@unique([zone_id, user_id])
   @@index([zone_id])
   @@index([user_id])
+}
+
+model ReadingAttempt {
+  id             String   @id @default(uuid())
+  meter_id       String
+  timestamp      DateTime @default(now())
+  success        Boolean
+  image_path     String
+  value_detected String?
+  error_message  String?
+  submitted_by   String?
+
+  meter       Meter @relation(fields: [meter_id], references: [id], onDelete: Cascade)
+  submittedBy User? @relation("SubmittedAttempts", fields: [submitted_by], references: [id])
+
+  @@index([meter_id])
+  @@index([timestamp])
 }
 
 enum CooperativeStatus {

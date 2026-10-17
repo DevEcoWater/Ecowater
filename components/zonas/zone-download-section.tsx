@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Download, Pencil, Check, X, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +32,13 @@ import {
 import { downloadZoneCsv } from "@/lib/export-csv";
 import { formatDateInputAR, formatDateTimeShortAR } from "@/lib/utils";
 import { ZoneMeter } from "@/types/zones/zone-types";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationPrevious,
+  PaginationNext,
+} from "@/components/ui/pagination";
 
 function toDateInput(isoString: string): string {
   return isoString.slice(0, 10);
@@ -45,6 +52,8 @@ interface ZoneDownloadSectionProps {
   periodEnd: string;
 }
 
+const PAGE_SIZE = 8;
+
 export function ZoneDownloadSection({
   zoneId,
   zoneName,
@@ -57,15 +66,20 @@ export function ZoneDownloadSection({
   const createDownload = useCreateZoneDownload(zoneId);
   const updateDownload = useUpdateZoneDownload(zoneId);
 
-  // Download dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
   const [notes, setNotes] = useState("");
-
-  // Edit row state
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editStart, setEditStart] = useState("");
   const [editEnd, setEditEnd] = useState("");
   const [editNotes, setEditNotes] = useState("");
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    setPage(1);
+  }, [downloads]);
+
+  const totalPages = downloads ? Math.ceil(downloads.length / PAGE_SIZE) : 1;
+  const paginatedDownloads = downloads?.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE) ?? [];
 
   const openDialog = () => {
     setNotes("");
@@ -154,98 +168,130 @@ export function ZoneDownloadSection({
           No hay descargas registradas aún.
         </p>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Fecha de descarga</TableHead>
-              <TableHead>Período facturado</TableHead>
-              <TableHead className="text-center">Medidores</TableHead>
-              <TableHead>Observaciones</TableHead>
-              <TableHead className="w-[90px]" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {downloads.map((d) =>
-              editingId === d.id ? (
-                <TableRow key={d.id}>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {formatDateTimeShortAR(d.downloaded_at)}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
+        <>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Fecha de descarga</TableHead>
+                <TableHead>Período facturado</TableHead>
+                <TableHead className="text-center">Medidores</TableHead>
+                <TableHead>Observaciones</TableHead>
+                <TableHead className="w-[90px]" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedDownloads.map((d) =>
+                editingId === d.id ? (
+                  <TableRow key={d.id}>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {formatDateTimeShortAR(d.downloaded_at)}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Input
+                          type="date"
+                          value={editStart}
+                          onChange={(e) => setEditStart(e.target.value)}
+                          className="h-7 w-36 text-xs"
+                        />
+                        <span className="text-muted-foreground text-xs">→</span>
+                        <Input
+                          type="date"
+                          value={editEnd}
+                          onChange={(e) => setEditEnd(e.target.value)}
+                          className="h-7 w-36 text-xs"
+                        />
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">{d.meter_count}</TableCell>
+                    <TableCell>
                       <Input
-                        type="date"
-                        value={editStart}
-                        onChange={(e) => setEditStart(e.target.value)}
-                        className="h-7 w-36 text-xs"
+                        value={editNotes}
+                        onChange={(e) => setEditNotes(e.target.value)}
+                        placeholder="Observaciones..."
+                        className="h-7 text-xs"
                       />
-                      <span className="text-muted-foreground text-xs">→</span>
-                      <Input
-                        type="date"
-                        value={editEnd}
-                        onChange={(e) => setEditEnd(e.target.value)}
-                        className="h-7 w-36 text-xs"
-                      />
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-center">{d.meter_count}</TableCell>
-                  <TableCell>
-                    <Input
-                      value={editNotes}
-                      onChange={(e) => setEditNotes(e.target.value)}
-                      placeholder="Observaciones..."
-                      className="h-7 text-xs"
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7"
+                          onClick={() => saveEdit(d.id)}
+                          disabled={updateDownload.isPending}>
+                          <Check className="h-3.5 w-3.5 text-green-600" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7"
+                          onClick={cancelEdit}>
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  <TableRow key={d.id}>
+                    <TableCell className="text-sm">
+                      {formatDateTimeShortAR(d.downloaded_at)}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {formatDateInputAR(toDateInput(d.period_start))} →{" "}
+                      {formatDateInputAR(toDateInput(d.period_end))}
+                    </TableCell>
+                    <TableCell className="text-center text-sm">
+                      {d.meter_count}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {d.notes ?? "—"}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7"
+                        onClick={() => startEdit(d)}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ),
+              )}
+            </TableBody>
+          </Table>
+
+          {totalPages > 1 && (
+            <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
+              <span>Página {page} de {totalPages}</span>
+              <Pagination className="w-auto mx-0">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setPage((p) => Math.max(1, p - 1));
+                      }}
+                      className={page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
                     />
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-7 w-7"
-                        onClick={() => saveEdit(d.id)}
-                        disabled={updateDownload.isPending}>
-                        <Check className="h-3.5 w-3.5 text-green-600" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-7 w-7"
-                        onClick={cancelEdit}>
-                        <X className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                <TableRow key={d.id}>
-                  <TableCell className="text-sm">
-                    {formatDateTimeShortAR(d.downloaded_at)}
-                  </TableCell>
-                  <TableCell className="text-sm">
-                    {formatDateInputAR(toDateInput(d.period_start))} →{" "}
-                    {formatDateInputAR(toDateInput(d.period_end))}
-                  </TableCell>
-                  <TableCell className="text-center text-sm">
-                    {d.meter_count}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {d.notes ?? "—"}
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-7 w-7"
-                      onClick={() => startEdit(d)}>
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ),
-            )}
-          </TableBody>
-        </Table>
+                  </PaginationItem>
+                  <PaginationItem>
+                    <PaginationNext
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setPage((p) => Math.min(totalPages, p + 1));
+                      }}
+                      className={page === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          )}
+        </>
       )}
 
       {/* Download dialog */}

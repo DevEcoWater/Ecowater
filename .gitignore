@@ -39,3 +39,6 @@ deploy/backups/
 *.tsbuildinfo
 next-env.d.ts
 supabase_dump.sql
+
+.claude
+.atl
