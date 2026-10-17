@@ -982,7 +982,7 @@ const MeterDashboard = () => {
 
             {/* Valve control — full width row, smart meters only */}
             {packs?.valve_control && !isMechanical && (
-              <div className="col-span-12">
+              <div id="tour-meter-valve" className="col-span-12">
                 <ValveCommandsCard
                   meterId={meterData.id}
                   deviceName={meterData.device_name}

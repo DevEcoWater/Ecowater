@@ -16,8 +16,16 @@ const firebaseConfig = {
 let app: FirebaseApp | undefined;
 let analytics: Analytics | null = null;
 
-// Solo inicializar en el cliente
-if (typeof window !== "undefined") {
+// Analytics requiere apiKey, projectId, appId y measurementId
+const isFirebaseConfigured = Boolean(
+  firebaseConfig.apiKey &&
+    firebaseConfig.projectId &&
+    firebaseConfig.appId &&
+    firebaseConfig.measurementId
+);
+
+// Solo inicializar en el cliente y si la configuración está completa
+if (typeof window !== "undefined" && isFirebaseConfigured) {
   // Evitar múltiples inicializaciones
   if (!getApps().length) {
     app = initializeApp(firebaseConfig);

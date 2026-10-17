@@ -73,6 +73,7 @@ import {
   isSamePeriod,
 } from "@/lib/bimester";
 import { formatDateInputAR } from "@/lib/utils";
+import { useCanEdit } from "@/hooks/auth/use-can-edit";
 
 interface ZoneDetailProps {
   id: string;
@@ -98,6 +99,7 @@ export function ZoneDetail({ id }: ZoneDetailProps) {
   const { data: routeData } = useZoneReadingRouteQuery(id, selectedPeriod);
   const updateZone = useUpdateZoneMutation();
   const deleteZone = useDeleteZoneMutation();
+  const canEdit = useCanEdit();
 
   const currentBimesterPeriod = getCurrentBimesterRange();
   const previousBimesterPeriod = getPreviousBimesterRange();
@@ -106,7 +108,7 @@ export function ZoneDetail({ id }: ZoneDetailProps) {
 
   useEffect(() => {
     if (zone) {
-      setPageHeader(zone.name, "Medidores dentro de esta área geográfica");
+      setPageHeader(zone.name, "Medidores dentro de esta área geográfica", "zone-detail");
     }
   }, [zone, setPageHeader]);
 
@@ -260,10 +262,11 @@ export function ZoneDetail({ id }: ZoneDetailProps) {
             </Badge>
           </div>
 
+          {canEdit && (
           <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
+                <Button id="tour-zone-actions" variant="ghost" size="icon">
                   <MoreVertical className="w-4 h-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -301,11 +304,12 @@ export function ZoneDetail({ id }: ZoneDetailProps) {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+          )}
         </div>
       )}
 
       {/* ── Stat cards ────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div id="tour-zone-stats" className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="border-0 shadow-sm bg-white dark:bg-card border-l-4 border-l-blue-500">
           <CardContent className="p-4 flex items-center gap-4">
             <Gauge className="w-8 h-8 text-blue-500 shrink-0" />
@@ -346,7 +350,7 @@ export function ZoneDetail({ id }: ZoneDetailProps) {
       </div>
 
       {/* ── Period selector ───────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-3">
+      <div id="tour-zone-period" className="flex flex-col gap-3">
         <Label className="text-sm font-medium">Período</Label>
         <div className="flex flex-wrap items-center gap-2">
           <Button
@@ -385,7 +389,8 @@ export function ZoneDetail({ id }: ZoneDetailProps) {
       </div>
 
       {/* ── Route CTA ─────────────────────────────────────────────────────── */}
-      <div>
+      {canEdit && (
+      <div id="tour-zone-route-cta">
         <Button
           variant="outline"
           className="gap-2 border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800"
@@ -397,6 +402,7 @@ export function ZoneDetail({ id }: ZoneDetailProps) {
           </Link>
         </Button>
       </div>
+      )}
 
       {/* ── Card: Medidores ───────────────────────────────────────────────── */}
       <Card id="tour-zone-meters" className="border-0 shadow-sm bg-white dark:bg-card">
@@ -457,9 +463,12 @@ export function ZoneDetail({ id }: ZoneDetailProps) {
                       <Chip status={m.status as any} />
                     </TableCell>
                     <TableCell>
-                      <Button size="sm" variant="ghost" asChild>
-                        <Link href={`/dashboard/medidores/${m.id}`}>Ver</Link>
-                      </Button>
+                      {/* El lector no tiene acceso al detalle de medidores */}
+                      {canEdit && (
+                        <Button size="sm" variant="ghost" asChild>
+                          <Link href={`/dashboard/medidores/${m.id}`}>Ver</Link>
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -470,7 +479,7 @@ export function ZoneDetail({ id }: ZoneDetailProps) {
       </Card>
 
       {/* ── Card: Descargas ───────────────────────────────────────────────── */}
-      <Card className="border-0 shadow-sm bg-white dark:bg-card">
+      <Card id="tour-zone-downloads" className="border-0 shadow-sm bg-white dark:bg-card">
         <CardContent className="p-0 overflow-hidden">
           <ZoneDownloadSection
             zoneId={id}

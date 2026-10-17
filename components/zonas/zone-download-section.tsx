@@ -31,6 +31,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { useToast } from "@/hooks/use-toast";
+import { useCanEdit } from "@/hooks/auth/use-can-edit";
 import {
   useZoneDownloads,
   useCreateZoneDownload,
@@ -66,6 +67,8 @@ export function ZoneDownloadSection({
   const { data: downloads, isLoading } = useZoneDownloads(zoneId);
   const createDownload = useCreateZoneDownload(zoneId);
   const updateDownload = useUpdateZoneDownload(zoneId);
+  // Descargar el CSV registra la descarga (control de facturación): solo editores
+  const canEdit = useCanEdit();
 
   // Pagination state
   const [page, setPage] = useState(1);
@@ -146,14 +149,16 @@ export function ZoneDownloadSection({
           CSV del periodo {formatDateInputAR(periodStart)} {"->"}{" "}
           {formatDateInputAR(periodEnd)}
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={openDialog}
-          disabled={!meters || meters.length === 0}>
-          <Download className="w-4 h-4 mr-2" />
-          Descargar CSV
-        </Button>
+        {canEdit && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={openDialog}
+            disabled={!meters || meters.length === 0}>
+            <Download className="w-4 h-4 mr-2" />
+            Descargar CSV
+          </Button>
+        )}
       </div>
 
       <div className="flex items-center gap-2 mb-3">
@@ -253,13 +258,15 @@ export function ZoneDownloadSection({
                     {d.notes ?? "—"}
                   </TableCell>
                   <TableCell>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-7 w-7"
-                      onClick={() => startEdit(d)}>
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
+                    {canEdit && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7"
+                        onClick={() => startEdit(d)}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               ),

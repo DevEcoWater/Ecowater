@@ -14,11 +14,13 @@ import { useUrgencies } from "@/hooks/dashboard/use-urgencies";
 import { useMeterDistribution } from "@/hooks/dashboard/use-meter-distribution";
 import { useAlarmTrends } from "@/hooks/dashboard/use-alarm-trends";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useZoneDistribution } from "@/hooks/dashboard/use-zone-distribution";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { AlertCircle, Bell, DropletIcon, Gauge, Signal, Thermometer } from "lucide-react";
+import { AlertCircle, Bell, DropletIcon, Gauge, Map as MapIcon, Signal, Thermometer } from "lucide-react";
 import { UrgenciesSection } from "./urgencies/urgencies-section";
 import { MeterDistributionChart } from "./meter-distribution-chart/meter-distribution-chart";
 import { AlarmTrendsChart } from "./alarm-trends-chart/alarm-trends-chart";
+import { ZoneDistributionChart } from "./zone-distribution-chart/zone-distribution-chart";
 import { SyncPanel } from "./sync-panel";
 import dayjs from "dayjs";
 
@@ -57,6 +59,7 @@ export function HomeDashboard() {
   const { data: urgencies, isLoading: urgenciesLoading } = useUrgencies();
   const { data: meterDistribution } = useMeterDistribution(consumptionParams);
   const { data: alarmTrends } = useAlarmTrends(consumptionParams);
+  const { data: zoneDistribution } = useZoneDistribution(consumptionParams);
 
   const consumptionTotal =
     consumption?.series.reduce((sum, item) => sum + item.consumo_m3, 0) ?? 0;
@@ -94,7 +97,7 @@ export function HomeDashboard() {
     <div className="space-y-6">
 
       {/* ── Barra de estado: live + señal + temp ── */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
+      <div id="tour-status-bar" className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-4">
           {stats.signal && (
             <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
@@ -140,7 +143,7 @@ export function HomeDashboard() {
         />
       </section>
 
-      {/* ── Tabs: Consumo / Alarmas / Medidores ── */}
+      {/* ── Tabs: Consumo / Alarmas / Medidores / Zonas ── */}
       <div ref={tabsSectionRef}>
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
 
@@ -158,6 +161,10 @@ export function HomeDashboard() {
             <TabsTrigger id="tour-tab-medidores" value="medidores" className="flex items-center gap-1.5 cursor-pointer">
               <Gauge className="w-3.5 h-3.5" />
               <span>Medidores</span>
+            </TabsTrigger>
+            <TabsTrigger id="tour-tab-zonas" value="zonas" className="flex items-center gap-1.5 cursor-pointer">
+              <MapIcon className="w-3.5 h-3.5" />
+              <span>Zonas</span>
             </TabsTrigger>
           </TabsList>
 
@@ -200,6 +207,11 @@ export function HomeDashboard() {
             meters={meterDistribution?.meters ?? []}
             period={periodLabel}
           />
+        </TabsContent>
+
+        {/* ── Tab: Zonas ── */}
+        <TabsContent value="zonas" id="tour-zone-distribution-chart">
+          <ZoneDistributionChart data={zoneDistribution} period={periodLabel} />
         </TabsContent>
 
       </Tabs>

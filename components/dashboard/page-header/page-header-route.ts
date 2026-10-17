@@ -12,6 +12,14 @@ export function getPageHeaderFromPath(pathname: string | null) {
       pattern: /\/mapa/,
       title: "Mapa",
       description: "Visualice la ubicación de los medidores en el mapa",
+      tourName: "map",
+    },
+    {
+      // Antes que /usuarios/[id]: si no, "nuevo" se toma como un id de usuario
+      pattern: /\/usuarios\/nuevo$/,
+      title: "Crear Usuario",
+      description: "Complete el formulario para registrar un nuevo usuario",
+      tourName: "user-create",
     },
     {
       pattern: /\/usuarios\/[^/]+\/editar$/,
@@ -26,11 +34,6 @@ export function getPageHeaderFromPath(pathname: string | null) {
       tourName: "user-detail",
     },
     {
-      pattern: /\/usuarios\/registro/,
-      title: "Registrar Usuario",
-      description: "Complete el formulario para registrar un nuevo cliente",
-    },
-    {
       pattern: /\/usuarios$/,
       title: "Gestión de Usuarios",
       description: "Administre usuarios, registre nuevos clientes y actualice información.",
@@ -40,11 +43,13 @@ export function getPageHeaderFromPath(pathname: string | null) {
       pattern: /\/medidores\/mecanicos\/nuevo$/,
       title: "Nuevo Medidor Mecánico",
       description: "Registrá un medidor de lectura manual en el sistema.",
+      tourName: "mechanical-meter-form",
     },
     {
       pattern: /\/medidores\/mecanicos\/[^/]+\/editar$/,
       title: "Editar Medidor Mecánico",
       description: "Actualizá los datos y la ubicación del medidor de lectura manual.",
+      tourName: "mechanical-meter-form",
     },
     {
       pattern: /\/medidores\/[^/]+$/,
@@ -62,6 +67,13 @@ export function getPageHeaderFromPath(pathname: string | null) {
       pattern: /\/cooperativa/,
       title: "Gestión de Cooperativa",
       description: "Visualice y edite la información de la cooperativa",
+      tourName: "cooperative",
+    },
+    {
+      pattern: /\/zonas\/[^/]+\/ruta$/,
+      title: "Ruta de Lectura",
+      description: "Asigná los medidores mecánicos de la zona a cada operario",
+      tourName: "zone-route",
     },
     {
       pattern: /\/zonas\/[^/]+$/,
@@ -73,11 +85,13 @@ export function getPageHeaderFromPath(pathname: string | null) {
       pattern: /\/zonas$/,
       title: "Zonas",
       description: "Áreas geográficas definidas sobre el mapa",
+      tourName: "zones-list",
     },
     {
       pattern: /\/operarios\/nuevo/,
       title: "Nuevo Operario",
       description: "Registrá un nuevo operario de campo en el sistema",
+      tourName: "operario-create",
     },
     {
       pattern: /\/operarios\/[^/]+$/,
@@ -95,16 +109,19 @@ export function getPageHeaderFromPath(pathname: string | null) {
       pattern: /\/portal\/zonas\/[^/]+\/medidores\/[^/]+$/,
       title: "Registrar Lectura",
       description: "Ingresá el valor del medidor y guardá la lectura",
+      tourName: "portal-reading",
     },
     {
       pattern: /\/portal\/zonas\/[^/]+$/,
       title: "Ruta de Lectura",
       description: "Medidores pendientes de lectura en esta zona",
+      tourName: "portal-route",
     },
     {
       pattern: /\/portal\/zonas$/,
       title: "Mis Zonas",
       description: "Zonas asignadas para la ronda de lectura de hoy",
+      tourName: "portal-zones",
     },
     {
       pattern: /^\/portal$/,

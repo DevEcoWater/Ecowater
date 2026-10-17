@@ -205,7 +205,7 @@ export function ZoneRouteMap({
     <div className="space-y-6">
       {/* Operator picker toolbar */}
       {operators.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2">
+        <div id="tour-route-brush" className="flex flex-wrap items-center gap-2">
           <span className="text-xs text-muted-foreground font-medium shrink-0">
             Pincel:
           </span>
@@ -246,7 +246,7 @@ export function ZoneRouteMap({
       {/* Map + Panel */}
       <div className="flex flex-col md:flex-row gap-6">
         {/* Map */}
-        <div className="flex-1 rounded-lg overflow-hidden border">
+        <div id="tour-route-map" className="flex-1 rounded-lg overflow-hidden border">
           <GoogleMap
             mapContainerStyle={MAP_CONTAINER_STYLE}
             center={center}
@@ -320,7 +320,7 @@ export function ZoneRouteMap({
         </div>
 
         {/* Panel */}
-        <div className="md:w-72 flex flex-col border rounded-lg overflow-hidden md:h-[400px] bg-muted/20">
+        <div id="tour-route-panel" className="md:w-72 flex flex-col border rounded-lg overflow-hidden md:h-[400px] bg-muted/20">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b bg-background shrink-0">
             <div className="flex items-center gap-2">
@@ -428,7 +428,7 @@ export function ZoneRouteMap({
       </div>
 
       {/* Footer buttons */}
-      <div className="flex gap-3 pt-1">
+      <div id="tour-route-actions" className="flex gap-3 pt-1">
         <Button
           variant="outline"
           className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"

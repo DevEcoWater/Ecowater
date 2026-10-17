@@ -168,7 +168,7 @@ export function ManualReadingForm({
   return (
     <div className="w-full">
       {/* Reference card — compact meter context */}
-      <div className="rounded-xl border bg-blue-50 border-blue-100 p-4 space-y-1 mb-5">
+      <div id="tour-reading-meter" className="rounded-xl border bg-blue-50 border-blue-100 p-4 space-y-1 mb-5">
         <p className="text-base font-semibold text-gray-900 leading-tight">{meterName}</p>
         {userName && (
           <p className="text-sm text-gray-500">{userName}</p>
@@ -190,7 +190,7 @@ export function ManualReadingForm({
       </div>
 
       {/* Step indicator */}
-      <div className="flex items-center gap-0 mb-6">
+      <div id="tour-reading-steps" className="flex items-center gap-0 mb-6">
         {steps.map((s, i) => {
           const done = currentStep > s.n;
           const active = currentStep === s.n;
@@ -227,7 +227,7 @@ export function ManualReadingForm({
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+        <form id="tour-reading-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
           {/* ── STEP 1: capture photo ───────────────────────────────────────── */}
 
           {/* Preview of captured image */}
@@ -365,7 +365,7 @@ export function ManualReadingForm({
           )}
 
           {/* Sticky submit CTA */}
-          <div className="sticky bottom-0 pt-3 pb-2 bg-white border-t border-gray-100 -mx-4 px-4 mt-2">
+          <div id="tour-reading-submit" className="sticky bottom-0 pt-3 pb-2 bg-white border-t border-gray-100 -mx-4 px-4 mt-2">
             <Button
               type="submit"
               className="w-full bg-green-600 hover:bg-green-700 text-white h-14 text-base font-semibold"

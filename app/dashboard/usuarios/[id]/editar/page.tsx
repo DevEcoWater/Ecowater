@@ -2,7 +2,7 @@ import UpdateUserForm from "@/components/usuarios/update-register-form";
 
 export default function EditUserPage() {
   return (
-    <div className="max-w-5xl mx-auto py-6">
+    <div className="w-full py-4">
       <UpdateUserForm />
     </div>
   );

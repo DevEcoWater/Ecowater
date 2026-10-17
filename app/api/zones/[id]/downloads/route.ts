@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireEditor } from "@/lib/auth/require-editor";
 
 export async function GET(
   _req: Request,
@@ -25,6 +26,9 @@ export async function POST(
   req: Request,
   { params }: { params: { id: string } },
 ) {
+  const denied = await requireEditor();
+  if (denied) return denied;
+
   try {
     const body = await req.json();
     const { period_start, period_end, meter_count, notes } = body;
@@ -61,6 +65,9 @@ export async function PATCH(
   req: Request,
   { params }: { params: { id: string } },
 ) {
+  const denied = await requireEditor();
+  if (denied) return denied;
+
   try {
     const body = await req.json();
     const { download_id, period_start, period_end, notes } = body;
