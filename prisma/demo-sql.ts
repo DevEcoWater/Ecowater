@@ -85,6 +85,9 @@ BEGIN
     RAISE EXCEPTION 'Faltan los roles: correr primero el seed.';
   END IF;
 END $$;`);
+// La base de una instancia nueva puede haberse creado antes de que existiera
+// has_valve (PR de valvulas): agregarla si falta es inocuo en el resto de casos.
+emit(`ALTER TABLE "Meter" ADD COLUMN IF NOT EXISTS "has_valve" BOOLEAN NOT NULL DEFAULT false;`);
 emit(`UPDATE "Cooperative" SET lat = ${center.lat}, lng = ${center.lng};`);
 
 // ── Zonas ────────────────────────────────────────────────────────────────────
