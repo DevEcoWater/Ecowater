@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireEditor } from "@/lib/auth/require-editor";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,9 @@ export async function PUT(
   req: Request,
   { params }: { params: { id: string } }
 ) {
+  const denied = await requireEditor();
+  if (denied) return denied;
+
   try {
     const body = await req.json();
     const { name, color, polygon, route_order, route_assignments, operator_target } = body;
@@ -48,6 +52,9 @@ export async function DELETE(
   _req: Request,
   { params }: { params: { id: string } }
 ) {
+  const denied = await requireEditor();
+  if (denied) return denied;
+
   try {
     await prisma.zone.delete({ where: { id: params.id } });
     return NextResponse.json({ success: true });

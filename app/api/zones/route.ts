@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { pointInPolygon, PolygonPoint } from "@/lib/point-in-polygon";
 import { prisma } from "@/lib/prisma";
+import { requireEditor } from "@/lib/auth/require-editor";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,9 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const denied = await requireEditor();
+  if (denied) return denied;
+
   try {
     const body = await req.json();
     const { name, color, polygon } = body;

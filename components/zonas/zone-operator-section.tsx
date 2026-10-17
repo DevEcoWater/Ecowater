@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+import { useCanEdit } from "@/hooks/auth/use-can-edit";
 import { useAllOperariosQuery } from "@/hooks/operarios/use-operarios";
 import {
   useAssignOperarioToZone,
@@ -31,6 +32,7 @@ export function ZoneOperatorSection({ zoneId }: ZoneOperatorSectionProps) {
   const { data: allOperarios = [], isLoading } = useAllOperariosQuery();
   const assignMutation = useAssignOperarioToZone();
   const removeMutation = useRemoveOperarioFromZone();
+  const canEdit = useCanEdit();
   const assigned = allOperarios.filter((op) =>
     op.assignedZones.some((z) => z.id === zoneId)
   );
@@ -92,7 +94,13 @@ export function ZoneOperatorSection({ zoneId }: ZoneOperatorSectionProps) {
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x border rounded-lg overflow-hidden">
+          <div
+            className={
+              canEdit
+                ? "grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x border rounded-lg overflow-hidden"
+                : "border rounded-lg overflow-hidden"
+            }
+          >
 
             {/* ── Left panel: Assigned ──────────────────────────────── */}
             <div className="p-4">
@@ -116,13 +124,20 @@ export function ZoneOperatorSection({ zoneId }: ZoneOperatorSectionProps) {
                           {op.firstName[0]}
                           {op.lastName[0]}
                         </div>
-                        <Link
-                          href={`/dashboard/operarios/${op.id}`}
-                          className="text-sm font-medium hover:underline truncate"
-                        >
-                          {op.firstName} {op.lastName}
-                        </Link>
+                        {canEdit ? (
+                          <Link
+                            href={`/dashboard/operarios/${op.id}`}
+                            className="text-sm font-medium hover:underline truncate"
+                          >
+                            {op.firstName} {op.lastName}
+                          </Link>
+                        ) : (
+                          <span className="text-sm font-medium truncate">
+                            {op.firstName} {op.lastName}
+                          </span>
+                        )}
                       </div>
+                      {canEdit && (
                       <Button
                         size="icon"
                         variant="ghost"
@@ -133,13 +148,15 @@ export function ZoneOperatorSection({ zoneId }: ZoneOperatorSectionProps) {
                       >
                         <Minus className="h-3.5 w-3.5" />
                       </Button>
+                      )}
                     </li>
                   ))}
                 </ul>
               )}
             </div>
 
-            {/* ── Right panel: Available ────────────────────────────── */}
+            {/* ── Right panel: Available (solo editores) ────────────── */}
+            {canEdit && (
             <div className="p-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
                 Disponibles ({available.length})
@@ -192,6 +209,7 @@ export function ZoneOperatorSection({ zoneId }: ZoneOperatorSectionProps) {
                 </ul>
               )}
             </div>
+            )}
 
           </div>
         )}

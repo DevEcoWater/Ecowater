@@ -37,7 +37,7 @@ export function ZoneRouteConfig({ zoneId, period, zone }: ZoneRouteConfigProps) 
       </h2>
 
       {/* Stats row */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div id="tour-route-stats" className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* Total meters */}
         <Card className="border-0 shadow-sm bg-white dark:bg-card border-l-4 border-l-blue-500">
           <CardContent className="p-4 flex items-center gap-4">
