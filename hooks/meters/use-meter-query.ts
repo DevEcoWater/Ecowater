@@ -130,23 +130,27 @@ export const useUpdateMeterMutation = () => {
   });
 };
 
-// Delete a meter
+// Delete a meter (requires the admin's password + typed meter name)
 export const useDeleteMeterMutation = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<void, Error, string>({
-    mutationFn: async (id) => {
+  return useMutation<void, Error, { id: string; password: string; confirmName: string }>({
+    mutationFn: async ({ id, password, confirmName }) => {
       const response = await fetch(`/api/meter/${id}`, {
         method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password, confirmName }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Error deleting meter");
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Error al eliminar el medidor");
       }
     },
-    onSuccess: () => {
+    onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ["meters"] });
+      queryClient.removeQueries({ queryKey: ["meter", id] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
     },
   });
 };
@@ -281,6 +285,28 @@ export const useUpdateMeterStatusMutation = () => {
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || "Error al actualizar el estado del medidor");
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["meters"] });
+      queryClient.invalidateQueries({ queryKey: ["meter", data.id] });
+    },
+  });
+};
+
+export const useUpdateMeterHasValveMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation<{ id: string; has_valve: boolean }, Error, { id: string; has_valve: boolean }>({
+    mutationFn: async ({ id, has_valve }) => {
+      const response = await fetch(`/api/meter/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ has_valve }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Error al actualizar la válvula del medidor");
       }
       return response.json();
     },

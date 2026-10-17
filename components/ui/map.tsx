@@ -49,6 +49,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useZonesQuery, useCreateZoneMutation, useUpdateZoneMutation } from "@/hooks/zones/use-zones";
+import { useCanEdit } from "@/hooks/auth/use-can-edit";
 import { Zone, ZonePolygonPoint } from "@/types/zones/zone-types";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
@@ -72,6 +73,7 @@ function Map() {
   // Zones
   const { data: zones = [] } = useZonesQuery();
   const createZone = useCreateZoneMutation();
+  const canEdit = useCanEdit();
   const updateZone = useUpdateZoneMutation();
   const editingPolygonRef = useRef<google.maps.Polygon | null>(null);
   const [editingZone, setEditingZone] = useState<Zone | null>(null);
@@ -708,7 +710,7 @@ function Map() {
     >
       <div className="absolute right-4 top-4 z-[1] w-[280px] max-h-[calc(100%-2rem)] overflow-y-auto">
         <Collapsible defaultOpen>
-          <div className="bg-white rounded-md shadow">
+          <div id="tour-map-controls" className="bg-white rounded-md shadow">
             <CollapsibleTrigger className="w-full text-left p-3 border-b text-sm font-semibold flex items-center justify-between">
               Controles <ChevronDown className="w-4 h-4" />
             </CollapsibleTrigger>
@@ -841,7 +843,7 @@ function Map() {
 
         {/* Zones panel */}
         <Collapsible defaultOpen className="mt-2">
-          <div className="bg-white rounded-md shadow">
+          <div id="tour-map-zones" className="bg-white rounded-md shadow">
             <CollapsibleTrigger className="w-full text-left p-3 border-b text-sm font-semibold flex items-center justify-between">
               <span className="flex items-center gap-1.5">
                 <Layers className="w-3.5 h-3.5" />
@@ -904,7 +906,7 @@ function Map() {
                             e.stopPropagation();
                             router.push(`/dashboard/zonas/${zone.id}`);
                           }}
-                          title="Editar zona"
+                          title={canEdit ? "Editar zona" : "Ver zona"}
                         >
                           <ExternalLink className="w-3.5 h-3.5 text-muted-foreground hover:text-primary" />
                         </button>
@@ -912,6 +914,7 @@ function Map() {
                     );
                   })
                 )}
+                {canEdit && (
                 <div className="pt-1 border-t mt-1">
                   <Button
                     size="sm"
@@ -930,6 +933,7 @@ function Map() {
                     )}
                   </Button>
                 </div>
+                )}
               </div>
             </CollapsibleContent>
           </div>
@@ -937,7 +941,7 @@ function Map() {
       </div>
 
       {/* Meter count summary overlay — bottom-left */}
-      <div className="absolute bottom-8 left-4 z-[1] bg-card/95 backdrop-blur-sm rounded-xl shadow-md border border-border/50 px-4 py-3 min-w-[170px] pointer-events-none">
+      <div id="tour-map-summary" className="absolute bottom-8 left-4 z-[1] bg-card/95 backdrop-blur-sm rounded-xl shadow-md border border-border/50 px-4 py-3 min-w-[170px] pointer-events-none">
         {/* Total + health pct */}
         <div className="flex items-end justify-between gap-3 mb-2">
           <div>
@@ -1278,12 +1282,14 @@ function Map() {
               >
                 Ver zona
               </button>
-              <button
-                onClick={() => { setEditingZone(activeZone); setActiveZone(null); }}
-                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium px-3 py-1.5 rounded transition flex items-center justify-center gap-1"
-              >
-                <PenLine className="w-3 h-3" /> Editar polígono
-              </button>
+              {canEdit && (
+                <button
+                  onClick={() => { setEditingZone(activeZone); setActiveZone(null); }}
+                  className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium px-3 py-1.5 rounded transition flex items-center justify-center gap-1"
+                >
+                  <PenLine className="w-3 h-3" /> Editar polígono
+                </button>
+              )}
             </div>
           </div>
         </InfoWindow>

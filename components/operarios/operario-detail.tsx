@@ -67,7 +67,9 @@ export default function OperarioDetail({ id }: OperarioDetailProps) {
   const initials = `${data.firstName?.[0] ?? ""}${data.lastName?.[0] ?? ""}`.toUpperCase();
 
   return (
-    <div className="space-y-6">
+    // En desktop: perfil + zonas a la izquierda, historial a la derecha a todo el alto
+    <div className="grid gap-6 lg:grid-cols-[minmax(360px,2fr)_3fr] lg:h-[calc(100dvh-13rem)] lg:min-h-[520px]">
+      <div className="space-y-6 lg:overflow-y-auto lg:pr-1">
       {/* Header profile card */}
       <Card>
         <CardContent className="pt-6">
@@ -175,9 +177,10 @@ export default function OperarioDetail({ id }: OperarioDetailProps) {
           <ZoneAssignment operarioId={id} assignedZones={data.assignedZones} />
         </CardContent>
       </Card>
+      </div>
 
       {/* Reading history */}
-      <Card id="tour-operario-readings">
+      <Card id="tour-operario-readings" className="flex flex-col lg:min-h-0">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ClipboardList className="h-4 w-4" />
@@ -185,17 +188,18 @@ export default function OperarioDetail({ id }: OperarioDetailProps) {
           </CardTitle>
           <CardDescription>Últimas 30 lecturas registradas por este operario.</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex-1 lg:min-h-0 lg:overflow-y-auto">
           {readingsLoading ? (
             <p className="text-sm text-muted-foreground text-center py-4">Cargando historial...</p>
           ) : readings.length === 0 ? (
-            <div className="py-6 text-center text-sm text-muted-foreground">
+            <div className="h-full min-h-[160px] flex flex-col items-center justify-center gap-2 text-center text-sm text-muted-foreground">
+              <ClipboardList className="h-8 w-8 opacity-40" />
               Este operario aún no ha registrado lecturas.
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead>
+                <thead className="sticky top-0 z-[1] bg-card">
                   <tr className="border-b text-muted-foreground text-xs">
                     <th className="text-left py-2 pr-4 font-medium">Medidor</th>
                     <th className="text-left py-2 pr-4 font-medium">Lectura (m³)</th>

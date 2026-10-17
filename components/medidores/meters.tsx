@@ -5,9 +5,9 @@ import { CirclePlus, Search, RefreshCw, Cpu, Wrench } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { useUserFilters } from "@/hooks/users/use-users-filters";
-import { FilterTabs } from "./filter-tabs";
+import { MeterStatusCards } from "./meter-status-cards";
 import { MeterTable as MeterTableComponent } from "./meter-table";
-import { MeterSummaryCards } from "./meter-summary-cards";
+import { useDashboardStats } from "@/hooks/dashboard/use-dashboard-stats";
 import {
   Pagination,
   PaginationContent,
@@ -42,8 +42,14 @@ const Meters = () => {
     page,
     setPage,
     totalPages,
-    total,
   } = useMeters({ typeFilter: typeFilter === "ALL" ? undefined : typeFilter });
+
+  const { data: stats } = useDashboardStats();
+  const typeCounts: Partial<Record<MeterType | "ALL", number>> = {
+    ALL: stats?.meters.total,
+    SMART: stats?.meters.smart,
+    MECHANICAL: stats?.meters.mechanical,
+  };
 
   const goToPage = (p: number) => {
     setPage(p);
@@ -64,8 +70,19 @@ const Meters = () => {
 
   return (
     <section className="w-full h-full py-6 space-y-6">
-      {/* KPI summary cards */}
-      <MeterSummaryCards />
+      {/* Conteo por estado — también filtra la tabla */}
+      <div id="tour-meters-filter-tabs">
+        <MeterStatusCards
+          value={filterState}
+          onChange={(value) => {
+            if (filterState !== value) {
+              handleFilterChange(value);
+            }
+          }}
+          counts={counts}
+          isLoading={isLoading}
+        />
+      </div>
 
       {/* Toolbar */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -107,11 +124,15 @@ const Meters = () => {
                 {opt.value === "SMART" && <Cpu className="h-3 w-3" />}
                 {opt.value === "MECHANICAL" && <Wrench className="h-3 w-3" />}
                 {opt.label}
+                {typeCounts[opt.value] != null && (
+                  <span className="ml-1 text-xs tabular-nums opacity-70">{typeCounts[opt.value]}</span>
+                )}
               </button>
             ))}
           </div>
 
           <Button
+            id="tour-meters-create"
             size="sm"
             onClick={() => router.push("/dashboard/medidores/mecanicos/nuevo")}
           >
@@ -119,20 +140,6 @@ const Meters = () => {
             Nuevo medidor mecánico
           </Button>
         </div>
-      </div>
-
-      {/* Status filter tabs */}
-      <div id="tour-meters-filter-tabs">
-        <FilterTabs
-          onFilterChange={(value) => {
-            if (filterState !== value) {
-              handleFilterChange(value);
-            }
-          }}
-          defaultValue={filterState}
-          total={total}
-          counts={counts}
-        />
       </div>
 
       {/* Table / card list */}

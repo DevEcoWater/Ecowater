@@ -2,6 +2,11 @@
 import { MeterStatus, MeterType, OperationalStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { z } from "zod";
+import { getDeleteConfirmText } from "@/lib/meters/delete-confirm";
+import { authorizeDestructiveAction } from "@/lib/auth/authorize-destructive-action";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/authOptions";
 
 type Context = {
   params: { id: string };
@@ -95,7 +100,42 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { status } = await req.json();
+    const body = await req.json();
+    const { status, has_valve } = body;
+
+    // Marcar si el medidor tiene valvula habilita comandos que cierran el agua
+    // de un socio, asi que exige lo mismo que el endpoint de valvula.
+    if (has_valve !== undefined) {
+      if (typeof has_valve !== "boolean" || status !== undefined) {
+        return NextResponse.json(
+          { error: "has_valve debe ser booleano y no se combina con status" },
+          { status: 400 }
+        );
+      }
+      const session = await getServerSession(authOptions);
+      if (!session?.user) {
+        return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+      }
+      if (session.user.role !== "admin" || !session.user.canWrite) {
+        return NextResponse.json({ error: "Acceso denegado" }, { status: 403 });
+      }
+      const target = await prisma.meter.findUnique({ where: { id: params.id } });
+      if (!target) {
+        return NextResponse.json({ error: "Meter not found" }, { status: 404 });
+      }
+      if (target.meter_type !== "SMART") {
+        return NextResponse.json(
+          { error: "Solo los medidores inteligentes pueden tener válvula" },
+          { status: 422 }
+        );
+      }
+      const updatedValve = await prisma.meter.update({
+        where: { id: params.id },
+        data: { has_valve, updated_at: new Date() },
+      });
+      return NextResponse.json(updatedValve);
+    }
+
     if (!status) {
       return NextResponse.json({ error: "status is required" }, { status: 400 });
     }
@@ -174,12 +214,44 @@ export async function PUT(
   }
 }
 
-export async function DELETE(_: Request, { params }: Context) {
+
+const deleteSchema = z.object({
+  password: z.string().min(1),
+  confirmName: z.string().min(1),
+});
+
+// Borrado irreversible (arrastra lecturas por cascade): solo admin con escritura,
+// reingresando su propia contraseña y escribiendo el nombre del medidor.
+export async function DELETE(req: Request, { params }: Context) {
   try {
+    const parsed = deleteSchema.safeParse(await req.json().catch(() => null));
+    const auth = await authorizeDestructiveAction(parsed.success ? parsed.data.password : null);
+    if ("response" in auth) return auth.response;
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Datos de confirmación incompletos" }, { status: 400 });
+    }
+    const { session } = auth;
+
+    const meter = await prisma.meter.findUnique({
+      where: { id: params.id },
+      select: { device_name: true },
+    });
+
+    if (!meter) {
+      return NextResponse.json({ error: "Medidor no encontrado" }, { status: 404 });
+    }
+    if (parsed.data.confirmName.trim() !== getDeleteConfirmText(meter.device_name)) {
+      return NextResponse.json(
+        { error: "El nombre ingresado no coincide con el del medidor" },
+        { status: 400 }
+      );
+    }
+
     await prisma.meter.delete({
       where: { id: params.id },
     });
 
+    console.warn(`[DELETE METER] ${params.id} (${meter.device_name}) eliminado por ${session.user.email}`);
     return NextResponse.json({ message: "Meter deleted" });
   } catch (error) {
     console.error("[DELETE METER]", error);

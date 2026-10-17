@@ -1,145 +1,139 @@
 import React from "react";
-import { AlertTriangle, Zap, Gauge, Clock, ArrowRight } from "lucide-react";
+import { AlertTriangle, OctagonAlert, Clock, ArrowRight, User, Gauge } from "lucide-react";
 import { Alert } from "@/hooks/urgencies/use-urgencies";
 import { MeterStatusIndicator } from "@/components/ui/meter-status-badge";
 import Link from "next/link";
-import { formatDateTimeShortAR } from "@/lib/utils";
+import { cn, formatDateTimeShortAR } from "@/lib/utils";
+
 interface UrgencyCardProps {
   urgency: Alert;
 }
 
+type UrgencyCategory = "error" | "alert";
+
+// Misma regla que las pestañas: CRITICAL/HIGH = errores, el resto = alertas
+export function getUrgencyCategory(severity: Alert["severity"]): UrgencyCategory {
+  return severity === "CRITICAL" || severity === "HIGH" ? "error" : "alert";
+}
+
+const CATEGORY_STYLES: Record<
+  UrgencyCategory,
+  { label: string; icon: React.ElementType; accent: string; iconBox: string; badge: string }
+> = {
+  error: {
+    label: "Error",
+    icon: OctagonAlert,
+    accent: "border-l-red-500",
+    iconBox: "bg-red-500/10 text-red-500",
+    badge: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/30",
+  },
+  alert: {
+    label: "Alerta",
+    icon: AlertTriangle,
+    accent: "border-l-amber-400",
+    iconBox: "bg-amber-400/15 text-amber-500",
+    badge: "bg-amber-400/15 text-amber-700 dark:text-amber-300 border-amber-400/40",
+  },
+};
+
+const SEVERITY_LABELS: Record<Alert["severity"], string> = {
+  CRITICAL: "Crítico",
+  HIGH: "Alto",
+  MEDIUM: "Medio",
+  LOW: "Bajo",
+};
+
+const URGENCY_TITLES: Record<string, string> = {
+  CRITICAL_METER: "Medidor Crítico",
+  VALVE_ISSUE: "Problema de Válvula",
+  BATTERY_LOW: "Batería Baja",
+  EMPTY_PIPE_ALARM: "Alarma de Tubería Vacía",
+  REVERSE_FLOW_ALARM: "Alarma de Flujo Reverso",
+  OVER_RANGE_ALARM: "Alarma de Rango Excedido",
+  WATER_TEMP_ALARM: "Alarma de Temperatura",
+  EE_ALARM: "Alarma EE",
+  MAINTENANCE_NEEDED: "Mantenimiento Requerido",
+  INACTIVE_METER: "Medidor Inactivo",
+};
+
+function formatTimestamp(timestamp?: string | null) {
+  if (!timestamp) return "Sin fecha";
+  try {
+    return formatDateTimeShortAR(new Date(timestamp));
+  } catch {
+    return "Desconocido";
+  }
+}
+
 export function UrgencyCard({ urgency }: UrgencyCardProps) {
-  const getUrgencyStyle = () => {
-    switch (urgency.severity) {
-      case "CRITICAL":
-        return {
-          bgColor: "bg-red-50",
-          borderColor: "border-red-200",
-          iconColor: "text-red-500",
-          icon: AlertTriangle,
-        };
-      case "HIGH":
-        return {
-          bgColor: "bg-orange-50",
-          borderColor: "border-orange-200",
-          iconColor: "text-orange-500",
-          icon: AlertTriangle,
-        };
-      case "MEDIUM":
-        return {
-          bgColor: "bg-yellow-50",
-          borderColor: "border-yellow-200",
-          iconColor: "text-yellow-500",
-          icon: Zap,
-        };
-      default:
-        return {
-          bgColor: "bg-gray-50",
-          borderColor: "border-gray-200",
-          iconColor: "text-gray-500",
-          icon: Gauge,
-        };
-    }
-  };
-
-  const getUrgencyTitle = () => {
-    switch (urgency.type) {
-      case "CRITICAL_METER":
-        return "Medidor Crítico";
-      case "VALVE_ISSUE":
-        return "Problema de Válvula";
-      case "BATTERY_LOW":
-        return "Batería Baja";
-      case "EMPTY_PIPE_ALARM":
-        return "Alarma de Tubería Vacía";
-      case "REVERSE_FLOW_ALARM":
-        return "Alarma de Flujo Reverso";
-      case "OVER_RANGE_ALARM":
-        return "Alarma de Rango Excedido";
-      case "WATER_TEMP_ALARM":
-        return "Alarma de Temperatura";
-      case "EE_ALARM":
-        return "Alarma EE";
-      case "MAINTENANCE_NEEDED":
-        return "Mantenimiento Requerido";
-      case "INACTIVE_METER":
-        return "Medidor Inactivo";
-      default:
-        return urgency.message || "Urgencia";
-    }
-  };
-
-  const getUrgencyDescription = () => {
-    return urgency.message || `Medidor ${urgency.meter.device_name}`;
-  };
-
-  const formatTimestamp = (timestamp: string) => {
-    try {
-      const date = new Date(timestamp);
-      return formatDateTimeShortAR(date);
-    } catch {
-      return "Desconocido";
-    }
-  };
-
-  const style = getUrgencyStyle();
+  const category = getUrgencyCategory(urgency.severity);
+  const style = CATEGORY_STYLES[category];
   const Icon = style.icon;
 
+  const title = URGENCY_TITLES[urgency.type] ?? (urgency.message || "Urgencia");
+  const description = urgency.message || `Medidor ${urgency.meter.device_name}`;
+
   return (
-    <Link href={`dashboard/medidores/${urgency.meter.id}`}>
+    <Link href={`/dashboard/medidores/${urgency.meter.id}`} className="block group">
       <div
-        className={`p-3 rounded-lg border ${style.bgColor} ${style.borderColor} hover:shadow-md transition-shadow duration-200 group cursor-pointer`}>
+        className={cn(
+          "p-3 rounded-lg border border-l-4 bg-card hover:bg-muted/50 hover:shadow-md transition-all duration-200",
+          style.accent
+        )}
+      >
         <div className="flex items-start gap-3">
-          <div className={`p-2 rounded-lg bg-white ${style.iconColor}`}>
+          <div className={cn("p-2 rounded-lg shrink-0", style.iconBox)}>
             <Icon className="w-4 h-4" />
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between">
-              <h4 className="font-medium text-gray-900 text-sm mb-1">
-                {getUrgencyTitle()}
-              </h4>
-              <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-blue-600 transition-colors duration-200" />
+
+          <div className="flex-1 min-w-0 space-y-1.5">
+            {/* Título + grado */}
+            <div className="flex items-start justify-between gap-2">
+              <h4 className="font-medium text-sm text-foreground leading-tight">{title}</h4>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span
+                  className={cn(
+                    "text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded border",
+                    style.badge
+                  )}
+                >
+                  {style.label} · {SEVERITY_LABELS[urgency.severity]}
+                </span>
+                <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-blue-500 transition-colors" />
+              </div>
             </div>
-            <p className="text-gray-600 text-xs mb-2">
-              {getUrgencyDescription()}
-            </p>
-            <div className="text-gray-500 text-xs mb-2">
-              Medidor: {urgency.meter.device_name}
-              <span className="text-gray-500 text-xs mb-2">
-                {" "}
-                | {urgency.meter.dev_eui}
-              </span>
-            </div>
-            {urgency.user && (
-              <p className="text-gray-500 text-xs mb-2">
-                Usuario: {urgency.user.name}
-              </p>
-            )}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs text-gray-500">
-                <Clock className="w-3 h-3" />
-                <span>
-                  {urgency.reading?.timestamp
-                    ? formatTimestamp(urgency.reading.timestamp)
-                    : urgency.created_at
-                    ? formatTimestamp(urgency.created_at)
-                    : "Sin fecha"}
+
+            <p className="text-xs text-muted-foreground">{description}</p>
+
+            {/* Datos del medidor y usuario */}
+            <div className="space-y-1 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <Gauge className="w-3 h-3 shrink-0" />
+                <span className="truncate">
+                  {urgency.meter.device_name}
+                  <span className="opacity-70"> · {urgency.meter.dev_eui}</span>
                 </span>
               </div>
+              <div className="flex items-center gap-1.5 min-w-0">
+                <User className="w-3 h-3 shrink-0" />
+                <span className="truncate">{urgency.user?.name ?? "Sin usuario asignado"}</span>
+              </div>
+            </div>
 
-              {/* Indicador de conectividad */}
+            {/* Fecha + conectividad */}
+            <div className="flex items-center justify-between gap-2 pt-0.5">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Clock className="w-3 h-3" />
+                <span>{formatTimestamp(urgency.reading?.timestamp ?? urgency.created_at)}</span>
+              </div>
               {urgency.connectivity && (
-                <MeterStatusIndicator
-                  connectivity={urgency.connectivity}
-                  size="sm"
-                />
+                <MeterStatusIndicator connectivity={urgency.connectivity} size="sm" />
               )}
             </div>
 
-            {/* Indicador de frescura de datos */}
-            {urgency.dataFreshness && !urgency.dataFreshness.isRecent && (
-              <div className="mt-2 p-2 bg-orange-50 border border-orange-200 rounded text-xs text-orange-800">
-                ⚠️ {urgency.dataFreshness.warning}
+            {urgency.dataFreshness && !urgency.dataFreshness.isRecent && urgency.dataFreshness.warning && (
+              <div className="p-2 rounded border border-amber-400/40 bg-amber-400/10 text-xs text-amber-700 dark:text-amber-300">
+                {urgency.dataFreshness.warning}
               </div>
             )}
           </div>

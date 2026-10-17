@@ -6,7 +6,7 @@ export default function OperarioDetailPage({
   params: { id: string };
 }) {
   return (
-    <div className="max-w-4xl mx-auto py-10">
+    <div className="w-full py-4">
       <OperarioDetail id={params.id} />
     </div>
   );

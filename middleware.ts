@@ -25,6 +25,11 @@ export async function middleware(req: NextRequest) {
     if (!isAllowed) {
       return NextResponse.redirect(new URL("/dashboard/mapa", req.url));
     }
+    // La configuración de ruta es solo edición: el lector vuelve al detalle de la zona
+    const routeConfig = pathname.match(/^\/dashboard\/zonas\/([^/]+)\/ruta/);
+    if (routeConfig) {
+      return NextResponse.redirect(new URL(`/dashboard/zonas/${routeConfig[1]}`, req.url));
+    }
   }
 
   if (role === "operario") {

@@ -26,11 +26,11 @@ export function UrgenciesSection({
 
   if (isLoading) {
     return (
-      <Card className="border-0 shadow-sm bg-white">
+      <Card className="border-0 shadow-sm bg-card">
         <CardContent className="p-4">
           <div className="flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-orange-500" />
-            <span className="text-sm font-medium text-gray-600">
+            <span className="text-sm font-medium text-muted-foreground">
               Cargando urgencias...
             </span>
           </div>
@@ -41,11 +41,11 @@ export function UrgenciesSection({
 
   if (error || !urgencies) {
     return (
-      <Card className="border-0 shadow-sm bg-white">
+      <Card className="border-0 shadow-sm bg-card">
         <CardContent className="p-4">
           <div className="flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-red-500" />
-            <span className="text-sm font-medium text-red-600">
+            <span className="text-sm font-medium text-red-500">
               Error al cargar urgencias
             </span>
           </div>
@@ -79,12 +79,12 @@ export function UrgenciesSection({
 
   if (!isExpanded) {
     return (
-      <Card className="border-0 shadow-sm bg-white">
+      <Card className="border-0 shadow-sm bg-card">
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <AlertTriangle className="w-5 h-5 text-orange-500" />
-              <span className="text-sm font-medium text-gray-600">
+              <span className="text-sm font-medium text-muted-foreground">
                 Urgencias ({urgencies.meta.total})
               </span>
             </div>
@@ -101,16 +101,16 @@ export function UrgenciesSection({
   }
 
   return (
-    <Card className="border-0 shadow-sm bg-white h-full">
+    <Card className="border-0 shadow-sm bg-card h-full">
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+          <CardTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-orange-500" />
             Urgencias detectadas
           </CardTitle>
           <button
             onClick={() => setIsExpanded(false)}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-muted-foreground hover:text-foreground"
           >
             <X className="w-4 h-4" />
           </button>
@@ -132,10 +132,10 @@ export function UrgenciesSection({
         />
 
         {/* Lista de urgencias */}
-        <div className="space-y-4 max-h-80 overflow-y-auto p-1 flex flex-col gap-1">
+        <div className="max-h-80 overflow-y-auto p-1 pr-2 flex flex-col gap-2.5">
           {filteredUrgencies.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+            <div className="text-center py-8 text-muted-foreground">
+              <AlertTriangle className="w-8 h-8 mx-auto mb-2 opacity-40" />
               <p>No hay urgencias para mostrar</p>
             </div>
           ) : (

@@ -257,7 +257,8 @@ COMPOSE_PROJECT_NAME=${slug}
 NODE_ENV=production
 PORT=3000
 
-# ── Auth secrets (generate with: openssl rand -hex 32) ──────
+# ── Auth (secrets: generate with openssl rand -hex 32) ──────
+NEXTAUTH_URL=https://${domain}
 AUTH_SECRET=TODO
 NEXTAUTH_SECRET=TODO
 

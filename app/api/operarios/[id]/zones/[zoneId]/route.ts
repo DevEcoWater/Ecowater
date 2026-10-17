@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireEditor } from "@/lib/auth/require-editor";
 
 type Context = { params: { id: string; zoneId: string } };
 
 // DELETE /api/operarios/[id]/zones/[zoneId] — remove zone assignment
 export async function DELETE(_: Request, { params }: Context) {
+  const denied = await requireEditor();
+  if (denied) return denied;
+
   try {
     await prisma.zoneOperator.deleteMany({
       where: { user_id: params.id, zone_id: params.zoneId },

@@ -15,6 +15,7 @@ export function Layout({ children }: LayoutProps): React.JSX.Element {
 
   const logoUrl = (cooperative as any)?.logo_url as string | undefined;
   const name = cooperative?.name ?? clientConfig.brand.name;
+  const logoOnly = clientConfig.brand.logoOnly === true && !logoUrl;
 
   return (
     <>
@@ -22,6 +23,16 @@ export function Layout({ children }: LayoutProps): React.JSX.Element {
         <div className="flex flex-col gap-4 p-6 md:p-10">
           <div className="flex justify-center gap-2 md:justify-start">
             <a href="#" className="flex items-center gap-2 font-medium">
+              {logoOnly ? (
+                <div className="flex h-12 items-center rounded-lg bg-black px-3 py-1.5">
+                  <img
+                    src={clientConfig.brand.logo}
+                    alt={name}
+                    className="h-full w-auto object-contain"
+                  />
+                </div>
+              ) : (
+              <>
               <div className="flex h-6 w-6 items-center justify-center rounded-md bg-black text-primary-foreground overflow-hidden">
                 {logoUrl ? (
                   <img
@@ -39,6 +50,8 @@ export function Layout({ children }: LayoutProps): React.JSX.Element {
                 )}
               </div>
               {name}
+              </>
+              )}
             </a>
           </div>
           <div className="flex flex-1 items-center justify-center">
@@ -53,7 +66,13 @@ export function Layout({ children }: LayoutProps): React.JSX.Element {
               <div className="absolute bottom-1 right-0 w-60 h-60 bg-gradient-to-r from-[var(--brand-accent)] to-purple-500 rounded-full blur-[120px] opacity-40"></div>
             </div>
             <div className="flex flex-col items-center justify-center w-full h-full gap-4">
-              {logoUrl ? (
+              {logoOnly ? (
+                <img
+                  src={clientConfig.brand.logo}
+                  alt={name}
+                  className="h-48 w-auto max-w-[80%] object-contain"
+                />
+              ) : logoUrl ? (
                 <img
                   src={logoUrl}
                   alt={name}
@@ -67,9 +86,11 @@ export function Layout({ children }: LayoutProps): React.JSX.Element {
                   height={120}
                 />
               )}
-              <h1 className="text-5xl font-bold text-white text-balance mb-2">
-                {name}
-              </h1>
+              {!logoOnly && (
+                <h1 className="text-5xl font-bold text-white text-balance mb-2">
+                  {name}
+                </h1>
+              )}
             </div>
           </div>
         </div>

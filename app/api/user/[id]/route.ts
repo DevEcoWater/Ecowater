@@ -2,6 +2,8 @@
 import { UserStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/authOptions";
 
 type Context = {
   params: {
@@ -97,8 +99,20 @@ export async function PUT(
   }
 }
 
+// Desactiva (no borra): el borrado definitivo vive en /api/user/[id]/permanent
 export async function DELETE(_: Request, { params }: Context) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    }
+    if (session.user.role !== "admin") {
+      return NextResponse.json({ error: "Acceso denegado" }, { status: 403 });
+    }
+    if (session.user.id === params.id) {
+      return NextResponse.json({ error: "No podés desactivar tu propia cuenta" }, { status: 422 });
+    }
+
     await prisma.user.update({
       where: { id: params.id },
       data: { status: "INACTIVE" },

@@ -79,7 +79,7 @@ export default function RegisterOperarioForm() {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <Card>
+        <Card id="tour-operario-form">
           <CardHeader>
             <CardTitle>Nuevo Operario</CardTitle>
             <CardDescription>
@@ -157,7 +157,7 @@ export default function RegisterOperarioForm() {
           </CardContent>
         </Card>
 
-        <Button type="submit" disabled={createOperario.isPending} className="w-full">
+        <Button id="tour-form-actions" type="submit" disabled={createOperario.isPending} className="w-full">
           <Save className="h-4 w-4 mr-2" />
           {createOperario.isPending ? "Guardando..." : "Crear Operario"}
         </Button>

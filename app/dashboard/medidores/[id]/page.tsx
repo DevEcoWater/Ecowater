@@ -982,10 +982,11 @@ const MeterDashboard = () => {
 
             {/* Valve control — full width row, smart meters only */}
             {packs?.valve_control && !isMechanical && (
-              <div className="col-span-12">
+              <div id="tour-meter-valve" className="col-span-12">
                 <ValveCommandsCard
                   meterId={meterData.id}
                   deviceName={meterData.device_name}
+                  hasValve={meterData.has_valve}
                   currentValveStatus={meterData.reading?.statuses?.valve_status ?? null}
                   lastSeen={meterData.connectivity?.lastSeen ?? null}
                   canOperate={canOperate}
