@@ -6,6 +6,8 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
 import { z } from "zod";
+import { resolvePendingCommand } from "@/utils/valve-pending";
+import { resolveValveDisplayStatus } from "@/types/meters/valve-types";
 
 // mqtt is optional infrastructure — loaded dynamically so that a missing
 // package causes a graceful 5xx instead of crashing the route module.
@@ -87,6 +89,40 @@ export async function POST(req: Request, { params }: Context) {
     }
 
     const appId = meter.application_id;
+
+    // Un comando igual al que sigue esperando al medidor solo engrosaria la
+    // cola: el medidor procesa uno por ventana de reporte, y los repetidos
+    // demoran cualquier orden posterior. El contrario si se admite.
+    const [latestEvent, lastReading] = await Promise.all([
+      prisma.valveEvent.findFirst({
+        where: { meter_id: params.id },
+        orderBy: { timestamp: "desc" },
+      }),
+      prisma.reading.findFirst({
+        where: { meter_id: params.id },
+        orderBy: { timestamp: "desc" },
+        include: { statuses: { take: 1 } },
+      }),
+    ]);
+    const pending = resolvePendingCommand(
+      latestEvent
+        ? {
+            action: latestEvent.action,
+            result: latestEvent.result,
+            timestamp: latestEvent.timestamp.toISOString(),
+          }
+        : undefined,
+      resolveValveDisplayStatus(lastReading?.statuses[0]?.valve_status)
+    );
+    if (pending && pending.command === command) {
+      return NextResponse.json(
+        {
+          error: `Ya hay un comando de ${command === "OPEN" ? "apertura" : "cierre"} esperando al medidor. Se ejecuta en su próximo reporte.`,
+          status: "PENDING",
+        },
+        { status: 409 }
+      );
+    }
 
     const { getValveTopic, publishValveCommand, MqttBrokerError } = await import("@/lib/mqtt-client");
     const topic = getValveTopic(meter.dev_eui, appId);

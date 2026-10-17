@@ -41,7 +41,10 @@ import {
   ValveDisplayStatus,
   resolveValveDisplayStatus,
 } from "@/types/meters/valve-types";
-import { resolvePendingCommand } from "@/utils/valve-pending";
+import {
+  resolvePendingCommand,
+  resolveUnconfirmedCommand,
+} from "@/utils/valve-pending";
 
 interface Props {
   meterId: string;
@@ -84,13 +87,13 @@ const RESULT_CONFIG: Record<
   "SENT" | "FAILED",
   { label: string; className: string }
 > = {
-  SENT: { label: "Enviado", className: "bg-blue-100 text-blue-800" },
+  SENT: { label: "Enviado al broker", className: "bg-blue-100 text-blue-800" },
   FAILED: { label: "Fallido", className: "bg-red-100 text-red-800" },
 };
 
 const MQTT_STATUS_CONFIG = {
   SUCCESS: { label: "Enviado", className: "bg-green-100 text-green-800 border-green-200" },
-  MQTT_ERROR: { label: "Sin conexión", className: "bg-red-100 text-red-800 border-red-200" },
+  MQTT_ERROR: { label: "No se pudo enviar", className: "bg-red-100 text-red-800 border-red-200" },
 } as const;
 
 export function ValveControlPanel({
@@ -115,6 +118,7 @@ export function ValveControlPanel({
   // sobrevive a recargar la pagina mientras el comando sigue en curso.
   const pending = resolvePendingCommand(history?.data?.[0], valveStatus);
   const hasPending = pending !== null;
+  const unconfirmed = resolveUnconfirmedCommand(history?.data?.[0], valveStatus);
 
   const [cycleProgress, setCycleProgress] = useState(0);
 
@@ -201,6 +205,7 @@ export function ValveControlPanel({
                   : valveStatus === "CLOSED"
                   ? "Tocá para abrir"
                   : "No se puede operar en este estado"}
+                {hasPending && " · Hay un comando en curso"}
               </p>
             </div>
 
@@ -210,7 +215,11 @@ export function ValveControlPanel({
               <button
                 role="switch"
                 aria-checked={valveStatus === "OPEN"}
-                disabled={valveStatus === "ABNORMAL" || valveStatus === "UNKNOWN"}
+                disabled={
+                  valveStatus === "ABNORMAL" ||
+                  valveStatus === "UNKNOWN" ||
+                  hasPending
+                }
                 onClick={() =>
                   setPendingCommand(valveStatus === "OPEN" ? "CLOSE" : "OPEN")
                 }
@@ -266,6 +275,17 @@ export function ValveControlPanel({
                 </p>
               </>
             )}
+          </div>
+        )}
+
+        {unconfirmed && (
+          <div className="px-5 py-3 border-b bg-red-50 dark:bg-red-950/20">
+            <p className="text-xs text-red-700 dark:text-red-400">
+              El último comando de{" "}
+              <strong>{unconfirmed.command === "OPEN" ? "apertura" : "cierre"}</strong>{" "}
+              no fue confirmado por el medidor tras más de 36 horas. Puede
+              haberse perdido: verificá el estado real antes de reenviarlo.
+            </p>
           </div>
         )}
 
