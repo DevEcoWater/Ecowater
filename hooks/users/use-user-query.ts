@@ -134,6 +134,31 @@ export const useDeleteUserMutation = () => {
   });
 };
 
+// Permanently delete a user (requires the admin's password + typed email)
+export const usePermanentDeleteUserMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, { id: string; password: string; confirmEmail: string }>({
+    mutationFn: async ({ id, password, confirmEmail }) => {
+      const response = await fetch(`/api/user/${id}/permanent`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password, confirmEmail }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Error al eliminar el usuario");
+      }
+    },
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      queryClient.removeQueries({ queryKey: ["user", id] });
+      queryClient.invalidateQueries({ queryKey: ["meters"] });
+    },
+  });
+};
+
 // Assign a meter to a user
 export const useAssignUserMeterMutation = () => {
   const queryClient = useQueryClient();

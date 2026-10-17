@@ -7,9 +7,8 @@ import { Input } from "../ui/input";
 import { cn } from "@/lib/utils";
 import { useUsers } from "@/hooks/users/use-users";
 import { useUserFilters } from "@/hooks/users/use-users-filters";
-import { FilterTabs } from "./filter-tabs";
+import { UserStatusCards } from "./user-status-cards";
 import { UserTable } from "./user-table";
-import { UserSummaryCards } from "./user-summary-cards";
 import {
   Pagination,
   PaginationContent,
@@ -41,7 +40,6 @@ const Users = () => {
     page,
     setPage,
     totalPages,
-    total,
   } = useUsers();
 
   const goToPage = (p: number) => {
@@ -62,8 +60,17 @@ const Users = () => {
 
   return (
     <section className="w-full h-full py-6 space-y-6">
-      {/* KPI summary cards */}
-      <UserSummaryCards counts={counts} total={total} isLoading={isLoading} />
+      {/* Conteo por estado — también filtra la tabla */}
+      <div id="tour-users-filter-tabs">
+        <UserStatusCards
+          value={filterState}
+          onChange={(value) => {
+            if (filterState !== value) handleFilterChange(value);
+          }}
+          counts={counts}
+          isLoading={isLoading}
+        />
+      </div>
 
       {/* Toolbar */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -89,7 +96,7 @@ const Users = () => {
 
         {/* Right: role filter group + CTA */}
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex items-center rounded-md border overflow-hidden">
+          <div id="tour-users-role-filter" className="flex items-center rounded-md border overflow-hidden">
             {ROLE_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
@@ -115,18 +122,6 @@ const Users = () => {
             Crear usuario
           </Button>
         </div>
-      </div>
-
-      {/* Status filter tabs */}
-      <div id="tour-users-filter-tabs">
-        <FilterTabs
-          onFilterChange={(value) => {
-            if (filterState !== value) handleFilterChange(value);
-          }}
-          defaultValue={filterState}
-          total={total}
-          counts={counts}
-        />
       </div>
 
       {/* Table / card list */}

@@ -40,7 +40,7 @@ export function ZonesList() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex justify-between gap-4">
+      <div id="tour-zones-toolbar" className="flex justify-between gap-4">
         <Input
           placeholder="Buscar por nombre..."
           value={search}
@@ -76,7 +76,7 @@ export function ZonesList() {
           <p className="text-sm">No se encontraron zonas con ese nombre.</p>
         </div>
       ) : (
-        <Table>
+        <Table id="tour-zones-table">
           <TableHeader>
             <TableRow>
               <TableHead className="w-10">Color</TableHead>

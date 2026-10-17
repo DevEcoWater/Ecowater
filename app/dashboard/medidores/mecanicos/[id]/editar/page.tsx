@@ -14,7 +14,7 @@ export default function EditarMedidorMecanicoPage() {
 
   if (isLoading) {
     return (
-      <div className="max-w-5xl mx-auto py-6 flex items-center justify-center min-h-[300px]">
+      <div className="w-full py-4 flex items-center justify-center min-h-[300px]">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
@@ -22,7 +22,7 @@ export default function EditarMedidorMecanicoPage() {
 
   if (isError || !meter) {
     return (
-      <div className="max-w-5xl mx-auto py-6">
+      <div className="w-full py-4">
         <p className="text-destructive">No se pudo cargar el medidor.</p>
       </div>
     );
@@ -34,7 +34,7 @@ export default function EditarMedidorMecanicoPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto py-6">
+    <div className="w-full py-4">
       <MechanicalMeterForm
         meterId={id}
         initialValues={{

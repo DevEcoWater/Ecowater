@@ -229,10 +229,12 @@ export default function UpdateUserForm() {
         <form
           onKeyDown={handleKeyDown}
           onSubmit={form.handleSubmit(onSubmit)}
-          className="space-y-6"
+          className="flex flex-col gap-4 lg:h-[calc(100dvh-17rem)] lg:min-h-[520px]"
         >
+          {/* En desktop: datos a la izquierda, ubicación + mapa a la derecha */}
+          <div className="grid gap-4 lg:grid-cols-2 flex-1 lg:min-h-0">
           {/* Personal Information Card */}
-          <Card id="tour-edit-personal">
+          <Card id="tour-edit-personal" className="lg:overflow-y-auto">
             <CardHeader>
               <CardTitle>Información Personal</CardTitle>
               <CardDescription>
@@ -331,14 +333,14 @@ export default function UpdateUserForm() {
           </Card>
 
           {/* Location Card */}
-          <Card id="tour-edit-location">
+          <Card id="tour-edit-location" className="flex flex-col lg:min-h-0">
             <CardHeader>
               <CardTitle>Ubicación</CardTitle>
               <CardDescription>
                 Actualizá la dirección del usuario
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="flex-1 flex flex-col gap-4 lg:min-h-0">
               <FormField
                 control={form.control}
                 name="address"
@@ -362,22 +364,24 @@ export default function UpdateUserForm() {
                 )}
               />
 
-              <div className="rounded-md overflow-hidden border">
+              <div className="h-[300px] lg:h-auto lg:flex-1 lg:min-h-[240px] rounded-md overflow-hidden border">
                 {isLoadingUser ? (
-                  <Skeleton className="h-[300px] w-full" />
+                  <Skeleton className="h-full w-full" />
                 ) : (
                   <CoordinateMap
                     initialLocation={mapCenter}
                     readOnly={true}
-                    height="300px"
+                    height="100%"
+                    className="h-full"
                   />
                 )}
               </div>
             </CardContent>
           </Card>
+          </div>
 
           {/* Sticky action footer */}
-          <div className="sticky bottom-0 z-10 bg-background border-t py-3 flex items-center justify-between gap-3">
+          <div id="tour-form-actions" className="sticky bottom-0 z-10 bg-background border-t py-3 flex items-center justify-between gap-3">
             <Button
               type="button"
               variant="outline"

@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, CircleHelp } from "lucide-react";
-import { useNextStep } from "nextstepjs";
+import { useStartTour } from "@/components/layout/panel/tour-provider";
 
 interface PageHeaderProps {
   title: string;
@@ -21,7 +21,7 @@ export function PageHeader({
   tourName,
 }: PageHeaderProps) {
   const router = useRouter();
-  const { startNextStep } = useNextStep();
+  const startTour = useStartTour();
 
   const handleBack = () => {
     if (useHistoryBack) {
@@ -53,8 +53,9 @@ export function PageHeader({
           <Button
             variant="outline"
             size="icon"
-            onClick={() => startNextStep(tourName)}
-            aria-label="Tour guiado"
+            onClick={() => startTour(tourName)}
+            aria-label="Guía de esta sección"
+            title="Guía de esta sección"
           >
             <CircleHelp className="h-5 w-5" />
           </Button>

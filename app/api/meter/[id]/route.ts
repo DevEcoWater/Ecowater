@@ -2,6 +2,9 @@
 import { MeterStatus, MeterType, OperationalStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { z } from "zod";
+import { getDeleteConfirmText } from "@/lib/meters/delete-confirm";
+import { authorizeDestructiveAction } from "@/lib/auth/authorize-destructive-action";
 
 type Context = {
   params: { id: string };
@@ -174,12 +177,44 @@ export async function PUT(
   }
 }
 
-export async function DELETE(_: Request, { params }: Context) {
+
+const deleteSchema = z.object({
+  password: z.string().min(1),
+  confirmName: z.string().min(1),
+});
+
+// Borrado irreversible (arrastra lecturas por cascade): solo admin con escritura,
+// reingresando su propia contraseña y escribiendo el nombre del medidor.
+export async function DELETE(req: Request, { params }: Context) {
   try {
+    const parsed = deleteSchema.safeParse(await req.json().catch(() => null));
+    const auth = await authorizeDestructiveAction(parsed.success ? parsed.data.password : null);
+    if ("response" in auth) return auth.response;
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Datos de confirmación incompletos" }, { status: 400 });
+    }
+    const { session } = auth;
+
+    const meter = await prisma.meter.findUnique({
+      where: { id: params.id },
+      select: { device_name: true },
+    });
+
+    if (!meter) {
+      return NextResponse.json({ error: "Medidor no encontrado" }, { status: 404 });
+    }
+    if (parsed.data.confirmName.trim() !== getDeleteConfirmText(meter.device_name)) {
+      return NextResponse.json(
+        { error: "El nombre ingresado no coincide con el del medidor" },
+        { status: 400 }
+      );
+    }
+
     await prisma.meter.delete({
       where: { id: params.id },
     });
 
+    console.warn(`[DELETE METER] ${params.id} (${meter.device_name}) eliminado por ${session.user.email}`);
     return NextResponse.json({ message: "Meter deleted" });
   } catch (error) {
     console.error("[DELETE METER]", error);
