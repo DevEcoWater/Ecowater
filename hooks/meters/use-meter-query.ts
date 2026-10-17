@@ -295,6 +295,28 @@ export const useUpdateMeterStatusMutation = () => {
   });
 };
 
+export const useUpdateMeterHasValveMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation<{ id: string; has_valve: boolean }, Error, { id: string; has_valve: boolean }>({
+    mutationFn: async ({ id, has_valve }) => {
+      const response = await fetch(`/api/meter/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ has_valve }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Error al actualizar la válvula del medidor");
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["meters"] });
+      queryClient.invalidateQueries({ queryKey: ["meter", data.id] });
+    },
+  });
+};
+
 // Legacy hooks for backward compatibility
 export function useMeter(id: string) {
   return useMeterQuery(id);

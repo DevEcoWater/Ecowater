@@ -986,6 +986,7 @@ const MeterDashboard = () => {
                 <ValveCommandsCard
                   meterId={meterData.id}
                   deviceName={meterData.device_name}
+                  hasValve={meterData.has_valve}
                   currentValveStatus={meterData.reading?.statuses?.valve_status ?? null}
                   lastSeen={meterData.connectivity?.lastSeen ?? null}
                   canOperate={canOperate}
