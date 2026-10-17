@@ -1,21 +1,25 @@
 import type { ClientConfig } from "../client.config";
 
 /**
- * Olmos — demo deployment (smart + mechanical meters together).
+ * Cooperativa de Agua Potable de Lisandro Olmos (La Plata) — demo deployment,
+ * smart + mechanical meters together.
  *
- * TODO(olmos): placeholders until the cooperative's data arrives — own logo
- * (public/brand/olmos/*), accent color and the real map center/bounds. Geo is
- * currently the same La Plata area as COSEGO so the demo map is not empty.
+ * Name, address and logo come from https://coopaguaolmos.com.ar/ (public site).
+ * Map center is the geocoded locality (OpenStreetMap), not the cooperative's
+ * office: Av. 44 y 195 bis.
+ *
+ * TODO(olmos): accentHex is eyeballed from the logo, confirm with the
+ * cooperative's real brand color; mapBounds is a guess for the service area.
  */
 export const olmosConfig: ClientConfig = {
   brand: {
-    name: "EcoWater Olmos",
-    logo: "/eco-water.svg",
-    logoMark: "/eco-water.svg",
-    favicon: "/icon.svg",
+    name: "Cooperativa de Agua Olmos",
+    logo: "/brand/olmos/logo.png",
+    logoMark: "/brand/olmos/logo.png",
+    favicon: "/brand/olmos/logo.png",
   },
   theme: {
-    accentHex: "#2463EB",
+    accentHex: "#00A3E0",
   },
   locale: {
     lang: "es",
@@ -24,9 +28,9 @@ export const olmosConfig: ClientConfig = {
     currencyLocale: "es-AR",
   },
   geo: {
-    mapCenter: { lat: -34.908, lng: -58.036 },
+    mapCenter: { lat: -34.9953, lng: -58.0461 },
     mapBounds: { radiusDeg: 0.05 },
-    defaultLocation: { lat: -34.9035949, lng: -58.0373327 },
+    defaultLocation: { lat: -34.9953, lng: -58.0461 },
   },
   featureFlags: {
     valveControl: false,
