@@ -46,7 +46,12 @@ const Profile = () => {
         <DropdownMenuSeparator />
 
         <DropdownMenuItem
-          onClick={() => signOut({ callbackUrl: "/auth/login" })}
+          onClick={async () => {
+            // Sin redirect de NextAuth: si NEXTAUTH_URL falta o está mal, mandaría
+            // al usuario a http://localhost:3000. Navegamos en el mismo dominio.
+            await signOut({ redirect: false });
+            window.location.assign("/auth/login");
+          }}
           className="flex items-center gap-2 cursor-pointer"
         >
           <LogOutIcon className="h-4 w-4" /> Salir
