@@ -37,7 +37,7 @@ export const meterColumns: ColumnDef<MeterDataForTable>[] = [
       const addr =
         m.meter_type === "MECHANICAL"
           ? m.street_address
-          : m.userMeter?.shortData?.split(",")[0];
+          : m.userMeter?.shortData?.split(",")[0] || m.street_address;
       return (
         <span className="text-sm truncate max-w-[200px] block">{addr || "—"}</span>
       );

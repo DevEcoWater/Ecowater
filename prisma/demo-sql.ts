@@ -126,7 +126,8 @@ type DemoMeter = {
   start: number;
   mstatus: "ACTIVE" | "INACTIVE" | "MAINTENANCE" | "FAULTY";
   ostatus: "OPERATIONAL" | "NEEDS_MAINTENANCE" | "ERROR";
-  reverseAlarm: boolean;
+  lowBattery: boolean;
+  street: string;
   silentDays: number; // dias sin reportar (medidor inactivo)
 };
 const meters: DemoMeter[] = [];
@@ -143,7 +144,8 @@ for (let i = 0; i < N_SMART + N_MECH; i++) {
     start: between(80, 450),
     mstatus: "ACTIVE",
     ostatus: "OPERATIONAL",
-    reverseAlarm: false,
+    lowBattery: false,
+    street: `${pick(STREETS)} N° ${100 + Math.floor(rnd() * 900)}`,
     silentDays: 0,
   };
   meters.push(m);
@@ -153,7 +155,7 @@ meters[13].mstatus = "INACTIVE";
 meters[13].silentDays = 3;
 meters[14].mstatus = "MAINTENANCE";
 meters[14].ostatus = "NEEDS_MAINTENANCE";
-meters[14].reverseAlarm = true;
+meters[14].lowBattery = true; // bateria baja => MAINTENANCE, igual que parseMeterStatus
 meters[N_SMART + 5].mstatus = "FAULTY";
 meters[N_SMART + 5].ostatus = "ERROR";
 meters[N_SMART + 9].mstatus = "INACTIVE";
@@ -170,7 +172,7 @@ insertRows(
     m.smart ? q(devEui(m)) : "NULL",
     q(label(m)),
     q(m.smart ? "SMART" : "MECHANICAL"),
-    q(`${pick(STREETS)} N° ${100 + Math.floor(rnd() * 900)}`),
+    q(m.street),
     m.smart ? q("1") : "NULL",
     m.smart ? q("Demo") : "NULL",
     String(m.lat),
@@ -185,7 +187,7 @@ insertRows(
 );
 
 // ── Usuarios ─────────────────────────────────────────────────────────────────
-type DemoUser = { id: string; addressId: string; email: string; first: string; last: string; role: string; lat: number; lng: number };
+type DemoUser = { id: string; addressId: string; email: string; first: string; last: string; role: string; lat: number; lng: number; street?: string };
 const users: DemoUser[] = [];
 const taken = new Set<string>();
 function newUser(role: string, emailLocal?: string, first?: string, last?: string): DemoUser {
@@ -218,16 +220,26 @@ newUser("lector", "lector", "Laura", "Ortiz");
 const socios: DemoUser[] = [];
 for (let i = 0; i < 36; i++) socios.push(newUser("user"));
 
+// Cada socio vive donde esta su medidor: asi la lista de medidores (que muestra
+// la direccion corta del socio para los inteligentes) y el mapa coinciden.
+socios.forEach((s, i) => {
+  s.lat = meters[i].lat;
+  s.lng = meters[i].lng;
+  s.street = meters[i].street;
+});
 insertRows(
   "Address",
   ["id", "lat", "lng", "data", "shortData"],
-  users.map((u) => [
-    q(u.addressId),
-    q(String(u.lat)),
-    q(String(u.lng)),
-    q(`${pick(STREETS)} N° ${100 + Math.floor(rnd() * 900)}`),
-    "NULL",
-  ])
+  users.map((u) => {
+    const street = u.street ?? `${pick(STREETS)} N° ${100 + Math.floor(rnd() * 900)}`;
+    return [
+      q(u.addressId),
+      q(String(u.lat)),
+      q(String(u.lng)),
+      q(`${street}, Lisandro Olmos, La Plata`),
+      q(`${street}, Lisandro Olmos`),
+    ];
+  })
 );
 insertRows(
   "User",
@@ -290,8 +302,8 @@ for (const m of meters) {
         q(num(between(16, 21), 1)), q("0"), String(num(use, 3)), q("VALID"),
       ]);
       statuses.push([
-        q(randomUUID()), q(id), q("open"), q(num(between(3.55, 3.65), 2)), "false", "false",
-        m.reverseAlarm ? "true" : "false", "false", "false", "false", q(m.mstatus), q(m.ostatus),
+        q(randomUUID()), q(id), q("open"), q(m.lowBattery ? "low" : "normal"), "false", "false",
+        "false", "false", "false", "false", q(m.mstatus), q(m.ostatus),
       ]);
       rxinfos.push([
         q(randomUUID()), q(id), q(gatewayId), num(between(2, 10), 1), String(-Math.round(between(70, 108))),

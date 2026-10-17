@@ -7,7 +7,7 @@ import { MeterStatus } from "@prisma/client";
 interface DeviceCardProps {
   status?: MeterStatus;
   signal?: boolean;
-  valve_status?: "open" | "closed" | "abnormal" | "unkown";
+  valve_status?: "open" | "closed" | "abnormal" | "unknown" | "unkown";
   battery_voltage?: "normal" | "low";
   isLoading?: boolean; // 👈 new prop for skeleton state
 }
@@ -37,6 +37,8 @@ const valveMap: Record<
   open: { label: "Abierta", style: "ACTIVE" },
   closed: { label: "Cerrada", style: "FAULTY" },
   abnormal: { label: "Anómala", style: "PENDING" },
+  // parseMeterStatus guarda "unknown"; "unkown" es la clave vieja con la errata
+  unknown: { label: "Desconocida", style: "DEFAULT" },
   unkown: { label: "Desconocida", style: "DEFAULT" },
 };
 
@@ -96,33 +98,33 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
       <div className="grid grid-cols-2 gap-4">
         <StatusItem
           title="Estado"
-          value={status ? statusMap[status].label : undefined}
-          style={status ? statusMap[status].style : undefined}
+          value={status ? statusMap[status]?.label ?? "Desconocido" : undefined}
+          style={status ? statusMap[status]?.style ?? "DEFAULT" : undefined}
           isLoading={isLoading}
         />
         <StatusItem
           title="Señal"
           value={
-            signal !== undefined ? signalMap[String(signal)].label : undefined
+            signal !== undefined ? signalMap[String(signal)]?.label ?? "Desconocida" : undefined
           }
           style={
-            signal !== undefined ? signalMap[String(signal)].style : undefined
+            signal !== undefined ? signalMap[String(signal)]?.style ?? "DEFAULT" : undefined
           }
           isLoading={isLoading}
         />
         <StatusItem
           title="Válvula"
-          value={valve_status ? valveMap[valve_status].label : undefined}
-          style={valve_status ? valveMap[valve_status].style : undefined}
+          value={valve_status ? valveMap[valve_status]?.label ?? "Desconocida" : undefined}
+          style={valve_status ? valveMap[valve_status]?.style ?? "DEFAULT" : undefined}
           isLoading={isLoading}
         />
         <StatusItem
           title="Voltaje Batería"
           value={
-            battery_voltage ? batteryMap[battery_voltage].label : undefined
+            battery_voltage ? batteryMap[battery_voltage]?.label ?? "Desconocido" : undefined
           }
           style={
-            battery_voltage ? batteryMap[battery_voltage].style : undefined
+            battery_voltage ? batteryMap[battery_voltage]?.style ?? "DEFAULT" : undefined
           }
           isLoading={isLoading}
         />

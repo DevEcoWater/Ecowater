@@ -116,8 +116,10 @@ async function getMeterDataWithConnectivity(params: UrgencyParams) {
   }
 
   // Para dashboard - todos los medidores
+  // Sin `take`: el limite del pedido es de alertas devueltas, no de medidores
+  // revisados. Antes se revisaban solo los primeros N medidores y las alertas
+  // de los demas no aparecian nunca.
   const meters = await prisma.meter.findMany({
-    take: params.limit || 100,
     include: {
       readings: {
         orderBy: { timestamp: "desc" },
@@ -368,7 +370,22 @@ function buildUnifiedResponse(processedData: any, params: UrgencyParams) {
   const groupedAlerts = groupAlertsBySeverity(filteredAlerts);
 
   // Incluir medidores inactivos si se solicita
-  const inactiveToInclude = params.includeInactive ? inactiveMeters : [];
+  let inactiveToInclude = params.includeInactive ? inactiveMeters : [];
+
+  // El limite se reparte por gravedad: primero las criticas, al final las inactivas.
+  if (params.limit && params.limit > 0) {
+    let remaining = params.limit;
+    for (const key of ["critical", "high", "medium", "low"] as const) {
+      groupedAlerts[key] = groupedAlerts[key].slice(0, remaining);
+      remaining -= groupedAlerts[key].length;
+    }
+    inactiveToInclude = inactiveToInclude.slice(0, Math.max(remaining, 0));
+    groupedAlerts.total =
+      groupedAlerts.critical.length +
+      groupedAlerts.high.length +
+      groupedAlerts.medium.length +
+      groupedAlerts.low.length;
+  }
 
   return {
     alerts: {

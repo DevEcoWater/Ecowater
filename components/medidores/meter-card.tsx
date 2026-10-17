@@ -20,7 +20,7 @@ export function MeterCard({ meter, onClick }: MeterCardProps) {
   const code = m.dev_eui || m.device_name || "—";
   const address = isMechanical
     ? m.street_address
-    : m.userMeter?.shortData?.split(",")[0];
+    : m.userMeter?.shortData?.split(",")[0] || m.street_address;
 
   const meterInfo = {
     meter_id: m.id,
