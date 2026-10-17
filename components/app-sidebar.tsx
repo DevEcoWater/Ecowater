@@ -55,7 +55,21 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <SidebarMenuItem>
               <SidebarMenuButton asChild className="flex items-center gap-2">
                 <span className="text-base font-semibold flex items-center gap-2">
-                  {cooperative?.logo_url ? (
+                  {clientConfig.brand.logoOnly && !cooperative?.logo_url ? (
+                    <span
+                      className={
+                        open
+                          ? "flex h-12 w-full items-center justify-center rounded-lg bg-black px-3 py-1.5"
+                          : "flex h-8 w-8 items-center justify-center rounded-md bg-black p-1"
+                      }
+                    >
+                      <img
+                        src={clientConfig.brand.logo}
+                        alt={cooperative?.name ?? clientConfig.brand.name}
+                        className="h-full w-auto max-w-full object-contain"
+                      />
+                    </span>
+                  ) : cooperative?.logo_url ? (
                     <img
                       src={cooperative.logo_url}
                       alt={cooperative.name}
@@ -70,6 +84,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     />
                   )}
                   {open &&
+                    !(clientConfig.brand.logoOnly && !cooperative?.logo_url) &&
                     (cooperative ? (
                       cooperative.name
                     ) : (

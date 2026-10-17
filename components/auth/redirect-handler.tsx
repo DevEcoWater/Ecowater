@@ -39,18 +39,28 @@ export function RedirectHandler({
     <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-6">
       {/* Logo */}
       <div className="flex flex-col items-center gap-3">
-        <div className="w-16 h-16 rounded-2xl bg-black flex items-center justify-center overflow-hidden shadow-md">
+        <div
+          className={
+            clientConfig.brand.logoOnly && !logoUrl
+              ? "h-20 px-4 rounded-2xl bg-black flex items-center justify-center overflow-hidden shadow-md"
+              : "w-16 h-16 rounded-2xl bg-black flex items-center justify-center overflow-hidden shadow-md"
+          }
+        >
           {logoUrl ? (
             <img
               src={logoUrl}
               alt={name}
               className="h-full w-full object-contain"
             />
+          ) : clientConfig.brand.logoOnly ? (
+            <img src={clientConfig.brand.logo} alt={name} className="h-full w-auto object-contain py-2" />
           ) : (
             <Image src={clientConfig.brand.logo} alt="Logo" width={40} height={40} />
           )}
         </div>
-        <p className="text-lg font-semibold tracking-tight">{name}</p>
+        {!(clientConfig.brand.logoOnly && !logoUrl) && (
+          <p className="text-lg font-semibold tracking-tight">{name}</p>
+        )}
       </div>
 
       {/* Spinner */}

@@ -17,6 +17,8 @@ export const olmosConfig: ClientConfig = {
     logo: "/brand/olmos/logo.png",
     logoMark: "/brand/olmos/logo.png",
     favicon: "/brand/olmos/logo.png",
+    // El logo ya trae "Cooperativa AguaPotable OLMOS": repetir el nombre al lado sobra.
+    logoOnly: true,
   },
   theme: {
     accentHex: "#00A3E0",

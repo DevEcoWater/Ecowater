@@ -58,6 +58,11 @@ export interface ClientConfig {
     logoMark: string;
     /** Path to the favicon. Relative to /public. */
     favicon: string;
+    /**
+     * The logo already carries the name: show it alone, larger and on a dark
+     * tile, instead of repeating the name as text next to it.
+     */
+    logoOnly?: boolean;
   };
   theme: {
     /** Brand accent color as a hex string (e.g. "#2463EB"). Used in auth gradients and tailwind tertiary. */

@@ -64,6 +64,11 @@ export function getPageHeaderFromPath(pathname: string | null) {
       tourName: "meters-list",
     },
     {
+      pattern: /\/planes$/,
+      title: "Planes",
+      description: "Módulos incluidos en tu plataforma",
+    },
+    {
       pattern: /\/cooperativa/,
       title: "Gestión de Cooperativa",
       description: "Visualice y edite la información de la cooperativa",
