@@ -100,24 +100,35 @@ export function HomeDashboard() {
       <div id="tour-status-bar" className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-4">
           {stats.signal && (
-            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+            <div
+              className="flex items-center gap-1.5 text-sm text-muted-foreground"
+              title="Promedio de la señal recibida por el gateway en las últimas 24 horas"
+            >
               <Signal className="w-4 h-4" />
-              <span
-                className="font-medium"
-                style={{
-                  color:
-                    stats.signal.quality === "EXCELLENT"
-                      ? "#16a34a"
-                      : stats.signal.quality === "GOOD"
-                      ? "#d97706"
-                      : "#dc2626",
-                }}
-              >
-                {stats.signal.avgRssi} dBm
-              </span>
-              <span className="text-xs">
-                ({stats.signal.quality === "EXCELLENT" ? "Excelente" : stats.signal.quality === "GOOD" ? "Buena" : "Débil"})
-              </span>
+              {/* avgRssi en 0 no es una medición: es el valor por defecto cuando
+                  no llegó ningún paquete en las últimas 24 h. */}
+              {stats.signal.avgRssi === 0 ? (
+                <span className="text-xs">Señal: sin datos en las últimas 24 h</span>
+              ) : (
+                <>
+                  <span
+                    className="font-medium"
+                    style={{
+                      color:
+                        stats.signal.quality === "EXCELLENT"
+                          ? "#16a34a"
+                          : stats.signal.quality === "GOOD"
+                          ? "#d97706"
+                          : "#dc2626",
+                    }}
+                  >
+                    {stats.signal.avgRssi} dBm
+                  </span>
+                  <span className="text-xs">
+                    ({stats.signal.quality === "EXCELLENT" ? "Excelente" : stats.signal.quality === "GOOD" ? "Buena" : "Débil"})
+                  </span>
+                </>
+              )}
             </div>
           )}
           {stats.temperature?.avg != null && (
