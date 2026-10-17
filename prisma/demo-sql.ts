@@ -311,14 +311,15 @@ for (const m of meters) {
       ]);
     }
   } else if (m.mstatus !== "INACTIVE") {
-    // Lectura manual mensual, cargada por un operario, durante 6 meses.
+    // Lectura manual mensual, cargada por un operario, durante 6 meses. Como en la
+    // carga real, el valor leido va en cumulative_flow e instantaneous_flow.
     for (let mo = 6; mo >= 0; mo--) {
       const when = daysAgo(mo * 30 + Math.floor(between(0, 4)));
       const use = m.dailyUse * 30 * between(0.8, 1.2);
       cumulative += use;
       readings.push([
         q(randomUUID()), q(m.id), ts(when), "NULL", "NULL",
-        q(num(cumulative, 1)), "NULL", "NULL", "NULL", "NULL", "NULL", String(num(use, 1)), q("VALID"),
+        q(num(cumulative, 1)), "NULL", "NULL", q(num(cumulative, 1)), "NULL", "NULL", String(num(use, 1)), q("VALID"),
       ]);
     }
   }
