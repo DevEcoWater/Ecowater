@@ -38,6 +38,7 @@ import { useOperariosQuery } from "@/hooks/operarios/use-operarios";
 import { Badge } from "@/components/ui/badge";
 import { getTodayDateInputAR } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { ZoneCircuitTab } from "@/components/zonas/circuit/zone-circuit-tab";
 import {
   Pagination,
   PaginationContent,
@@ -256,6 +257,7 @@ export function ZoneDetail({ id }: ZoneDetailProps) {
             )}
           </TabsTrigger>
           <TabsTrigger value="historial">Historial</TabsTrigger>
+          <TabsTrigger value="circuito">Circuito</TabsTrigger>
         </TabsList>
 
         {/* Medidores tab */}
@@ -428,6 +430,10 @@ export function ZoneDetail({ id }: ZoneDetailProps) {
             periodStart={selectedPeriod.startDate}
             periodEnd={selectedPeriod.endDate}
           />
+        </TabsContent>
+
+        <TabsContent value="circuito" className="mt-4">
+          {zone && <ZoneCircuitTab zoneId={id} zone={zone} />}
         </TabsContent>
       </Tabs>
     </div>

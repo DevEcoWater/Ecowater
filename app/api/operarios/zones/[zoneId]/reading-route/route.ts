@@ -46,7 +46,24 @@ export async function GET(
       pointInPolygon(m.lat!, m.lng!, polygon)
     );
 
-    const route = inZone.map((m) => {
+    // If a circuit is defined, respect its order and only include circuit meters
+    const circuit = await prisma.meterCircuit.findMany({
+      where: { zone_id: params.zoneId },
+      orderBy: { order: "asc" },
+      select: { meter_id: true, order: true },
+    });
+
+    const hasCircuit = circuit.length > 0;
+    let orderedMeters = inZone;
+
+    if (hasCircuit) {
+      const orderMap = new Map(circuit.map((c) => [c.meter_id, c.order]));
+      orderedMeters = inZone
+        .filter((m) => orderMap.has(m.id))
+        .sort((a, b) => orderMap.get(a.id)! - orderMap.get(b.id)!);
+    }
+
+    const route = orderedMeters.map((m) => {
       const user = m.userMeters[0]?.user ?? null;
       const lastReading = m.readings[0] ?? null;
       const read_today =
@@ -66,6 +83,7 @@ export async function GET(
         last_reading_date: lastReading?.timestamp ?? null,
         read_today,
         reading_time_today: read_today ? lastReading?.timestamp : null,
+        order: hasCircuit ? (new Map(circuit.map((c) => [c.meter_id, c.order])).get(m.id) ?? null) : null,
       };
     });
 
@@ -74,6 +92,7 @@ export async function GET(
       meters: route,
       total: route.length,
       read_count: route.filter((m) => m.read_today).length,
+      has_circuit: hasCircuit,
     });
   } catch (error) {
     console.error("[GET READING ROUTE]", error);

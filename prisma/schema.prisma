@@ -22,21 +22,22 @@ model Cooperative {
 }
 
 model User {
-  id                String         @id @default(uuid())
-  email             String         @unique
-  password          String
-  created_at        DateTime       @default(now())
-  updated_at        DateTime       @updatedAt
-  status            UserStatus     @default(ACTIVE)
-  addressId         String         @unique
-  firstName         String
-  lastName          String
-  address           Address        @relation(fields: [addressId], references: [id], map: "User_adressId_fkey")
-  userMeters        UserMeter[]
-  userRoles         UserRole[]
-  zoneOperators     ZoneOperator[]
+  id                 String           @id @default(uuid())
+  email              String           @unique
+  password           String
+  created_at         DateTime         @default(now())
+  updated_at         DateTime         @updatedAt
+  status             UserStatus       @default(ACTIVE)
+  addressId          String           @unique
+  firstName          String
+  lastName           String
+  address            Address          @relation(fields: [addressId], references: [id], map: "User_adressId_fkey")
+  userMeters         UserMeter[]
+  userRoles          UserRole[]
+  zoneOperators      ZoneOperator[]
   submittedReadings  Reading[]        @relation("SubmittedReadings")
   readingAttempts    ReadingAttempt[] @relation("SubmittedAttempts")
+  circuitAssignments MeterCircuit[]   @relation("CircuitOperator")
 
   @@index([email])
 }
@@ -97,6 +98,7 @@ model Meter {
   readings           Reading[]
   userMeters         UserMeter[]
   readingAttempts    ReadingAttempt[]
+  circuitEntries     MeterCircuit[]
 }
 
 model Reading {
@@ -179,15 +181,36 @@ model Gateway {
 }
 
 model Zone {
-  id            String         @id @default(uuid())
-  name          String
-  color         String         @default("#3B82F6")
-  polygon       Json
-  status        ZoneStatus     @default(ACTIVE)
-  created_at    DateTime       @default(now())
-  updated_at    DateTime       @updatedAt
-  zoneOperators ZoneOperator[]
-  downloads     ZoneDownload[]
+  id             String         @id @default(uuid())
+  name           String
+  color          String         @default("#3B82F6")
+  polygon        Json
+  status         ZoneStatus     @default(ACTIVE)
+  created_at     DateTime       @default(now())
+  updated_at     DateTime       @updatedAt
+  zoneOperators  ZoneOperator[]
+  downloads      ZoneDownload[]
+  circuitEntries MeterCircuit[]
+}
+
+model MeterCircuit {
+  id                   String   @id @default(uuid())
+  zone_id              String
+  meter_id             String
+  order                Int
+  assigned_operator_id String?
+  created_at           DateTime @default(now())
+  updated_at           DateTime @updatedAt
+
+  zone             Zone  @relation(fields: [zone_id], references: [id], onDelete: Cascade)
+  meter            Meter @relation(fields: [meter_id], references: [id], onDelete: Cascade)
+  assignedOperator User? @relation("CircuitOperator", fields: [assigned_operator_id], references: [id], onDelete: SetNull)
+
+  @@unique([zone_id, meter_id])
+  @@unique([zone_id, order])
+  @@index([zone_id])
+  @@index([zone_id, order])
+  @@index([assigned_operator_id])
 }
 
 model ZoneDownload {

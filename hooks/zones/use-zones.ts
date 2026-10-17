@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Zone, ZoneMeter, ZonePolygonPoint } from "@/types/zones/zone-types";
+import { CircuitResponse, SaveCircuitPayload } from "@/types/zones/circuit-types";
 
 const ZONES_KEY = ["zones"];
 
@@ -116,5 +117,36 @@ export function useDeleteZoneMutation() {
       if (!res.ok) throw new Error("Error al eliminar zona");
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ZONES_KEY }),
+  });
+}
+
+export function useZoneCircuitQuery(zoneId: string | null) {
+  return useQuery<CircuitResponse>({
+    queryKey: [...ZONES_KEY, zoneId, "circuit"],
+    queryFn: async () => {
+      const res = await fetch(`/api/zones/${zoneId}/circuit`);
+      if (!res.ok) throw new Error("Error al obtener circuito");
+      return res.json();
+    },
+    enabled: !!zoneId,
+  });
+}
+
+export function useSaveCircuitMutation(zoneId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: SaveCircuitPayload) => {
+      const res = await fetch(`/api/zones/${zoneId}/circuit`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error("Error al guardar circuito");
+      return res.json() as Promise<CircuitResponse>;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [...ZONES_KEY, zoneId, "circuit"] });
+      qc.invalidateQueries({ queryKey: ["reading-route", zoneId] });
+    },
   });
 }
