@@ -24,7 +24,7 @@ export default function ReadingRoutePage() {
 
       {/* Assignment summary card */}
       {!isLoading && zoneTotal > 0 && (
-        <div className="rounded-xl border bg-white shadow-sm p-4">
+        <div id="tour-portal-route-summary" className="rounded-xl border bg-white shadow-sm p-4">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
@@ -101,7 +101,7 @@ export default function ReadingRoutePage() {
       {/* Pending */}
       {!isLoading && pending.length > 0 && (
         <>
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-1">
+          <p id="tour-portal-route-pending" className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-1">
             Pendientes ({pending.length})
           </p>
           {pending.map((item) => (

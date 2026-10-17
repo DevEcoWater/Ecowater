@@ -9,7 +9,7 @@ export default function PortalZonasPage() {
   const { data: zones, isLoading } = useOperatorZonesQuery();
 
   return (
-    <div className="w-full space-y-3">
+    <div id="tour-portal-zone-list" className="w-full space-y-3">
       {isLoading && (
         <>
           <Skeleton className="h-24 w-full rounded-xl" />

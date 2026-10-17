@@ -198,7 +198,7 @@ export function CooperativeForm() {
             <Cosego className="w-full h-full" />
           )}
         </div>
-        <div className="min-w-0">
+        <div id="tour-coop-header" className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h2 className="text-xl font-bold truncate">{coop?.name}</h2>
             <Badge
@@ -234,7 +234,7 @@ export function CooperativeForm() {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <Tabs defaultValue="general">
-                <TabsList className="mb-4">
+                <TabsList id="tour-coop-tabs" className="mb-4">
                   <TabsTrigger value="general">General</TabsTrigger>
                   <TabsTrigger value="branding">Personalización</TabsTrigger>
                 </TabsList>
@@ -522,7 +522,7 @@ export function CooperativeForm() {
               </Tabs>
 
               {/* Submit */}
-              <div className="flex justify-end pt-2">
+              <div id="tour-coop-save" className="flex justify-end pt-2">
                 <Button
                   type="submit"
                   disabled={updateCooperative.isPending}
