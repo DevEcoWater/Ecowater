@@ -1,89 +1,134 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code (claude.ai/code) and any other AI agent working in this repository. The human-oriented version, with every command, is `docs/FLUJO_DE_TRABAJO.md` — read it before touching deploys, the database or a new client.
 
 ## What this is
 
-Ecowater is a Next.js 14 (App Router) water-metering platform for a cooperative. It ingests readings from smart water meters over LoRa via a gateway, stores them in PostgreSQL through Prisma, and exposes an admin dashboard plus an operator portal for manual readings. Outbound MQTT control to remotely open/close meter valves (ED-88) is merged and live on `main`.
+Ecowater is a Next.js 14 (App Router) water-metering platform for water cooperatives. It ingests readings from smart meters over LoRa via a gateway, stores them in PostgreSQL through Prisma, and exposes an admin dashboard plus an operator portal for manual readings of mechanical meters. It can also open/close meter valves remotely over MQTT.
+
+**One repository serves several clients (tenants).** Today: **COSEGO** (production, real members and real valves, `app.ecowater.com.ar`) and **Olmos** (demo with invented data, `olmos.ecowater.com.ar`). Each client is its own Docker stack with its own database on the same VPS. The code is identical; what differs is configuration (see "Clients").
+
+## Rules for agents (read first)
+
+- **Never deploy, restart containers, or change anything on the VPS unless the user explicitly asks in this conversation.** COSEGO is production: a wrong command can cut a real member's water or lose readings. Read-only inspection over `ssh ecowater-vps` is fine.
+- **Never touch the MQTT broker, `gateway_001`, or the COSEGO database** without an explicit request. Never send valve commands. Valve commands are not instantaneous (meters execute them on their next report, ~12 h) and are queued per meter.
+- **Deploy order: Olmos (demo) first, verify, then COSEGO.** Use `deploy/scripts/deploy-client.sh` (backs up, deploys, rolls back by itself). Do not deploy right before a demo or meeting, and not while the gateway is transmitting.
+- **Both servers must end the day on the same commit of the same branch.**
+- **Database changes are additive only, and the SQL is applied BEFORE the new code starts.** Never run `prisma migrate dev|deploy` or `db push --accept-data-loss` against production (see Gotchas).
+- **Never point `.env.local` at production.** Local dev uses a throwaway Postgres; leave `MQTT_BROKER_URL` empty and `FEATURE_VALVE_CONTROL=false`.
+- **Never fork the repo or keep branches per client.** Per-client behavior goes in `config/clients/<id>.ts`, env flags, or data.
+- **Never commit** secrets, any `.env*`, `deploy/mqtt/` keys/certs, or `.claude/settings.local.json` (it is per-developer; it is in `.gitignore` and must not be tracked).
+- **Commits:** conventional commits with gitmoji (`feat(valve): :sparkles: ...`). **Do not add AI attribution or `Co-Authored-By` lines**, including in squash-merge messages.
+- **Do not modify the user's uncommitted local changes.** Check `git status` before switching branches or committing, and stage files explicitly (never `git add -A`).
+- **Report faithfully.** There are no tests or linter configured: say what you verified (`tsc`, `build`, a query, a screenshot) and what you did not.
+- Passwords and secrets must not be pasted in chat or printed; generate them on the server or locally and tell the user where they are stored. If a secret was exposed, say it should be rotated.
+- When a lookup table maps a status to a label (chips, cards), always provide a fallback: a value missing from the table must not crash the page.
 
 ## Commands
 
 ```bash
-npm run dev            # Next dev server (http://localhost:3000)
-npm run build          # Production build (runs prisma generate via postinstall)
-npm run lint           # next lint
-npm run format         # prettier --write .
+npm run dev                     # Next dev server (http://localhost:3000)
+NEXT_PUBLIC_CLIENT=olmos npm run dev   # run as a specific client (default: ecowater)
+npx tsc --noEmit                # type check (do this before every PR)
+NEXT_PUBLIC_CLIENT=olmos npx next build  # production build (runs prisma generate via postinstall)
+npm run format                  # prettier --write .
 ```
 
-Prisma — all dev scripts load `.env.local` via `dotenv-cli`, so run them through npm, not raw `prisma`:
+`npm run lint` is not configured (it prompts for an ESLint setup) and there is no test runner.
+
+Prisma dev scripts load `.env.local` via `dotenv-cli`, so use npm scripts for them:
 
 ```bash
 npm run prisma:studio        # Prisma Studio
-npm run prisma:migrate       # create + apply a dev migration
-npm run prisma:migrate:safe  # create migration only (--create-only), review before applying
-npm run prisma:push          # push schema without a migration (prototyping)
-npm run prisma:pull          # introspect DB into schema
-npm run prisma:generate      # regenerate client
+npm run prisma:push          # push schema to the DB in .env.local — throwaway local DBs only
+npm run prisma:generate      # regenerate client (run after editing schema.prisma, before tsc)
+npm run create-admin         # needs ADMIN_EMAIL / ADMIN_PASSWORD
 ```
 
-`prisma:migrate:deploy` and `prisma:migrate:resolve` are the production-safe variants (no `.env.local`) used on the VPS.
+`prisma:migrate*` scripts exist but **must not be used against production** (see Gotchas).
 
-Cron (meter status job) can be hit locally:
+Deploy scripts live in `deploy/scripts/`: `deploy-client.sh` (the standard way to deploy one client), `backup-db.sh`, `restore-db.sh`, `rollback.sh`, `run-meter-cron.sh`. The older `deploy.sh` does a bare `git pull` + `up --build` of every service and has no safety net; prefer `deploy-client.sh`.
 
-```bash
-npm run cron:update-meters   # POST /api/cron/update-meter-status
-npm run cron:check-status    # GET  /api/cron/update-meter-status
-```
+## Clients (multi-tenant by deployment)
 
-There is no test runner configured in this project.
+- `config/client.config.ts` holds the `ClientConfig` type, the COSEGO values and a **registry** of clients. The active client is chosen **at build time** by `NEXT_PUBLIC_CLIENT` (compose: `CLIENT_CONFIG`, default `ecowater`). An unknown id fails the build.
+- Each other client lives in `config/clients/<id>.ts` (`brand`, `theme.accentHex`, `locale`, `geo`, `featureFlags`). `brand.logoOnly` shows the logo alone (larger, on a dark tile) when the logo already carries the name.
+- Precedence when rendering branding: the cooperative's DB row (`Cooperative.name`, `logo_url`) wins; `clientConfig.brand.*` is the fallback.
+- Secrets and anything that rotates stay in env (`deploy/env/.env.production` of each checkout, never committed): `CLIENT_SLUG`, `CLIENT_CONFIG`, ports, URLs, keys, `FEATURE_*` overrides.
+- Optional modules use feature flags: `featureFlags` in the client config, overridden by `FEATURE_*` env, exposed at `/api/cooperative/packs` and read in the UI with `useFeaturePacks()`. **Only `valve_control` actually gates anything in the UI today**; `advanced_export` and `urgencies` exist as flags but nothing depends on them.
+- To add a client, follow "Cliente nuevo" in `docs/FLUJO_DE_TRABAJO.md` and `deploy/docs/MULTI_CLIENT_SAME_VPS.md`.
 
 ## Architecture
 
 ### Two app surfaces, role-gated
-- `app/dashboard/*` — admin/`lector` UI (meters, zones, users, operators, map, cooperative).
-- `app/portal/*` — `operario` UI for submitting manual readings.
-- `middleware.ts` enforces roles from the NextAuth JWT: `lector` is restricted to `/dashboard/mapa` and `/dashboard/zonas`; `operario` is redirected from `/dashboard` to `/portal`. The matcher only covers `/dashboard/*` and `/portal/*`.
+- `app/dashboard/*` — admin/`lector` UI (meters, zones, users, operators, map, cooperative, plans).
+- `app/portal/*` — `operario` UI for submitting manual readings (same login page; the `operario` role is redirected from `/dashboard` to `/portal`).
+- `middleware.ts` enforces roles from the NextAuth JWT: `lector` is restricted to `/dashboard/mapa` and `/dashboard/zonas` (and cannot open a zone's route-config page); `operario` is redirected to `/portal`. The matcher only covers `/dashboard/*` and `/portal/*` — **`/api/*` is not covered by the middleware**, so each route must check the session itself. Several routes still do not (see Gotchas).
+- Authorization helpers: `lib/auth/roles.ts` (`canEditDashboard`), `lib/auth/require-editor.ts`, `lib/auth/authorize-destructive-action.ts` (admin + write permission + re-entered password; used for deleting meters and users). Role gating is split between `middleware.ts` and per-route checks — change both when touching authorization.
 
 ### Auth
-- NextAuth with a Credentials provider (`lib/authOptions.ts`), JWT session strategy, bcrypt password compare. The user's single role (`userRoles[0]`) is denormalized into the token and session. Sign-in page is `/auth/login`.
-- The secret is read as `AUTH_SECRET` → `NEXTAUTH_SECRET` only (`lib/authOptions.ts:6`, mirrored in `middleware.ts:7` — keep both in sync). There is **no** `NEXT_PUBLIC_AUTH_SECRET` fallback; a secret placed there is silently ignored and NextAuth runs with `secret: undefined`.
+- NextAuth Credentials provider (`lib/authOptions.ts`), JWT sessions, bcrypt. The user's single role (`userRoles[0]`) is denormalized into the token. Sign-in page: `/auth/login`.
+- The secret is read as `AUTH_SECRET` → `NEXTAUTH_SECRET` only (`lib/authOptions.ts`, mirrored in `middleware.ts` — keep both in sync). No `NEXT_PUBLIC_AUTH_SECRET` fallback.
+- **`NEXTAUTH_URL` must be set** to the client's public URL (it is in both servers' env). Without it NextAuth falls back to `http://localhost:3000` for redirects.
 
 ### Gateway ingestion pipeline (core data flow)
-`POST /api/gateway` (`app/api/gateway/route.ts`, `force-dynamic`) receives LoRa uplink payloads. The hex `data` field is decoded by the parsers in `utils/parse*` (`parseFlowHex`, `parseMeterData`, `parseMeterStatus`, `parseInstantaneousFlow`, `parseTemperature`, `parseTimestamp`). One uplink writes a `Reading` plus its related `Status` (valve/battery/alarms) and `RxInfo` (per-gateway signal: rssi, snr, location). The parser logic is the fragile part of the system — recent commits (ED-87) repeatedly fixed flow/cumulative decoding. Treat the `utils/parse*` functions as the contract with the physical meters.
+`POST /api/gateway` (`app/api/gateway/route.ts`, `force-dynamic`) receives LoRa uplink payloads over HTTPS. The hex `data` field is decoded by `utils/parse*` (`parseFlowHex`, `parseMeterData`, `parseMeterStatus`, `parseInstantaneousFlow`, `parseTemperature`, `parseTimestamp`). One uplink writes a `Reading` plus its `Status` (valve/battery/alarms) and `RxInfo` (per-gateway signal). The parsers are the contract with the physical meters and the fragile part of the system: change them only with a concrete payload to check against. Reading time comes from the gateway's unix `timestamp`, not the meter's clock.
 
-### Data model (`prisma/schema.prisma`, PostgreSQL)
-Hierarchy: `Cooperative` → `User` (1:1 `Address`, roles via `UserRole`/`Role`) → `UserMeter` → `Meter`. A `Meter` has many `Reading`s; each `Reading` has `Status[]`, `RxInfo[]` (FK to `Gateway`). `Zone` holds a GeoJSON-ish `polygon` (Json) and is linked to operators (`ZoneOperator`) and exports (`ZoneDownload`). Enums drive lifecycle: `MeterStatus`, `OperationalStatus`, `ReadingStatus`, `RxInfoStatus`, `UserStatus`, `ZoneStatus`, `MeterType`. Point-in-polygon checks (`lib/point-in-polygon.ts`) map meter lat/lng to zones.
+Stored conventions (respect them in seeds and new code): `Status.valve_status` is `open|closed|abnormal|unknown`; `battery_voltage` is `normal|low`; a manual reading of a mechanical meter stores the value in **both** `cumulative_flow` and `instantaneous_flow`.
 
-### Cron / meter liveness
-`app/api/cron/update-meter-status` marks meters `INACTIVE` after 24h without readings and back to `ACTIVE` when they resume. Guarded by `CRON_SECRET` (Bearer). On the VPS it is driven by `deploy/scripts/run-meter-cron.sh`, not Vercel Cron.
+### Data model (`prisma/schema.prisma`, PostgreSQL 16)
+`Cooperative` → `User` (1:1 `Address`, roles via `UserRole`/`Role`) → `UserMeter` → `Meter`. A `Meter` has many `Reading`s; each `Reading` has `Status[]`, `RxInfo[]` (FK to `Gateway`). `Meter.has_valve` marks smart meters that really have a valve. `Zone` holds a polygon (Json, `[{lat,lng}]`) linked to operators (`ZoneOperator`) and exports (`ZoneDownload`). `ValveEvent` is the audit of valve commands (no FK to `Meter` on purpose, so it survives deleting a meter). Point-in-polygon: `lib/point-in-polygon.ts`.
 
-### MQTT valve control (ED-88, merged to `main` in PR #54)
-`lib/mqtt-client.ts` publishes commands; `app/api/meter/[id]/valve/route.ts` is the open/close endpoint; `app/api/user/[id]/can-write` + `lib/mongo-audit.ts` gate who may issue commands and log it. The Mosquitto broker config is in `deploy/mqtt/` (local-only, gitignored: passwords, certs, data, log, real `mosquitto.conf`); listeners `1883` plain and `8883` TLS, `allow_anonymous false` with per-gateway passwords. `deploy/compose/docker-compose.prod.yml` defines the `mqtt` service (`eclipse-mosquitto:2`).
+### MQTT valve control
+`lib/mqtt-client.ts` publishes (QoS 1) to `application/<application_id>/device/<devEUI>/tx` — `application_id` is per meter, never a global fallback. `app/api/meter/[id]/valve/route.ts`: session + `admin` role + `canWrite`, then the meter must be `SMART`, have `dev_eui`, `application_id` and **`has_valve`** (else 422), and a command equal to one still waiting is rejected (409). Every command is audited in Postgres (`lib/valve-audit.ts`, table `ValveEvent`); the old Mongo audit no longer exists. `VALVE_BYPASS_AUTH=true` skips the auth checks outside production and still publishes to whatever `MQTT_BROKER_URL` points at — never enable it near a real broker.
 
-The valve `POST` checks session + `ADMIN` role + `canWrite` (`app/api/meter/[id]/valve/route.ts:25-37`), but `VALVE_BYPASS_AUTH=true` skips all three outside production and still publishes to whatever `MQTT_BROKER_URL` points at — see the local-env gotcha below.
+Behavior to keep in mind: the broker is our own Mosquitto 2.1.2 (`deploy/compose/docker-compose.prod.yml`; real config, passwords and certs are local-only and gitignored under `deploy/mqtt/`). The app talks to it internally (`mqtt://mqtt:1883`); the gateway connects to `mqtt.ecowater.com.ar:8883` with TLS as `gateway_001` (client id `GW_Indoor_EcoWater_001`, persistent session). A command only reaches the meter if the gateway is connected; the meter executes it on its next uplink and confirms by reporting the new `valve_status`. The panel derives "command in progress" from the audit plus the reported state (`utils/valve-pending.ts`), not from browser state. "Enviado" only proves the broker received it.
 
-### Per-client config layer (multicliente, merged in PR #59)
-`config/client.config.ts` is the single source of truth for everything that varies per client and is committed to the repo — the repo *is* the client. It holds `brand` (name, logo, logoMark, favicon), `theme.accentHex`, `locale` (lang, timezone, currency), `geo` (map center/bounds, default location) and feature toggles. Secrets and rotating keys stay in env; the file's header comment lists every hardcoded location it replaced.
+### Meter liveness and dashboard counts
+There are three different notions of a smart meter's state; do not conflate them:
+- **Connectivity (computed):** a reading in the last 24 h → `ONLINE` (`computeChipStatus`, `app/api/meter`).
+- **Stored status** (`Meter.status`): set by ingestion from the last reading's alarms (`FAULTY` for empty pipe / reverse flow, `MAINTENANCE` for low battery) and flipped `ACTIVE`↔`INACTIVE` by the dashboard stats route (`app/api/dashboard/stats`, which **writes to the DB when the dashboard is opened**). A `FAULTY` meter never goes back to `INACTIVE` by itself.
+- **Alarms** (`/api/urgencies`): derived from the last reading's `Status`; the dashboard asks for `limit=20`, which caps alerts returned, not meters inspected.
 
-Precedence when rendering branding: the cooperative's own row in the DB wins (`Cooperative.name`, `logo_url`), and `clientConfig.brand.*` is the fallback — so a deploy works before any cooperative is seeded. `scripts/create-client.mjs` scaffolds a new per-client repo and `prisma/create-admin.ts` bootstraps a fresh instance's admin user.
+`app/api/cron/update-meter-status` (guarded by `CRON_SECRET`) does a similar job, but **no cron or timer schedules it on the VPS today**.
 
 ## Frontend conventions
-- UI is Radix primitives + Tailwind in a shadcn-style component layer under `components/` (`components/ui/` for primitives). `cn()` in `lib/utils.ts` merges classes.
+- UI is Radix primitives + Tailwind in a shadcn-style layer under `components/` (`components/ui/` for primitives; there is no `Switch` — see `valve-commands-card.tsx` for the inline toggle). `cn()` in `lib/utils.ts` merges classes.
 - Data fetching uses `@tanstack/react-query`; feature hooks live in `hooks/<domain>/`. Forms use `react-hook-form` + `zod`. Server mutations use `next-safe-action` via `actionClient` in `lib/safe-action.ts`. Light client state uses `zustand`.
-- Dates: dayjs is centrally configured for Argentina timezone (`utils/configureDayjs.ts`, `utils/timestampConverter.ts`). Use these helpers — meter timestamps need explicit AR conversion.
-- Maps use `@react-google-maps/api` (provider in `providers/google-maps-provider.tsx`); zones are drawn/edited as polygons.
+- The dashboard caches several API responses with `unstable_cache` for **one hour, including empty results**: after loading data into a fresh database the dashboard may show zeros until the app container is recreated.
+- Dates: dayjs is configured for Argentina (`utils/configureDayjs.ts`, `utils/timestampConverter.ts`). Meter timestamps need explicit AR conversion.
+- Maps use `@react-google-maps/api` (`providers/google-maps-provider.tsx`). The Google API key is restricted by HTTP referrer: **a new domain must be added to the key** or the map will not load there.
 - File uploads go through `uploadthing`; transactional email through `resend`.
+- Guided tours live in `config/tours.*` and are wired through `components/dashboard/page-header/page-header-route.ts`.
 
 ## Deploy (VPS, self-hosted)
-The project migrated off Supabase to a self-hosted Postgres on a VPS (see `deploy/docs/DB_MIGRATION_SUPABASE_TO_VPS.md` and `DEPLOY_VPS.md`). `deploy/compose/docker-compose.prod.yml` runs `postgres:16-alpine` + the `app` container behind `deploy/nginx/ecowater.conf`. Operational scripts in `deploy/scripts/` (`deploy.sh`, `rollback.sh`, `backup-db.sh`, `restore-db.sh`). Production env lives in `deploy/env/`. The container entrypoint (`deploy/docker/entrypoint.sh`) runs `prisma migrate deploy` on boot.
+One VPS, two stacks (details and ports in `docs/FLUJO_DE_TRABAJO.md`):
+
+| | Checkout | Docker project | App port | DB |
+|---|---|---|---|---|
+| COSEGO | `/var/www/ecowater/Ecowater` | `ecowater` | 3000 | `ecowater_cosego` |
+| Olmos | `/var/www/olmos/Ecowater` | `olmos` | 3001 | `ecowater_olmos` |
+
+nginx (443, Let's Encrypt via certbot timer) routes by domain to `127.0.0.1:<port>`; Postgres, the internal broker port and pgweb listen only on loopback. `pgweb.ecowater.com.ar` (basic auth in nginx, read-only, `--lock-session`) only shows the COSEGO database; Olmos's database is reachable through an SSH tunnel to port 5433. Access: `ssh ecowater-vps` (user `deploy`, key-based, `sudo -n` for Docker/nginx; the repos are owned by root so git needs `sudo`).
+
+Standard deploy: `ssh ecowater-vps 'sudo -n bash -s -- --dir <checkout> --branch main' < deploy/scripts/deploy-client.sh` (add `--check` to only inspect, `--sql <file>` for an additive migration). Rollback images are tagged `<slug>-app:rollback-<date>`.
+
+Status to be aware of: **there are no scheduled database backups** (only manual dumps in `/var/www/ecowater/backups/`), SSH is exposed on port 5306 with root login enabled, and the server has a pending kernel reboot. See `docs/FLUJO_DE_TRABAJO.md` §10.
 
 ## Git workflow
-Branches flow `feature/*` → `main` via PRs. Origin currently has only `main` plus live feature branches (`feature/multicliente-config-layer`, `feature/sprint-technical-changes`) — the `dev` and `qa` branches no longer exist. Feature branches are prefixed with a tracker id, e.g. `feature/ED-88_...`. Commit messages use conventional commits (often with gitmoji); do not add AI attribution / Co-Authored-By lines.
+- `main` is the trunk; everything enters through PRs with required review. Branches: `feature/<ticket>_<topic>` or `fix/<ticket>_<topic>`, cut from an up-to-date `main`.
+- `release/<name>` integration branches are for shipping several PRs together by a deadline; merge them to `main` with a **merge commit** so the included PRs show as merged.
+- Squash-merge single-feature PRs; keep the message free of `Co-Authored-By` lines.
+- Each PR description must say what has to be done on deploy (SQL, env vars).
+- Demo data: `prisma/demo-sql.ts` generates SQL for an invented cooperative (refuses to run unless the cooperative name ends in `(demo)` and the database has no meters); `deploy/sql/demo-refresh.sql` moves the demo timeline to "now" because dashboards look at the last 24 h; `deploy/sql/bootstrap-instance.sql` creates roles, cooperative and admin for a new database.
 
 ## Gotchas
-- Local dev has historically pointed at **production** (`app.ecowater.com.ar`): the Supabase pooler, the HiveMQ cloud broker and the Mongo audit cluster in `.env.local` are the live ones. Before enabling `VALVE_BYPASS_AUTH` or `FEATURE_VALVE_CONTROL`, confirm `DATABASE_URL`/`MQTT_BROKER_URL` are not production — a bypassed valve `POST` closes a real member's water. `npm run cron:update-meters` (POST) likewise rewrites live meter statuses.
-- The production DB was built with `prisma db push`, so **`_prisma_migrations` does not exist** while `prisma/migrations/` holds 5 migrations. `prisma migrate status` therefore reports all 5 as unapplied even though the 14 tables match `schema.prisma`. Do **not** run `prisma:migrate` (migrate dev offers to reset the schema → total data loss) or `prisma:migrate:deploy` (fails with `already exists`). To make migrations usable, baseline first with `prisma:migrate:resolve` for each of the 5.
-- `next.config.mjs` sets `serverExternalPackages`, which is Next 15 naming; on Next 14.2 it is ignored (the dev server warns). The 14.x key is `experimental.serverComponentsExternalPackages` — relevant to how `mqtt`, `mongodb` and `@google-cloud/vision` get bundled.
-- Several API routes instantiate `new PrismaClient()` at module scope per file rather than sharing a singleton — be aware when reasoning about connection counts.
+- **The production DB was built with `prisma db push`**, so `_prisma_migrations` does not exist while `prisma/migrations/` holds migrations. COSEGO runs with `SKIP_DB_MIGRATIONS=true`. Do **not** run `prisma:migrate` (migrate dev offers to reset the schema → total data loss) or `prisma:migrate:deploy` (fails with `already exists`). New columns: additive, with a default, via an SQL file applied before the code. A brand-new database gets its whole schema with `prisma@5.22.0 db push` from a throwaway container (see the workflow doc).
+- **The container entrypoint's bootstrap (`BOOTSTRAP_ON_START=true`) is broken** in the standalone image: `npx prisma db seed` downloads Prisma 7 and `create-admin` cannot find `bcryptjs`; the container then crash-loops. Use `deploy/sql/bootstrap-instance.sql` and keep `BOOTSTRAP_ON_START=false`.
+- `next.config.mjs` uses `output: "standalone"` and `experimental.serverComponentsExternalPackages: ["mqtt", "@google-cloud/vision"]` (the 14.x key; `serverExternalPackages` is Next 15 naming and is ignored on 14.2). Packages not traced into the standalone build are missing at runtime.
+- `app/api/cooperative/packs` must stay `force-dynamic`, otherwise its response is frozen at build time.
+- Several API routes do not require a session yet: `PUT` and `PATCH` (status) on `/api/meter/[id]`, many `/api/dashboard/*` endpoints and `/api/urgencies`. Add a session check when touching them.
+- Changing the env of a service recreates every container sharing that `env_file` (the database too). Data lives in a Docker volume and survives, but the container restarts.
+- `docker compose exec -T` inside a script piped over `ssh ... bash -s` swallows the rest of the script from stdin; add `</dev/null`. In zsh, never name a variable `path`.
 - `utils/parseTimestamp .ts` has a trailing space in its filename; imports must keep it (`@/utils/parseTimestamp `).
-- Roles seen in code: `lector`, `operario` (admin is the unrestricted default). Role gating is split between `middleware.ts` and per-route checks — change both when touching authorization.
+- Roles seen in code: `admin`, `supervisor`, `user`, `operario`, `lector` (seeded). Admin is the unrestricted default.
