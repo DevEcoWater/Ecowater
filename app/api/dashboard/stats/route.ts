@@ -295,11 +295,15 @@ export async function GET() {
         console.log(`[STATS] Actualizados ${metersToActivate.length} medidores a ACTIVE`);
       }
 
-      // Active/inactive counts are smart-only — mechanical status is not derived from connectivity.
+      // "En línea" responde una sola pregunta: ¿el medidor reportó en las últimas 24 h?
+      // No exige estado ACTIVE: un medidor que reporta con una alarma (FAULTY,
+      // MAINTENANCE) esta comunicandose, y esa alarma ya se cuenta en Errores/Alertas.
+      // Antes se exigia status ACTIVE y un medidor con tuberia vacia que reportaba
+      // hace minutos figuraba como "fuera de linea" (0/3), contradiciendo la lista.
+      // Smart-only — el estado de los mecanicos no se deriva de la conectividad.
       activeMeters = await prisma.meter.count({
         where: {
           meter_type: "SMART",
-          status: "ACTIVE",
           readings: { some: { timestamp: { gte: last24Hours } } },
         },
       });
