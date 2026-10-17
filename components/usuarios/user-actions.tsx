@@ -11,6 +11,7 @@ import {
   Gauge,
   Trash2,
   RefreshCw,
+  UserX,
 } from "lucide-react";
 
 import { Button } from "../ui/button";
@@ -24,6 +25,7 @@ import {
 } from "../ui/dropdown-menu";
 import { DeleteUserModal } from "../modals/delete-user-modal";
 import { ReactivateUserModal } from "../modals/reactive-user-modal";
+import { DeleteUserDialog } from "./delete-user-dialog";
 import { UserDataForTable } from "@/types/users/user-types";
 import { useSession } from "next-auth/react";
 
@@ -44,6 +46,12 @@ export const UserActions = ({ user }: UserActionsProps) => {
   const [isReactivateModalOpen, setIsReactivateModalOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [userToReactivate, setUserToReactivate] = useState<User | null>(null);
+  const [isPermanentDeleteOpen, setIsPermanentDeleteOpen] = useState(false);
+
+  const canPermanentlyDelete =
+    role === "admin" &&
+    !!session.data?.user?.canWrite &&
+    session.data?.user?.id !== user.id;
 
   const isUserInactive =
     user.status === "INACTIVE" || user.status === "BLOCKED";
@@ -157,8 +165,26 @@ export const UserActions = ({ user }: UserActionsProps) => {
               No tenés permisos para desactivar usuarios
             </DropdownMenuItem>
           )}
+
+          {canPermanentlyDelete && (
+            <DropdownMenuItem
+              className="cursor-pointer flex items-center gap-2 text-destructive focus:text-destructive"
+              onSelect={() => setIsPermanentDeleteOpen(true)}
+            >
+              <UserX className="h-4 w-4" />
+              Eliminar definitivamente
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {canPermanentlyDelete && (
+        <DeleteUserDialog
+          open={isPermanentDeleteOpen}
+          onOpenChange={setIsPermanentDeleteOpen}
+          user={user}
+        />
+      )}
 
       <DeleteUserModal
         user={userToDelete}

@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { User } from "@prisma/client";
-import { MoreHorizontal, User2, Gauge, Pencil, PowerOff, Power } from "lucide-react";
+import { MoreHorizontal, User2, Gauge, Pencil, PowerOff, Power, Trash2 } from "lucide-react";
 import { MeterTypeChip } from "../ui/meter-type-chip";
 
 import { Button } from "../ui/button";
@@ -17,6 +19,7 @@ import {
 import { MeterDataForTable } from "@/types/meters/meter-types";
 import { useUpdateMeterStatusMutation } from "@/hooks/meters/use-meter-query";
 import { useToast } from "@/hooks/use-toast";
+import { DeleteMeterDialog } from "./delete-meter-dialog";
 
 interface MeterActionsProps {
   meter: TMeterInfo;
@@ -40,6 +43,9 @@ export const MeterActions = ({ meter }: MeterActionsProps) => {
   const router = useRouter();
   const { toast } = useToast();
   const statusMutation = useUpdateMeterStatusMutation();
+  const { data: session } = useSession();
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const canDelete = session?.user?.role === "admin" && !!session?.user?.canWrite;
 
   const isMechanical = meter.meter_type === "MECHANICAL";
   const isActive = meter.status === "ACTIVE";
@@ -74,6 +80,7 @@ export const MeterActions = ({ meter }: MeterActionsProps) => {
   };
 
   return (
+    <>
     <DropdownMenu modal={true}>
       <DropdownMenuTrigger asChild>
         <Button
@@ -151,7 +158,25 @@ export const MeterActions = ({ meter }: MeterActionsProps) => {
             )}
           </>
         )}
+
+        {canDelete && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="cursor-pointer flex items-center gap-2 text-destructive focus:text-destructive"
+              onSelect={() => setDeleteOpen(true)}
+            >
+              <Trash2 className="h-4 w-4" />
+              Eliminar medidor
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
+
+    {canDelete && (
+      <DeleteMeterDialog open={deleteOpen} onOpenChange={setDeleteOpen} meter={meter} />
+    )}
+    </>
   );
 };

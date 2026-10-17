@@ -154,10 +154,12 @@ export default function RegisterUserPage() {
           onKeyDown={handleKeyDown}
           onSubmit={form.handleSubmit(onSubmit)}
           autoComplete="off"
-          className="space-y-6"
+          className="flex flex-col gap-4 lg:h-[calc(100dvh-14rem)] lg:min-h-[560px]"
         >
+          {/* En desktop: datos a la izquierda, ubicación + mapa a la derecha */}
+          <div className="grid gap-4 lg:grid-cols-2 flex-1 lg:min-h-0">
           {/* Personal Information Card */}
-          <Card>
+          <Card id="tour-edit-personal" className="lg:overflow-y-auto">
             <CardHeader>
               <CardTitle>Información Personal</CardTitle>
               <CardDescription>
@@ -291,14 +293,14 @@ export default function RegisterUserPage() {
           </Card>
 
           {/* Location Card */}
-          <Card>
+          <Card id="tour-edit-location" className="flex flex-col lg:min-h-0">
             <CardHeader>
               <CardTitle>Ubicación</CardTitle>
               <CardDescription>
                 Seleccione la dirección del usuario
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="flex-1 flex flex-col gap-4 lg:min-h-0">
               <div key={pathname}>
                 <FormField
                   control={form.control}
@@ -320,18 +322,20 @@ export default function RegisterUserPage() {
                 />
               </div>
 
-              <div className="h-[300px] rounded-md overflow-hidden border">
+              <div className="h-[300px] lg:h-auto lg:flex-1 lg:min-h-[240px] rounded-md overflow-hidden border">
                 <CoordinateMap
                   initialLocation={mapCenter}
                   readOnly={true}
-                  height="300px"
+                  height="100%"
+                  className="h-full"
                 />
               </div>
             </CardContent>
           </Card>
+          </div>
 
           {/* Sticky action footer */}
-          <div className="sticky bottom-0 z-10 bg-background border-t py-3 flex items-center justify-between gap-3">
+          <div id="tour-form-actions" className="sticky bottom-0 z-10 bg-background border-t py-3 flex items-center justify-between gap-3">
             <Button
               type="button"
               variant="outline"

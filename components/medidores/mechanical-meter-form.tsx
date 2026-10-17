@@ -149,148 +149,164 @@ export default function MechanicalMeterForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        {/* Basic info */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Información del medidor</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <FormField
-              control={form.control}
-              name="device_name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nombre del medidor</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Ej: Medidor 142 c/ 505 y 506" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+      {/* En desktop ocupa el alto disponible: datos a la izquierda, mapa a la derecha */}
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        className="flex flex-col gap-4 lg:h-[calc(100dvh-14rem)] lg:min-h-[560px]"
+      >
+        <div className="grid gap-4 lg:grid-cols-[minmax(340px,2fr)_3fr] flex-1 lg:min-h-0">
+          {/* Columna izquierda: datos */}
+          <div className="space-y-4 lg:overflow-y-auto lg:pr-1">
+            <Card id="tour-mech-info">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Información del medidor</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="device_name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nombre del medidor</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Ej: Medidor 142 c/ 505 y 506" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            <FormField
-              control={form.control}
-              name="dev_eui"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    ID del medidor{" "}
-                    <span className="text-muted-foreground font-normal">(opcional)</span>
-                  </FormLabel>
-                  <FormControl>
-                    <Input placeholder="Ej: 0012AB34CD56EF78" {...field} />
-                  </FormControl>
-                  <p className="text-xs text-muted-foreground">
-                    Identificador único para referencia en tablas e informes.
+                <FormField
+                  control={form.control}
+                  name="dev_eui"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        ID del medidor{" "}
+                        <span className="text-muted-foreground font-normal">(opcional)</span>
+                      </FormLabel>
+                      <FormControl>
+                        <Input placeholder="Ej: 0012AB34CD56EF78" {...field} />
+                      </FormControl>
+                      <p className="text-xs text-muted-foreground">
+                        Identificador único para referencia en tablas e informes.
+                      </p>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+            </Card>
+
+            <Card id="tour-mech-location">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Ubicación</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="street_address"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Dirección</FormLabel>
+                      <FormControl>
+                        <AddressAutocomplete
+                          placeholder="Ingrese la dirección del medidor"
+                          value={field.value}
+                          onChange={(value) => field.onChange(value)}
+                          onPlaceSelect={handlePlaceSelect}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Zone detection badge */}
+                <div className="flex items-center gap-2 text-sm">
+                  <MapPin className="w-4 h-4 shrink-0 text-muted-foreground" />
+                  {detectedZone ? (
+                    <span className="flex items-center gap-1.5">
+                      <span className="text-muted-foreground">Zona detectada:</span>
+                      <span
+                        className="font-medium px-2 py-0.5 rounded-full text-xs"
+                        style={{
+                          backgroundColor: `${detectedZone.color}22`,
+                          color: detectedZone.color,
+                          border: `1px solid ${detectedZone.color}55`,
+                        }}
+                      >
+                        {detectedZone.name}
+                      </span>
+                    </span>
+                  ) : (
+                    <span className="text-amber-600 text-xs font-medium">
+                      Fuera de toda zona — verificá la ubicación
+                    </span>
+                  )}
+                </div>
+
+                {/* Coordinate readout */}
+                <div className="rounded-lg border bg-muted/30 px-3 py-2.5 text-sm">
+                  <p className="font-medium text-muted-foreground text-xs uppercase tracking-wide mb-1">
+                    Coordenadas seleccionadas
                   </p>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                  <div className="flex flex-wrap gap-x-6 gap-y-1">
+                    <p>
+                      <span className="text-muted-foreground">Lat:</span>{" "}
+                      <span className="font-mono">{coords.lat.toFixed(6)}</span>
+                    </p>
+                    <p>
+                      <span className="text-muted-foreground">Lng:</span>{" "}
+                      <span className="font-mono">{coords.lng.toFixed(6)}</span>
+                    </p>
+                  </div>
+                </div>
 
-          </CardContent>
-        </Card>
+                {/* Hidden coordinates field — exposes zod validation errors */}
+                <FormField
+                  control={form.control}
+                  name="coordinates"
+                  render={() => <FormItem><FormMessage /></FormItem>}
+                />
+              </CardContent>
+            </Card>
+          </div>
 
-        {/* Location */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Ubicación</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <FormField
-              control={form.control}
-              name="street_address"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Dirección</FormLabel>
-                  <FormControl>
-                    <AddressAutocomplete
-                      placeholder="Ingrese la dirección del medidor"
-                      value={field.value}
-                      onChange={(value) => field.onChange(value)}
-                      onPlaceSelect={handlePlaceSelect}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <p className="text-sm text-muted-foreground">
-              Hacé clic en el mapa o arrastrá el marcador para ajustar la ubicación exacta.
-              Las zonas se muestran como referencia.
-            </p>
-
-            <div className="rounded-md overflow-hidden border">
-              <CoordinateMap
-                initialLocation={mapCenter}
-                height="380px"
-                zoom={13}
-                zones={zones.map((z) => ({
-                  id: z.id,
-                  name: z.name,
-                  color: z.color,
-                  polygon: z.polygon,
-                }))}
-                onLocationChange={(loc) => {
-                  form.setValue("coordinates", { lat: loc.lat, lng: loc.lng });
-                  setMapCenter(loc);
-                }}
-              />
-            </div>
-
-            {/* Zone detection badge */}
-            <div className="flex items-center gap-2 text-sm">
-              <MapPin className="w-4 h-4 shrink-0 text-muted-foreground" />
-              {detectedZone ? (
-                <span className="flex items-center gap-1.5">
-                  <span className="text-muted-foreground">Zona detectada:</span>
-                  <span
-                    className="font-medium px-2 py-0.5 rounded-full text-xs"
-                    style={{
-                      backgroundColor: `${detectedZone.color}22`,
-                      color: detectedZone.color,
-                      border: `1px solid ${detectedZone.color}55`,
-                    }}
-                  >
-                    {detectedZone.name}
-                  </span>
-                </span>
-              ) : (
-                <span className="text-amber-600 text-xs font-medium">
-                  Fuera de toda zona — verificá la ubicación
-                </span>
-              )}
-            </div>
-
-            {/* Coordinate readout */}
-            <div className="rounded-lg border bg-muted/30 px-3 py-2.5 space-y-1 text-sm">
-              <p className="font-medium text-muted-foreground text-xs uppercase tracking-wide mb-1">
-                Coordenadas seleccionadas
+          {/* Columna derecha: mapa a todo el alto */}
+          <Card id="tour-mech-map" className="flex flex-col overflow-hidden lg:min-h-0">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Mapa</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Hacé clic en el mapa o arrastrá el marcador para ajustar la ubicación exacta.
+                Las zonas se muestran como referencia.
               </p>
-              <p>
-                <span className="text-muted-foreground">Lat:</span>{" "}
-                <span className="font-mono">{coords.lat.toFixed(6)}</span>
-              </p>
-              <p>
-                <span className="text-muted-foreground">Lng:</span>{" "}
-                <span className="font-mono">{coords.lng.toFixed(6)}</span>
-              </p>
-            </div>
+            </CardHeader>
+            <CardContent className="flex-1 min-h-0 pb-4">
+              <div className="h-[380px] lg:h-full rounded-md overflow-hidden border">
+                <CoordinateMap
+                  initialLocation={mapCenter}
+                  height="100%"
+                  className="h-full"
+                  zoom={13}
+                  zones={zones.map((z) => ({
+                    id: z.id,
+                    name: z.name,
+                    color: z.color,
+                    polygon: z.polygon,
+                  }))}
+                  onLocationChange={(loc) => {
+                    form.setValue("coordinates", { lat: loc.lat, lng: loc.lng });
+                    setMapCenter(loc);
+                  }}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-            {/* Hidden coordinates field — exposes zod validation errors */}
-            <FormField
-              control={form.control}
-              name="coordinates"
-              render={() => <FormItem><FormMessage /></FormItem>}
-            />
-          </CardContent>
-        </Card>
-
-        {/* Sticky footer */}
-        <div className="sticky bottom-0 z-10 bg-background border-t py-3 flex items-center justify-between gap-3">
+        {/* Footer */}
+        <div id="tour-form-actions" className="sticky bottom-0 z-10 bg-background border-t py-3 flex items-center justify-between gap-3">
           <Button
             type="button"
             variant="outline"

@@ -328,7 +328,7 @@ export default function UserDetailPage() {
             <div className="pt-4 border-t space-y-3">
               <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
                 <Pen className="h-3.5 w-3.5" />
-                Permiso de escritura — control de válvulas vía MQTT
+                Permiso de escritura — control de válvulas y eliminación de medidores/usuarios
               </p>
               <div className="flex items-center justify-between">
                 <Badge
