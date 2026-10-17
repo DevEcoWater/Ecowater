@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import Image from "next/image";
 import { useCooperative } from "@/hooks/cooperative/user-cooperative";
+import { clientConfig } from "@/config/client.config";
 
 interface RedirectHandlerProps {
   redirectTo?: string;
@@ -46,7 +47,7 @@ export function RedirectHandler({
               className="h-full w-full object-contain"
             />
           ) : (
-            <Image src="/eco-water.svg" alt="Logo" width={40} height={40} />
+            <Image src={clientConfig.brand.logo} alt="Logo" width={40} height={40} />
           )}
         </div>
         <p className="text-lg font-semibold tracking-tight">{name}</p>
